@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>CardioKinetic</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Inter font now bundled locally via @fontsource/inter for consistent Android display -->
+  <script>
+    // Global Error Logger
+    window.onerror = function (message, source, lineno, colno, error) {
+      const errorDiv = document.getElementById('debug-error-overlay') || document.createElement('div');
+      errorDiv.id = 'debug-error-overlay';
+      errorDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);color:red;z-index:99999;padding:20px;font-family:monospace;overflow:auto;white-space:pre-wrap;';
+      errorDiv.innerHTML += `[ERROR] ${message}\nSource: ${source}:${lineno}:${colno}\nStack: ${error ? error.stack : 'No stack'}\n\n`;
+      document.body.appendChild(errorDiv);
+      console.error("Global Error Caught:", message, error);
+    };
+
+    window.onunhandledrejection = function (event) {
+      const errorDiv = document.getElementById('debug-error-overlay') || document.createElement('div');
+      errorDiv.id = 'debug-error-overlay';
+      errorDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);color:red;z-index:99999;padding:20px;font-family:monospace;overflow:auto;white-space:pre-wrap;';
+      errorDiv.innerHTML += `[PROMISE REJECTION] ${event.reason}\n\n`;
+      document.body.appendChild(errorDiv);
+      console.error("Unhandled Rejection:", event.reason);
+    };
+  </script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['Inconsolata', 'Consolas', 'Monaco', 'monospace'],
+          },
+          colors: {
+            // Overriding primary to be neutral/monochrome
+            primary: {
+              50: '#fafafa',
+              100: '#f5f5f5',
+              200: '#e5e5e5',
+              300: '#d4d4d4',
+              400: '#a3a3a3',
+              500: '#737373',
+              600: '#525252',
+              700: '#404040',
+              800: '#262626',
+              900: '#171717',
+              950: '#0a0a0a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Apply Inter font globally - important for Android WebView */
+    html {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'Inconsolata', 'Consolas', 'Monaco', monospace;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: inherit;
+      background-color: #f5f5f5;
+      /* Light neutral background */
+      overscroll-behavior-y: none;
+      /* Prevent pull-to-refresh */
+      overscroll-behavior-x: none;
+      /* Prevent swipe nav */
+    }
+
+    /* Ensure all elements inherit the font */
+    *,
+    *::before,
+    *::after {
+      font-family: inherit;
+    }
+
+    /* Monospace font for numbers - Consolas with slashed zero */
+    .font-mono {
+      font-family: var(--font-mono) !important;
+    }
+
+    .dark body {
+      background-color: #0a0a0a;
+    }
+
+    /* Custom Scrollbar - Minimal */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #d4d4d4;
+      border-radius: 2px;
+    }
+
+    .dark ::-webkit-scrollbar-thumb {
+      background: #404040;
+    }
+
+    /* Remove ALL focus outlines globally */
+    *:focus {
+      outline: none !important;
+    }
+
+    /* Remove Recharts focus outline */
+    .recharts-wrapper,
+    .recharts-wrapper *,
+    .recharts-surface,
+    .recharts-surface *,
+    svg:focus,
+    svg *:focus,
+    button:focus,
+    div:focus {
+      outline: none !important;
+      box-shadow: none !important;
+      -webkit-tap-highlight-color: transparent !important;
+    }
+
+    /* Remove reference line focus */
+    .recharts-reference-line,
+    .recharts-reference-line * {
+      outline: none !important;
+    }
+  </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.4.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+  }
+}
+</script>
+  <link rel="stylesheet" href="/index.css">
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
+</html>

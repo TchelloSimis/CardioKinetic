@@ -1,0 +1,84 @@
+{
+    "templateVersion": "1.0",
+    "id": "variable-progressive-4-6w",
+    "name": "Flexible Progressive Builder",
+    "description": "A 4-6 week program that adapts to your available training time. Uses relative week positioning for seamless scaling between 4, 5, or 6 weeks. Starts with a foundation phase focusing on aerobic base, progresses through a development phase with increased intensity, and peaks with maximum power output. Perfect for short training blocks or fitting training around busy schedules.",
+    "author": "CardioKinetic",
+    "tags": [
+        "progressive",
+        "flexible",
+        "intermediate"
+    ],
+    "weekConfig": {
+        "type": "variable",
+        "range": {
+            "min": 4,
+            "max": 6,
+            "step": 1
+        }
+    },
+    "defaultSessionStyle": "interval",
+    "progressionMode": "power",
+    "defaultSessionDurationMinutes": 15,
+    "weeks": [
+        {
+            "position": "first",
+            "phaseName": "Foundation",
+            "focus": "Volume",
+            "description": "Establish baseline and movement quality. Focus on consistent effort rather than peak output.",
+            "powerMultiplier": 1.0,
+            "workRestRatio": "1:2",
+            "targetRPE": 6
+        },
+        {
+            "position": "50%",
+            "phaseName": "Development",
+            "focus": "Intensity",
+            "description": "Progressive overload begins. Push harder during work intervals while maintaining form.",
+            "powerMultiplier": 1.1,
+            "workRestRatio": "1:1",
+            "targetRPE": 7
+        },
+        {
+            "position": "last",
+            "phaseName": "Peak",
+            "focus": "Intensity",
+            "description": "Maximum performance week. Give your best effort on every interval.",
+            "powerMultiplier": 1.2,
+            "workRestRatio": "2:1",
+            "targetRPE": 9
+        }
+    ],
+    "fatigueModifiers": [
+        {
+            "condition": "overreached",
+            "adjustments": {
+                "powerMultiplier": 0.75,
+                "volumeMultiplier": 0.5,
+                "message": "🛑 Signs of overreaching detected. Significant reduction applied for safety."
+            }
+        },
+        {
+            "condition": "very_high_fatigue",
+            "adjustments": {
+                "powerMultiplier": 0.85,
+                "restMultiplier": 1.5,
+                "message": "⚠️ High accumulated fatigue. Reducing intensity by 15% and extending rest periods."
+            }
+        },
+        {
+            "condition": "tired",
+            "adjustments": {
+                "rpeAdjust": -1,
+                "message": "😴 Fatigue elevated. Targeting lower RPE today to allow recovery."
+            }
+        },
+        {
+            "condition": "fresh",
+            "adjustments": {
+                "powerMultiplier": 1.05,
+                "message": "✅ Well recovered! Adding 5% intensity boost."
+            }
+        }
+    ]
+}

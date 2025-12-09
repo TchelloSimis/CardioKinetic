@@ -1,0 +1,750 @@
+# CardioKinetic Program Template Documentation
+
+This guide explains how to create, customize, and share program templates for CardioKinetic.
+
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Template Structure](#template-structure)
+3. [Week Configuration](#week-configuration)
+4. [Week Definitions](#week-definitions)
+5. [Fatigue Modifiers](#fatigue-modifiers)
+6. [Examples](#examples)
+7. [Importing & Exporting](#importing--exporting)
+
+---
+
+## Overview
+
+Program templates are JSON files that define complete training programs. They support:
+
+- **Variable Length Programs**: Define programs that work at different week counts (e.g., 4-6 weeks)
+- **Dynamic Adjustments**: Modify training based on athlete fatigue and readiness
+- **Full Customization**: Control every aspect of training phases, intensity, and intervals
+
+### File Format
+
+Templates are saved as `.json` files with the following structure:
+
+```json
+{
+  "templateVersion": "1.0",
+  "id": "unique-id",
+  "name": "Program Name",
+  "description": "Full description...",
+  "weekConfig": { ... },
+  "defaultSessionStyle": "interval",
+  "progressionMode": "power",
+  "defaultSessionDurationMinutes": 15,
+  "weeks": [ ... ],
+  "fatigueModifiers": [ ... ]
+}
+```
+
+---
+
+## Template Structure
+
+### Required Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `templateVersion` | `"1.0"` | Schema version (always "1.0") |
+| `id` | string | Unique identifier for the template |
+| `name` | string | Display name shown in the app |
+| `description` | string | Full description (supports multiple paragraphs) |
+| `weekConfig` | object | Week length configuration |
+| `defaultSessionStyle` | `"interval"` \| `"steady-state"` \| `"custom"` | Default training style |
+| `progressionMode` | `"power"` \| `"duration"` \| `"double"` | How the program progresses (see below) |
+| `defaultSessionDurationMinutes` | number | Default session length |
+| `weeks` | array | Week definitions |
+
+### Progression Modes
+
+| Mode | Description |
+|------|-------------|
+| `"power"` | Power increases week-over-week, duration stays constant |
+| `"duration"` | Duration increases week-over-week, power stays constant |
+| `"double"` | Both power AND duration progress independently per week (defined in each week definition) |
+
+### Optional Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `author` | string | Template creator name |
+| `tags` | string[] | Categorization tags |
+| `fatigueModifiers` | array | Dynamic modification rules |
+
+---
+
+## Week Configuration
+
+The `weekConfig` object defines how many weeks the program can span.
+
+### Fixed-Length Programs
+
+Use `type: "fixed"` for programs that only work at one specific length:
+
+```json
+{
+  "weekConfig": {
+    "type": "fixed",
+    "fixed": 8
+  }
+}
+```
+
+This creates an 8-week program only.
+
+### Variable-Length Programs
+
+Use `type: "variable"` for flexible programs:
+
+```json
+{
+  "weekConfig": {
+    "type": "variable",
+    "range": {
+      "min": 4,
+      "max": 6,
+      "step": 1
+    }
+  }
+}
+```
+
+This allows 4, 5, or 6 week programs. The user selects their preferred length.
+
+#### Range Examples
+
+| min | max | step | Valid Options |
+|-----|-----|------|---------------|
+| 4 | 6 | 1 | 4, 5, 6 |
+| 8 | 12 | 2 | 8, 10, 12 |
+| 6 | 6 | 1 | 6 (effectively fixed) |
+| 4 | 12 | 4 | 4, 8, 12 |
+
+---
+
+## Week Definitions
+
+The `weeks` array contains objects that define each training week. For variable-length programs, weeks are **interpolated** to fit the selected length.
+
+### Week Position
+
+The `position` field determines where a week appears:
+
+| Value | Meaning |
+|-------|---------|
+| `1`, `2`, `3`... | Absolute week number |
+| `"first"` | Always the first week |
+| `"last"` | Always the last week |
+| `"50%"` | Halfway through the program |
+| `"25%"`, `"75%"` | Quarter/three-quarter point |
+| `"33.33%"` | Arbitrary precision percentages |
+
+> [!TIP]
+> Percentage positions support arbitrary decimal precision (e.g., `"33.33333%"` or `"66.6666%"`). This is useful for dividing programs into thirds or other precise fractions.
+
+#### Interpolation
+
+When the program length changes, weeks are interpolated between defined positions. Percentages represent "progress through the program" where `0%` equals week 1 and `100%` equals the last week.
+
+**Formula**: `week = 1 + (percentage × (totalWeeks - 1))`
+
+**Example**: A template with weeks at `"0%"`, `"33%"`, and `"66%"`
+
+- **12-week program**: 0% → Week 1, 33% → Week 5, 66% → Week 8
+- **9-week program**: 0% → Week 1, 33% → Week 4, 66% → Week 6
+
+Numerical values like `powerMultiplier` and `targetRPE` are linearly interpolated between defined points.
+
+### Week Fields
+
+```json
+{
+  "position": "first",
+  "phaseName": "Foundation",
+  "focus": "Volume",
+  "description": "Build aerobic base with moderate intensity",
+  "powerMultiplier": 1.0,
+  "workRestRatio": "1:2",
+  "targetRPE": 6
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `position` | number \| string | Where this week appears (supports decimal percentages like `"33.33%"`) |
+| `phaseName` | string | Phase name (e.g., "Foundation", "Build", "Peak") |
+| `focus` | `"Density"` \| `"Intensity"` \| `"Volume"` \| `"Recovery"` | Training focus |
+| `description` | string | Description shown in coach's advice |
+| `powerMultiplier` | number | Multiplier for basePower (0.1-5.0, where 1.0 = 100%) |
+| `workRestRatio` | string | Work-to-rest ratio (see table below) |
+| `targetRPE` | number | Target RPE 1-10 |
+
+### Training Focus Values
+
+The `focus` field categorizes the primary training emphasis for each week. This helps the app display contextual coaching advice and allows fatigue modifiers to target specific phases.
+
+| Value | Description | Typical Use |
+|-------|-------------|-------------|
+| `"Density"` | Emphasis on increasing work-to-rest ratio. Work intervals become longer or rest periods shorter. | Mid-program phases where you're building the capacity to sustain effort with less recovery. |
+| `"Intensity"` | Emphasis on power output and maximum effort. Higher power multipliers and RPE targets. | Peak phases where you're pushing for top-end performance. |
+| `"Volume"` | Emphasis on total work duration and aerobic capacity. Moderate intensity, longer sessions or more intervals. | Early program phases for building aerobic base, or steady-state endurance weeks. |
+| `"Recovery"` | Emphasis on active recovery and adaptation. Lower intensity and reduced volume. | Deload weeks, taper phases, or after high-intensity blocks. |
+
+> [!TIP]
+> Use the `focus` field together with fatigue modifiers to create adaptive programs. For example, a modifier can apply extra recovery adjustments only during `"Intensity"` weeks when the athlete is tired.
+
+### Work:Rest Ratio Values
+
+| Value | Meaning | Use Case |
+|-------|---------|----------|
+| `"1:0"` or `"steady"` | **Steady State** - No rest intervals, continuous effort | Zone 2 endurance, aerobic base building |
+| `"1:2"` | 1 part work, 2 parts rest | Recovery intervals, beginners |
+| `"1:1"` | Equal work and rest | Standard intervals |
+| `"2:1"` | 2 parts work, 1 part rest | High-density HIIT |
+| `"1:6"` | 1 part work, 6 parts rest | Sprint intervals (SIT) |
+
+### Optional Week Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `sessionStyle` | `"interval"` \| `"steady-state"` \| `"custom"` | Override default session style |
+| `durationMinutes` | number \| string | Override default duration. Can be absolute (e.g., `30`) or a percentage of the default (e.g., `"110%"` for 10% longer). Range: 5-180 min or 10-500%. |
+| `workDurationSeconds` | number | Explicit work interval (overrides ratio) |
+| `restDurationSeconds` | number | Explicit rest interval (overrides ratio) |
+| `blocks` | array | For `"custom"` session style: array of training blocks (see below) |
+
+### Custom Sessions (Blocks)
+
+Custom sessions allow interweaving **steady-state** and **interval** training blocks in a single session. When `sessionStyle` is `"custom"`, you can define a `blocks` array.
+
+#### TemplateBlock Structure
+
+```json
+{
+  "blocks": [
+    {
+      "type": "steady-state",
+      "durationExpression": 5,
+      "powerExpression": 0.7
+    },
+    {
+      "type": "interval",
+      "durationExpression": 10,
+      "powerExpression": 1.0,
+      "workRestRatio": "2:1"
+    },
+    {
+      "type": "steady-state",
+      "durationExpression": 3,
+      "powerExpression": 0.5
+    }
+  ]
+}
+```
+
+#### Block Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `"steady-state"` \| `"interval"` | Block type |
+| `durationExpression` | number \| string | Block duration in minutes (or expression). For interval blocks with `cycles`, this is calculated automatically. |
+| `powerExpression` | number \| string | Power multiplier (or expression) |
+| `cycles` | number | **For interval blocks:** Number of work/rest cycles. When specified with `workDurationSeconds` and `restDurationSeconds`, duration is calculated automatically. |
+| `workDurationSeconds` | number | For interval blocks: work duration per cycle in seconds |
+| `restDurationSeconds` | number | For interval blocks: rest duration per cycle in seconds |
+| `workRestRatio` | string | Legacy: work:rest ratio (e.g., `"2:1"`). Prefer using explicit `workDurationSeconds` and `restDurationSeconds`. |
+
+> [!TIP]
+> For interval blocks, the recommended approach is to specify `cycles`, `workDurationSeconds`, and `restDurationSeconds`. The block duration is then calculated automatically as: `(cycles × (work + rest)) / 60` minutes.
+
+#### Expression Syntax
+
+Both `durationExpression` and `powerExpression` support:
+
+| Format | Example | Meaning |
+|--------|---------|---------|
+| Number | `5`, `0.8` | Absolute value (minutes or multiplier) |
+| Percentage | `"80%"` | Percentage of base value |
+| Multiplication | `"power * 0.8"` | Multiply base power by 0.8 |
+| | `"duration * 0.25"` | 25% of session duration |
+
+#### Custom Session Example
+
+A warm-up → intervals → cooldown session:
+
+```json
+{
+  "position": "50%",
+  "phaseName": "Build",
+  "focus": "Intensity",
+  "description": "Mixed session with warm-up and cooldown",
+  "sessionStyle": "custom",
+  "powerMultiplier": 1.0,
+  "workRestRatio": "2:1",
+  "targetRPE": 7,
+  "blocks": [
+    { 
+      "type": "steady-state", 
+      "durationExpression": 3, 
+      "powerExpression": 0.6 
+    },
+    { 
+      "type": "interval", 
+      "powerExpression": 1.0, 
+      "cycles": 10,
+      "workDurationSeconds": 40,
+      "restDurationSeconds": 20
+    },
+    { 
+      "type": "steady-state", 
+      "durationExpression": 2, 
+      "powerExpression": 0.5 
+    }
+  ]
+}
+```
+
+In this example:
+- **Block 1:** 3-minute steady-state warm-up at 60% power
+- **Block 2:** 10 intervals of 40s work / 20s rest (10 min total) at 100% power
+- **Block 3:** 2-minute steady-state cooldown at 50% power
+
+> [!TIP]
+> The total session duration for custom sessions is calculated from the sum of all block durations. The `durationMinutes` field is ignored when `blocks` is defined.
+
+---
+
+## Understanding Fatigue & Readiness Scores
+
+CardioKinetic calculates fatigue and readiness scores using an **Exponentially Weighted Moving Average (EWMA)** model, a well-established approach in sports science for tracking training load and recovery.
+
+### The Training Load Model
+
+The underlying model is based on the **Fitness-Fatigue** (or Banister) model, which treats training as having two opposing effects:
+
+1. **Fitness** (positive adaptation) – builds slowly, decays slowly
+2. **Fatigue** (negative short-term effect) – builds quickly, decays quickly
+
+Performance readiness is the balance between accumulated fitness and current fatigue.
+
+### Key Metrics
+
+| Metric | Full Name | Description |
+|--------|-----------|-------------|
+| **ATL** | Acute Training Load | 7-day EWMA of training load. Represents short-term fatigue accumulation. |
+| **CTL** | Chronic Training Load | 42-day EWMA of training load. Represents long-term fitness/adaptation. |
+| **TSB** | Training Stress Balance | `CTL - ATL`. Positive = fresh/recovered, Negative = fatigued. |
+
+### Daily Load Calculation
+
+Each session's training load is calculated using a non-linear formula that accounts for session duration, perceived effort, and relative intensity:
+
+```
+Load = RPE^1.5 × Duration^0.75 × PowerRatio^0.5 × 0.3
+```
+
+Where `PowerRatio = Session Power / Recent Average Power` (28-day weighted average).
+
+**Why this formula?**
+
+- **RPE exponent (1.5)**: Higher RPE sessions cause disproportionately more fatigue. An RPE 10 session is approximately **2.8× more demanding** than an RPE 5 session (not just 2×).
+- **Duration exponent (0.75)**: Longer sessions have diminishing returns per minute. A 120-minute session is about **22× more load** than a 2-minute session (not 60×).
+- **Power ratio exponent (0.5)**: Sessions harder than your recent average add more load; sessions easier than average add less. A 200W session when averaging 100W adds **~41% more load**; 200W when averaging 400W reduces load by **~29%**.
+- **Scaling factor (0.3)**: Calibrates scores to practical ranges.
+
+**Example calculations (assuming PowerRatio = 1.0):**
+
+| Session | Calculation | Load |
+|---------|-------------|------|
+| 15 min @ RPE 7 | 7^1.5 × 15^0.75 × 1.0^0.5 × 0.3 | ~42 |
+| 2 min @ RPE 7 | 7^1.5 × 2^0.75 × 1.0^0.5 × 0.3 | ~9 |
+| 120 min @ RPE 7 | 7^1.5 × 120^0.75 × 1.0^0.5 × 0.3 | ~184 |
+| 15 min @ RPE 10 | 10^1.5 × 15^0.75 × 1.0^0.5 × 0.3 | ~72 |
+
+**Power ratio impact (15 min @ RPE 7):**
+
+| Session Power | Recent Avg | PowerRatio | Load |
+|--------------|------------|------------|------|
+| 200W | 100W | 2.0 | ~59 (+41%) |
+| 200W | 200W | 1.0 | ~42 (baseline) |
+| 200W | 400W | 0.5 | ~30 (-29%) |
+
+This approach reflects the physiological reality that:
+- Very short sessions, even at high intensity, don't accumulate massive fatigue
+- Very long sessions don't scale linearly (a 2-hour session isn't 8× harder than a 15-minute one)
+- High RPE sessions require more recovery than low RPE sessions at the same duration
+- Working above your recent training load is more stressful than working below it
+
+### EWMA Smoothing
+
+The app uses exponential smoothing with the following time constants:
+
+| Metric | Time Constant | Smoothing Factor (α) |
+|--------|---------------|----------------------|
+| ATL | 7 days | `2 / (7 + 1) = 0.25` |
+| CTL | 42 days | `2 / (42 + 1) ≈ 0.047` |
+
+The formula applied each day:
+
+```
+ATL_today = ATL_yesterday × (1 - α_ATL) + Load_today × α_ATL
+CTL_today = CTL_yesterday × (1 - α_CTL) + Load_today × α_CTL
+```
+
+### Score Derivation
+
+From these raw metrics, the app derives two 0-100 scores:
+
+| Score | Formula | Interpretation |
+|-------|---------|----------------|
+| **Fatigue Score** | `min(ATL, 100)` | Higher = more accumulated short-term stress. Capped at 100. |
+| **Readiness Score** | `50 + (TSB × 1.25)` (clamped 0-100) | Centered at 50. Positive TSB → higher readiness. Negative TSB → lower readiness. |
+
+#### Readiness Score Examples
+
+| TSB Value | Readiness Score | Interpretation |
+|-----------|-----------------|----------------|
+| +40 | 100 | Very fresh, well-tapered |
+| +20 | 75 | Well recovered, ready to push |
+| 0 | 50 | Balanced training load |
+| -20 | 25 | Fatigued, maintain or reduce |
+| -40 | 0 | Significantly overreached |
+
+### Practical Implications
+
+- **High Fatigue (>60%)**: Recent training has been demanding. Consider reducing intensity or volume.
+- **Low Readiness (<40%)**: Accumulated fatigue exceeds fitness gains. Prioritize recovery.
+- **High Readiness (>65%)**: Well-recovered state. Good opportunity to push harder or extend sessions.
+- **Negative TSB for extended periods**: Risk of non-functional overreaching. Plan a deload.
+
+> [!TIP]
+> The fatigue and readiness scores update automatically based on logged sessions. Fatigue modifiers in your templates can use these scores to automatically adjust training prescriptions in real-time.
+
+---
+
+## Fatigue Modifiers
+
+Fatigue modifiers automatically adjust training based on athlete state.
+
+### Conditions
+
+Conditions can be specified in two ways:
+
+#### 1. Flexible Conditions (Recommended)
+
+Define precise thresholds for fatigue and/or readiness with AND/OR logic:
+
+```json
+{
+  "condition": {
+    "fatigue": ">70",
+    "readiness": "<40",
+    "logic": "or"
+  },
+  "adjustments": { ... }
+}
+```
+
+**Threshold Format:**
+
+| Operator | Meaning | Example |
+|----------|---------|---------|
+| `>` | Greater than | `">70"` = fatigue above 70% |
+| `<` | Less than | `"<40"` = readiness below 40% |
+| `>=` | Greater than or equal | `">=50"` |
+| `<=` | Less than or equal | `"<=30"` |
+
+**Logic Options:**
+
+| Logic | Meaning | Use Case |
+|-------|---------|----------|
+| `"and"` | Both conditions must be true | High fatigue AND low readiness = very fatigued |
+| `"or"` | Either condition triggers | High fatigue OR low readiness = needs attention |
+
+**Examples:**
+
+```json
+// Trigger when fatigue is high AND readiness is low
+{ "fatigue": ">70", "readiness": "<40", "logic": "and" }
+
+// Trigger when fatigue is very high (regardless of readiness)
+{ "fatigue": ">85", "logic": "and" }
+
+// Trigger when fresh (low fatigue OR high readiness)
+{ "fatigue": "<30", "readiness": ">60", "logic": "or" }
+```
+
+#### 2. Preset Conditions (Legacy)
+
+Quick presets for common scenarios:
+
+| Condition | Trigger |
+|-----------|---------|
+| `"low_fatigue"` | Fatigue score < 30% |
+| `"moderate_fatigue"` | Fatigue score 30-60% |
+| `"high_fatigue"` | Fatigue score 60-80% |
+| `"very_high_fatigue"` | Fatigue score > 80% |
+| `"fresh"` | Readiness > 65% |
+| `"recovered"` | Readiness 50-65% |
+| `"tired"` | Readiness 35-50% |
+| `"overreached"` | Readiness < 35% |
+
+### Adjustments
+
+```json
+{
+  "condition": { "fatigue": ">80", "logic": "and" },
+  "adjustments": {
+    "powerMultiplier": 0.85,
+    "rpeAdjust": -1,
+    "restMultiplier": 1.5,
+    "volumeMultiplier": 0.75,
+    "message": "High fatigue detected. Reducing intensity."
+  }
+}
+```
+
+| Adjustment | Effect |
+|------------|--------|
+| `powerMultiplier` | Multiply target power (0.85 = -15%) |
+| `rpeAdjust` | Add/subtract target RPE (-1 = easier) |
+| `restMultiplier` | Multiply rest duration (1.5 = +50%) |
+| `volumeMultiplier` | Multiply session duration (0.75 = -25%) |
+| `message` | Display in Coach's Advice |
+
+
+### Phase & Week Position Filters
+
+Modifiers can be limited to specific phases or positions within the program. Week positions use **relative positioning** to work correctly with variable-length programs.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `phase` | string \| string[] | Only apply to specific phase(s): `"Density"`, `"Intensity"`, `"Volume"`, `"Recovery"` |
+| `weekPosition` | string \| string[] | Only apply to specific position(s) in program (see values below) |
+
+### Week Position Values
+
+Week positions support **relative positioning** to work correctly with variable-length programs. All percentage positions use **floor semantics** where `0%` equals week 1 and `100%` equals the last week.
+
+| Value | Description |
+|-------|-------------|
+| `"first"` | First week of the program only |
+| `"last"` | Last week of the program only |
+| `"early"` | First 33% of the program |
+| `"mid"` | Middle 33% of the program |
+| `"late"` | Last 33% of the program |
+| `"50%"` | Exact percentage through program (±0.5 week tolerance) |
+| `"33.3333%"` | Arbitrary precision percentages supported |
+| `">5"` | After week 5 (week 6+) |
+| `"<10"` | Before week 10 (week 1-9) |
+| `">50%"` | After 50% through program |
+| `"<33.3333%"` | Before 33.33% through program |
+
+> [!TIP]
+> Comparison operators work with arbitrary precision decimals: `">66.6666%"` applies to roughly the last third of the program.
+
+#### Percentage Position Formula
+
+Percentages map to weeks using: `week = 1 + (percentage × (totalWeeks - 1))`
+
+For a **12-week program**:
+- `">33.3333%"` applies to weeks where progress > 33.33% → weeks 6-12
+- `"<66.6666%"` applies to weeks where progress < 66.66% → weeks 1-8
+
+#### Example: Phase-Aware Modifier
+
+```json
+{
+  "condition": "tired",
+  "phase": "Intensity",
+  "adjustments": {
+    "powerMultiplier": 0.9,
+    "message": "Reducing intensity targets since you're tired during a hard phase."
+  }
+}
+```
+
+#### Example: Position-Based Modifier with Comparison
+
+```json
+{
+  "condition": "very_high_fatigue",
+  "weekPosition": ">50%",
+  "adjustments": {
+    "volumeMultiplier": 0.8,
+    "message": "Late in program - prioritizing recovery over volume."
+  }
+}
+```
+
+#### Example: Combining Phase and Position
+
+```json
+{
+  "condition": "fresh",
+  "phase": "Intensity",
+  "weekPosition": ["mid", "late"],
+  "adjustments": {
+    "powerMultiplier": 1.1,
+    "message": "You're feeling great during peak phase - pushing harder!"
+  }
+}
+```
+
+> **Note**: If multiple filter fields are specified (e.g., both `phase` and `weekPosition`), ALL conditions must match for the modifier to apply.
+
+---
+
+## Examples
+
+### Example 1: Fixed 8-Week HIIT Program
+
+```json
+{
+  "templateVersion": "1.0",
+  "id": "fixed-hiit-8week",
+  "name": "8-Week HIIT Accelerator",
+  "description": "An intensive 8-week high-intensity interval program designed to maximize VO2max improvements.",
+  "author": "CardioKinetic",
+  
+  "weekConfig": {
+    "type": "fixed",
+    "fixed": 8
+  },
+  
+  "defaultSessionStyle": "interval",
+  "progressionMode": "power",
+  "defaultSessionDurationMinutes": 15,
+  
+  "weeks": [
+    { "position": 1, "phaseName": "Activation", "focus": "Volume", "description": "Neural activation and movement patterns", "powerMultiplier": 0.9, "workRestRatio": "1:3", "targetRPE": 5 },
+    { "position": 2, "phaseName": "Base", "focus": "Volume", "description": "Aerobic base development", "powerMultiplier": 0.95, "workRestRatio": "1:2", "targetRPE": 6 },
+    { "position": 3, "phaseName": "Build 1", "focus": "Density", "description": "Increasing work density", "powerMultiplier": 1.0, "workRestRatio": "1:2", "targetRPE": 7 },
+    { "position": 4, "phaseName": "Build 2", "focus": "Density", "description": "Peak density phase", "powerMultiplier": 1.0, "workRestRatio": "1:1", "targetRPE": 7 },
+    { "position": 5, "phaseName": "Intensity 1", "focus": "Intensity", "description": "Power progression begins", "powerMultiplier": 1.05, "workRestRatio": "1:1", "targetRPE": 8 },
+    { "position": 6, "phaseName": "Intensity 2", "focus": "Intensity", "description": "Peak power development", "powerMultiplier": 1.1, "workRestRatio": "2:1", "targetRPE": 8 },
+    { "position": 7, "phaseName": "Peak", "focus": "Intensity", "description": "Maximum output", "powerMultiplier": 1.15, "workRestRatio": "2:1", "targetRPE": 9 },
+    { "position": 8, "phaseName": "Taper", "focus": "Recovery", "description": "Active recovery and adaptation", "powerMultiplier": 0.8, "workRestRatio": "1:2", "targetRPE": 5 }
+  ],
+  
+  "fatigueModifiers": [
+    { "condition": "very_high_fatigue", "adjustments": { "powerMultiplier": 0.85, "restMultiplier": 1.5, "message": "⚠️ High accumulated fatigue. Reducing intensity to prevent overtraining." } },
+    { "condition": "fresh", "adjustments": { "powerMultiplier": 1.03, "message": "✅ Well recovered. Small intensity boost today." } }
+  ]
+}
+```
+
+### Example 2: Variable-Length Progressive Program (4-6 weeks)
+
+```json
+{
+  "templateVersion": "1.0",
+  "id": "flexible-progressive",
+  "name": "Flexible Progressive Builder",
+  "description": "A 4-6 week program that adapts to your available training time. Uses relative week positioning for seamless scaling.",
+  "author": "CardioKinetic",
+  
+  "weekConfig": {
+    "type": "variable",
+    "range": { "min": 4, "max": 6, "step": 1 }
+  },
+  
+  "defaultSessionStyle": "interval",
+  "progressionMode": "power",
+  "defaultSessionDurationMinutes": 15,
+  
+  "weeks": [
+    { "position": "first", "phaseName": "Foundation", "focus": "Volume", "description": "Establish baseline and movement quality", "powerMultiplier": 1.0, "workRestRatio": "1:2", "targetRPE": 6 },
+    { "position": "50%", "phaseName": "Development", "focus": "Intensity", "description": "Progressive overload", "powerMultiplier": 1.1, "workRestRatio": "1:1", "targetRPE": 7 },
+    { "position": "last", "phaseName": "Peak", "focus": "Intensity", "description": "Maximum performance", "powerMultiplier": 1.2, "workRestRatio": "2:1", "targetRPE": 9 }
+  ],
+  
+  "fatigueModifiers": [
+    { "condition": "overreached", "adjustments": { "powerMultiplier": 0.75, "volumeMultiplier": 0.5, "message": "🛑 Signs of overreaching. Significant reduction applied." } },
+    { "condition": "tired", "adjustments": { "rpeAdjust": -1, "message": "Take it easier today - reduce perceived effort." } }
+  ]
+}
+```
+
+### Example 3: Steady-State Endurance Program
+
+```json
+{
+  "templateVersion": "1.0",
+  "id": "steady-state-endurance",
+  "name": "Zone 2 Endurance Builder",
+  "description": "A steady-state aerobic program focusing on fat oxidation and mitochondrial development.",
+  
+  "weekConfig": {
+    "type": "variable",
+    "range": { "min": 8, "max": 12, "step": 2 }
+  },
+  
+  "defaultSessionStyle": "steady-state",
+  "progressionMode": "duration",
+  "defaultSessionDurationMinutes": 30,
+  
+  "weeks": [
+    { "position": "first", "phaseName": "Base", "focus": "Volume", "description": "30min steady Zone 2", "powerMultiplier": 0.65, "workRestRatio": "1:0", "targetRPE": 4, "durationMinutes": 30 },
+    { "position": "50%", "phaseName": "Build", "focus": "Volume", "description": "45min steady Zone 2", "powerMultiplier": 0.65, "workRestRatio": "1:0", "targetRPE": 4, "durationMinutes": 45 },
+    { "position": "last", "phaseName": "Peak", "focus": "Volume", "description": "60min steady Zone 2", "powerMultiplier": 0.65, "workRestRatio": "1:0", "targetRPE": 5, "durationMinutes": 60 }
+  ]
+}
+```
+
+---
+
+## Importing & Exporting
+
+### Exporting a Template
+
+1. Go to **Settings** tab
+2. Click **"Export as Template"**
+3. Save the `.json` file
+
+### Importing a Template
+
+1. Go to **Settings** tab
+2. Click **"Import Template"**
+3. Select your `.json` file
+4. Review the validation result
+5. The template will appear in your preset list
+
+### Sharing Templates
+
+Templates are plain JSON files that can be shared via:
+- Email attachment
+- File sharing services
+- Community forums
+- GitHub repositories
+
+---
+
+## Validation Errors
+
+If your template has errors, you'll see specific messages:
+
+| Error | Fix |
+|-------|-----|
+| `templateVersion: Must be "1.0"` | Set `"templateVersion": "1.0"` |
+| `id: Required string field` | Add unique `"id": "your-id"` |
+| `weeks: Must be a non-empty array` | Add at least one week definition |
+| `weeks[0].position: Required field` | Each week needs a `position` |
+| `weeks[0].powerMultiplier: Must be positive` | Use values > 0 (e.g., 1.0) |
+
+---
+
+## Tips
+
+1. **Start with an export**: Export an existing preset, modify it, and re-import
+2. **Use relative positions**: `"first"`, `"50%"`, `"last"` work better for variable-length programs
+3. **Test your modifiers**: Create sample data to see fatigue modifiers in action
+4. **Keep descriptions helpful**: They appear in Coach's Advice during workouts
+
+---
+
+*Template Documentation v1.0 — CardioKinetic*

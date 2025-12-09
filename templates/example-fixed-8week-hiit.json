@@ -1,0 +1,118 @@
+{
+    "templateVersion": "1.0",
+    "id": "fixed-hiit-8week",
+    "name": "8-Week HIIT Accelerator",
+    "description": "An intensive 8-week high-intensity interval program designed to maximize VO2max improvements. Based on scientific protocols that show optimal adaptations occur with structured periodization over 8 weeks. Includes an activation phase, progressive build phases targeting both density and intensity, a peak phase for maximum output, and a strategic taper for adaptation realization.",
+    "author": "CardioKinetic",
+    "tags": [
+        "hiit",
+        "fixed",
+        "advanced",
+        "8-week"
+    ],
+    "weekConfig": {
+        "type": "fixed",
+        "fixed": 8
+    },
+    "defaultSessionStyle": "interval",
+    "progressionMode": "power",
+    "defaultSessionDurationMinutes": 15,
+    "weeks": [
+        {
+            "position": 1,
+            "phaseName": "Activation",
+            "focus": "Volume",
+            "description": "Neural activation and movement pattern establishment. Low intensity, focus on technique.",
+            "powerMultiplier": 0.9,
+            "workRestRatio": "1:3",
+            "targetRPE": 5
+        },
+        {
+            "position": 2,
+            "phaseName": "Base",
+            "focus": "Volume",
+            "description": "Aerobic base development. Building the foundation for intensity work.",
+            "powerMultiplier": 0.95,
+            "workRestRatio": "1:2",
+            "targetRPE": 6
+        },
+        {
+            "position": 3,
+            "phaseName": "Build I",
+            "focus": "Density",
+            "description": "Increasing work density. Maintaining power while reducing rest periods.",
+            "powerMultiplier": 1.0,
+            "workRestRatio": "1:2",
+            "targetRPE": 7
+        },
+        {
+            "position": 4,
+            "phaseName": "Build II",
+            "focus": "Density",
+            "description": "Peak density phase. Work intervals now equal to rest intervals.",
+            "powerMultiplier": 1.0,
+            "workRestRatio": "1:1",
+            "targetRPE": 7
+        },
+        {
+            "position": 5,
+            "phaseName": "Intensity I",
+            "focus": "Intensity",
+            "description": "Power progression begins. Now pushing for higher wattage output.",
+            "powerMultiplier": 1.05,
+            "workRestRatio": "1:1",
+            "targetRPE": 8
+        },
+        {
+            "position": 6,
+            "phaseName": "Intensity II",
+            "focus": "Intensity",
+            "description": "Peak power development. High intensity with aggressive work:rest ratio.",
+            "powerMultiplier": 1.1,
+            "workRestRatio": "2:1",
+            "targetRPE": 8
+        },
+        {
+            "position": 7,
+            "phaseName": "Peak",
+            "focus": "Intensity",
+            "description": "Maximum output week. Give everything you have. This is the climax.",
+            "powerMultiplier": 1.15,
+            "workRestRatio": "2:1",
+            "targetRPE": 9
+        },
+        {
+            "position": 8,
+            "phaseName": "Taper",
+            "focus": "Recovery",
+            "description": "Active recovery and adaptation realization. Reduced volume, maintain some intensity.",
+            "powerMultiplier": 0.8,
+            "workRestRatio": "1:2",
+            "targetRPE": 5
+        }
+    ],
+    "fatigueModifiers": [
+        {
+            "condition": "very_high_fatigue",
+            "adjustments": {
+                "powerMultiplier": 0.85,
+                "restMultiplier": 1.5,
+                "message": "⚠️ High accumulated fatigue detected. Reducing intensity to prevent overtraining."
+            }
+        },
+        {
+            "condition": "high_fatigue",
+            "adjustments": {
+                "restMultiplier": 1.25,
+                "message": "💪 Fatigue building as expected. Extending rest slightly to maintain quality."
+            }
+        },
+        {
+            "condition": "fresh",
+            "adjustments": {
+                "powerMultiplier": 1.03,
+                "message": "✅ Well recovered. Small intensity boost today!"
+            }
+        }
+    ]
+}

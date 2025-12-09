@@ -1,0 +1,105 @@
+{
+    "templateVersion": "1.0",
+    "id": "steady-state-endurance-8-12w",
+    "name": "Zone 2 Endurance Builder",
+    "description": "A steady-state aerobic program focusing on fat oxidation and mitochondrial development. This program uses longer, continuous efforts at low intensity (Zone 2) rather than intervals. Duration progresses from 30 to 60 minutes over the program. Based on the polarized training model where the majority of training is done at low intensity for maximum aerobic adaptations. Available as 8, 10, or 12 week variants.",
+    "author": "CardioKinetic",
+    "tags": [
+        "endurance",
+        "steady-state",
+        "zone2",
+        "aerobic"
+    ],
+    "weekConfig": {
+        "type": "variable",
+        "range": {
+            "min": 8,
+            "max": 12,
+            "step": 2
+        }
+    },
+    "defaultSessionStyle": "steady-state",
+    "progressionMode": "duration",
+    "defaultSessionDurationMinutes": 30,
+    "weeks": [
+        {
+            "position": "first",
+            "phaseName": "Base I",
+            "focus": "Volume",
+            "description": "30 minutes steady Zone 2. Conversational pace. Build the habit.",
+            "powerMultiplier": 0.65,
+            "workRestRatio": "1:0",
+            "targetRPE": 4,
+            "sessionStyle": "steady-state",
+            "durationMinutes": 30
+        },
+        {
+            "position": "25%",
+            "phaseName": "Base II",
+            "focus": "Volume",
+            "description": "35 minutes steady Zone 2. Increasing duration gradually.",
+            "powerMultiplier": 0.65,
+            "workRestRatio": "1:0",
+            "targetRPE": 4,
+            "sessionStyle": "steady-state",
+            "durationMinutes": 35
+        },
+        {
+            "position": "50%",
+            "phaseName": "Build",
+            "focus": "Volume",
+            "description": "45 minutes steady Zone 2. The aerobic engine is developing.",
+            "powerMultiplier": 0.65,
+            "workRestRatio": "1:0",
+            "targetRPE": 4,
+            "sessionStyle": "steady-state",
+            "durationMinutes": 45
+        },
+        {
+            "position": "75%",
+            "phaseName": "Extend",
+            "focus": "Volume",
+            "description": "50 minutes steady Zone 2. Building towards peak duration.",
+            "powerMultiplier": 0.65,
+            "workRestRatio": "1:0",
+            "targetRPE": 5,
+            "sessionStyle": "steady-state",
+            "durationMinutes": 50
+        },
+        {
+            "position": "last",
+            "phaseName": "Peak",
+            "focus": "Volume",
+            "description": "60 minutes steady Zone 2. Full duration achievement.",
+            "powerMultiplier": 0.65,
+            "workRestRatio": "1:0",
+            "targetRPE": 5,
+            "sessionStyle": "steady-state",
+            "durationMinutes": 60
+        }
+    ],
+    "fatigueModifiers": [
+        {
+            "condition": "tired",
+            "adjustments": {
+                "volumeMultiplier": 0.8,
+                "message": "💤 Feeling tired. Reducing duration by 20% to ensure quality."
+            }
+        },
+        {
+            "condition": "overreached",
+            "adjustments": {
+                "volumeMultiplier": 0.5,
+                "powerMultiplier": 0.9,
+                "message": "🛑 Recovery needed. Taking it very easy today."
+            }
+        },
+        {
+            "condition": "fresh",
+            "adjustments": {
+                "volumeMultiplier": 1.1,
+                "message": "🌟 Great recovery! Feel free to extend the session by 10%."
+            }
+        }
+    ]
+}

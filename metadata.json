@@ -1,0 +1,5 @@
+{
+  "name": "CardioKinetic",
+  "description": "A scientific, evidence-based 15-minute fixed-duration cardio training application implementing density progression and autoregulated intensity protocols.",
+  "requestFramePermissions": []
+}

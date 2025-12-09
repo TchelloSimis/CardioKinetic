@@ -1,0 +1,1733 @@
+﻿Initialized native services in: C:\Users\marce\.gradle\native
+Initialized jansi services in: C:\Users\marce\.gradle\native
+Received JVM installation metadata from 'C:\Program Files\Microsoft\jdk-17.0.17.10-hotspot': {JAVA_HOME=C:\Program Files\Microsoft\jdk-17.0.17.10-hotspot, JAVA_VERSION=17.0.17, JAVA_VENDOR=Microsoft, RUNTIME_NAME=OpenJDK Runtime Environment, RUNTIME_VERSION=17.0.17+10-LTS, VM_NAME=OpenJDK 64-Bit Server VM, VM_VERSION=17.0.17+10-LTS, VM_VENDOR=Microsoft, OS_ARCH=amd64}
+Found daemon DaemonInfo{pid=4512, address=[d34c8d7d-4cee-465b-a69e-4821600d8c44 port:56270, addresses:[/127.0.0.1]], state=Idle, lastBusy=1765083032388, context=DefaultDaemonContext[uid=252b5f61-cfa3-4fab-9adf-35f5f12dd169,javaHome=D:\Android Studio\jbr,daemonRegistryDir=C:\Users\marce\.gradle\daemon,pid=4512,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,daemonOpts=--add-opens=java.base/java.util=ALL-UNNAMED,--add-opens=java.base/java.lang=ALL-UNNAMED,--add-opens=java.base/java.lang.invoke=ALL-UNNAMED,--add-opens=java.prefs/java.util.prefs=ALL-UNNAMED,--add-opens=java.base/java.nio.charset=ALL-UNNAMED,--add-opens=java.base/java.net=ALL-UNNAMED,--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED,-Xmx1536m,-Dfile.encoding=UTF-8,-Duser.country=BR,-Duser.language=pt,-Duser.variant]} however its context does not match the desired criteria.
+Java home is different.
+Wanted: DefaultDaemonContext[uid=null,javaHome=C:\Program Files\Microsoft\jdk-17.0.17.10-hotspot,daemonRegistryDir=C:\Users\marce\.gradle\daemon,pid=11856,idleTimeout=null,priority=NORMAL,applyInstrumentationAgent=true,daemonOpts=--add-opens=java.base/java.util=ALL-UNNAMED,--add-opens=java.base/java.lang=ALL-UNNAMED,--add-opens=java.base/java.lang.invoke=ALL-UNNAMED,--add-opens=java.prefs/java.util.prefs=ALL-UNNAMED,--add-opens=java.base/java.nio.charset=ALL-UNNAMED,--add-opens=java.base/java.net=ALL-UNNAMED,--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED,-Xmx1536m,-Dfile.encoding=windows-1252,-Duser.country=BR,-Duser.language=pt,-Duser.variant]
+Actual: DefaultDaemonContext[uid=252b5f61-cfa3-4fab-9adf-35f5f12dd169,javaHome=D:\Android Studio\jbr,daemonRegistryDir=C:\Users\marce\.gradle\daemon,pid=4512,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,daemonOpts=--add-opens=java.base/java.util=ALL-UNNAMED,--add-opens=java.base/java.lang=ALL-UNNAMED,--add-opens=java.base/java.lang.invoke=ALL-UNNAMED,--add-opens=java.prefs/java.util.prefs=ALL-UNNAMED,--add-opens=java.base/java.nio.charset=ALL-UNNAMED,--add-opens=java.base/java.net=ALL-UNNAMED,--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED,-Xmx1536m,-Dfile.encoding=UTF-8,-Duser.country=BR,-Duser.language=pt,-Duser.variant]
+
+  Looking for a different daemon...
+Found daemon DaemonInfo{pid=12436, address=[13c66028-be2b-4a67-8e95-cd5d828a84b5 port:55358, addresses:[/127.0.0.1]], state=Idle, lastBusy=1765201144973, context=DefaultDaemonContext[uid=09baec55-685c-4209-948c-7eccea7c21ae,javaHome=C:\Program Files\Microsoft\jdk-17.0.17.10-hotspot,daemonRegistryDir=C:\Users\marce\.gradle\daemon,pid=12436,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,daemonOpts=--add-opens=java.base/java.util=ALL-UNNAMED,--add-opens=java.base/java.lang=ALL-UNNAMED,--add-opens=java.base/java.lang.invoke=ALL-UNNAMED,--add-opens=java.prefs/java.util.prefs=ALL-UNNAMED,--add-opens=java.base/java.nio.charset=ALL-UNNAMED,--add-opens=java.base/java.net=ALL-UNNAMED,--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED,-Xmx1536m,-Dfile.encoding=utf8,-Duser.country=BR,-Duser.language=pt,-Duser.variant]} however its context does not match the desired criteria.
+At least one daemon option is different.
+Wanted: DefaultDaemonContext[uid=null,javaHome=C:\Program Files\Microsoft\jdk-17.0.17.10-hotspot,daemonRegistryDir=C:\Users\marce\.gradle\daemon,pid=11856,idleTimeout=null,priority=NORMAL,applyInstrumentationAgent=true,daemonOpts=--add-opens=java.base/java.util=ALL-UNNAMED,--add-opens=java.base/java.lang=ALL-UNNAMED,--add-opens=java.base/java.lang.invoke=ALL-UNNAMED,--add-opens=java.prefs/java.util.prefs=ALL-UNNAMED,--add-opens=java.base/java.nio.charset=ALL-UNNAMED,--add-opens=java.base/java.net=ALL-UNNAMED,--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED,-Xmx1536m,-Dfile.encoding=windows-1252,-Duser.country=BR,-Duser.language=pt,-Duser.variant]
+Actual: DefaultDaemonContext[uid=09baec55-685c-4209-948c-7eccea7c21ae,javaHome=C:\Program Files\Microsoft\jdk-17.0.17.10-hotspot,daemonRegistryDir=C:\Users\marce\.gradle\daemon,pid=12436,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,daemonOpts=--add-opens=java.base/java.util=ALL-UNNAMED,--add-opens=java.base/java.lang=ALL-UNNAMED,--add-opens=java.base/java.lang.invoke=ALL-UNNAMED,--add-opens=java.prefs/java.util.prefs=ALL-UNNAMED,--add-opens=java.base/java.nio.charset=ALL-UNNAMED,--add-opens=java.base/java.net=ALL-UNNAMED,--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED,-Xmx1536m,-Dfile.encoding=utf8,-Duser.country=BR,-Duser.language=pt,-Duser.variant]
+
+  Looking for a different daemon...
+The client will now receive all logging from the daemon (pid: 7968). The daemon log file: C:\Users\marce\.gradle\daemon\8.2\daemon-7968.out.log
+Starting 5th build in daemon [uptime: 1 hrs 8 mins 8.477 secs, performance: 99%, GC rate: 0.00/s, heap usage: 0% of 1.5 GiB]
+Using 16 worker leases.
+Now considering [C:\Users\marce\Downloads\cardiokinetic(1)\android] as hierarchies to watch
+Watching the file system is configured to be enabled if available
+File system watching is active
+Starting Build
+Settings evaluated using settings file 'C:\Users\marce\Downloads\cardiokinetic(1)\android\settings.gradle'.
+Projects loaded. Root project using build file 'C:\Users\marce\Downloads\cardiokinetic(1)\android\build.gradle'.
+Included projects: [root project 'android', project ':app', project ':capacitor-android', project ':capacitor-app', project ':capacitor-cordova-android-plugins', project ':capacitor-local-notifications', project ':capawesome-team-capacitor-android-foreground-service']
+
+> Configure project :
+Evaluating root project 'android' using build file 'C:\Users\marce\Downloads\cardiokinetic(1)\android\build.gradle'.
+The configuration :classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+
+> Configure project :app
+Evaluating project ':app' using build file 'C:\Users\marce\Downloads\cardiokinetic(1)\android\app\build.gradle'.
+Using default execution profile
+google-services.json not found, google-services plugin not applied. Push Notifications won't work
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :capacitor-android
+Evaluating project ':capacitor-android' using build file 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\android\capacitor\build.gradle'.
+The configuration :capacitor-android:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-android:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-android:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-android:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+Using default execution profile
+
+> Configure project :capacitor-app
+Evaluating project ':capacitor-app' using build file 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\app\android\build.gradle'.
+The configuration :capacitor-app:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-app:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-app:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-app:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+Using default execution profile
+
+> Configure project :capacitor-cordova-android-plugins
+Evaluating project ':capacitor-cordova-android-plugins' using build file 'C:\Users\marce\Downloads\cardiokinetic(1)\android\capacitor-cordova-android-plugins\build.gradle'.
+The configuration :capacitor-cordova-android-plugins:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-cordova-android-plugins:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-cordova-android-plugins:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-cordova-android-plugins:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+Using default execution profile
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :capacitor-local-notifications
+Evaluating project ':capacitor-local-notifications' using build file 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\build.gradle'.
+The configuration :capacitor-local-notifications:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-local-notifications:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-local-notifications:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-local-notifications:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+Using default execution profile
+
+> Configure project :capawesome-team-capacitor-android-foreground-service
+Evaluating project ':capawesome-team-capacitor-android-foreground-service' using build file 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capawesome-team\capacitor-android-foreground-service\android\build.gradle'.
+The configuration :capawesome-team-capacitor-android-foreground-service:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capawesome-team-capacitor-android-foreground-service:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capawesome-team-capacitor-android-foreground-service:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capawesome-team-capacitor-android-foreground-service:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+Using default execution profile
+All projects evaluated.
+The configuration :classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :app:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :app:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :app:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :app:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :app:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :app:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :app:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :app:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :app:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :app:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :app:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :app:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-android:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-android:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-android:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-android:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-android:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-android:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-android:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-android:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-android:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-android:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-app:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-app:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-app:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-app:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-app:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-app:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-app:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-app:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-app:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-app:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-cordova-android-plugins:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-cordova-android-plugins:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-cordova-android-plugins:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-cordova-android-plugins:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-cordova-android-plugins:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-cordova-android-plugins:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-cordova-android-plugins:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-cordova-android-plugins:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-cordova-android-plugins:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-cordova-android-plugins:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-local-notifications:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-local-notifications:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-local-notifications:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-local-notifications:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-local-notifications:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-local-notifications:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-local-notifications:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-local-notifications:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capacitor-local-notifications:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capacitor-local-notifications:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capawesome-team-capacitor-android-foreground-service:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capawesome-team-capacitor-android-foreground-service:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capawesome-team-capacitor-android-foreground-service:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capawesome-team-capacitor-android-foreground-service:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capawesome-team-capacitor-android-foreground-service:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capawesome-team-capacitor-android-foreground-service:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capawesome-team-capacitor-android-foreground-service:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capawesome-team-capacitor-android-foreground-service:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+The configuration :capawesome-team-capacitor-android-foreground-service:classpath is both resolvable and consumable. This is considered a legacy configuration and it will eventually only be possible to be one of these.
+The configuration :capawesome-team-capacitor-android-foreground-service:classpath is both consumable and declarable. This combination is incorrect, only one of these flags should be set.
+Task name matched 'assembleDebug'
+Selected primary task 'assembleDebug' from project :
+WARNING: We recommend using a newer Android Gradle plugin to use compileSdk = 35
+
+This Android Gradle plugin (8.2.2) was tested up to compileSdk = 34.
+
+You are strongly encouraged to update your project to use a newer
+Android Gradle plugin that has been tested with compileSdk = 35.
+
+If you are already using the latest version of the Android Gradle plugin,
+you may need to wait until a newer version with support for compileSdk = 35 is available.
+
+To suppress this warning, add/update
+    android.suppressUnsupportedCompileSdk=35
+to this project's gradle.properties.
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\android\capacitor\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\android\capacitor\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\android\capacitor\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\android\capacitor\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\app\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\app\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\app\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\app\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\capacitor-cordova-android-plugins\src\main\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\capacitor-cordova-android-plugins\src\main\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\capacitor-cordova-android-plugins\src\main\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\capacitor-cordova-android-plugins\src\main\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capawesome-team\capacitor-android-foreground-service\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capawesome-team\capacitor-android-foreground-service\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capawesome-team\capacitor-android-foreground-service\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capawesome-team\capacitor-android-foreground-service\android\libs', not found
+Tasks to be executed: [task ':app:preBuild', task ':app:preDebugBuild', task ':app:mergeDebugNativeDebugMetadata', task ':app:javaPreCompileDebug', task ':capacitor-android:preBuild', task ':capacitor-android:preDebugBuild', task ':capacitor-android:writeDebugAarMetadata', task ':capacitor-app:preBuild', task ':capacitor-app:preDebugBuild', task ':capacitor-app:writeDebugAarMetadata', task ':capacitor-cordova-android-plugins:preBuild', task ':capacitor-cordova-android-plugins:preDebugBuild', task ':capacitor-cordova-android-plugins:writeDebugAarMetadata', task ':capacitor-local-notifications:preBuild', task ':capacitor-local-notifications:preDebugBuild', task ':capacitor-local-notifications:writeDebugAarMetadata', task ':capawesome-team-capacitor-android-foreground-service:preBuild', task ':capawesome-team-capacitor-android-foreground-service:preDebugBuild', task ':capawesome-team-capacitor-android-foreground-service:writeDebugAarMetadata', task ':app:checkDebugAarMetadata', task ':app:generateDebugResValues', task ':capacitor-android:generateDebugResValues', task ':capacitor-android:generateDebugResources', task ':capacitor-android:packageDebugResources', task ':capacitor-app:generateDebugResValues', task ':capacitor-app:generateDebugResources', task ':capacitor-app:packageDebugResources', task ':capacitor-cordova-android-plugins:generateDebugResValues', task ':capacitor-cordova-android-plugins:generateDebugResources', task ':capacitor-cordova-android-plugins:packageDebugResources', task ':capacitor-local-notifications:generateDebugResValues', task ':capacitor-local-notifications:generateDebugResources', task ':capacitor-local-notifications:packageDebugResources', task ':capawesome-team-capacitor-android-foreground-service:generateDebugResValues', task ':capawesome-team-capacitor-android-foreground-service:generateDebugResources', task ':capawesome-team-capacitor-android-foreground-service:packageDebugResources', task ':app:mapDebugSourceSetPaths', task ':app:generateDebugResources', task ':app:mergeDebugResources', task ':app:packageDebugResources', task ':app:parseDebugLocalResources', task ':app:createDebugCompatibleScreenManifests', task ':app:extractDeepLinksDebug', task ':capacitor-android:extractDeepLinksDebug', task ':capacitor-android:processDebugManifest', task ':capacitor-app:extractDeepLinksDebug', task ':capacitor-app:processDebugManifest', task ':capacitor-cordova-android-plugins:extractDeepLinksDebug', task ':capacitor-cordova-android-plugins:processDebugManifest', task ':capacitor-local-notifications:extractDeepLinksDebug', task ':capacitor-local-notifications:processDebugManifest', task ':capawesome-team-capacitor-android-foreground-service:extractDeepLinksDebug', task ':capawesome-team-capacitor-android-foreground-service:processDebugManifest', task ':app:processDebugMainManifest', task ':app:processDebugManifest', task ':app:processDebugManifestForPackage', task ':capacitor-android:compileDebugLibraryResources', task ':capacitor-android:parseDebugLocalResources', task ':capacitor-android:generateDebugRFile', task ':capacitor-app:compileDebugLibraryResources', task ':capacitor-app:parseDebugLocalResources', task ':capacitor-app:generateDebugRFile', task ':capacitor-cordova-android-plugins:compileDebugLibraryResources', task ':capacitor-cordova-android-plugins:parseDebugLocalResources', task ':capacitor-cordova-android-plugins:generateDebugRFile', task ':capacitor-local-notifications:compileDebugLibraryResources', task ':capacitor-local-notifications:parseDebugLocalResources', task ':capacitor-local-notifications:generateDebugRFile', task ':capawesome-team-capacitor-android-foreground-service:compileDebugLibraryResources', task ':capawesome-team-capacitor-android-foreground-service:parseDebugLocalResources', task ':capawesome-team-capacitor-android-foreground-service:generateDebugRFile', task ':app:processDebugResources', task ':capacitor-android:javaPreCompileDebug', task ':capacitor-android:compileDebugJavaWithJavac', task ':capacitor-android:bundleLibCompileToJarDebug', task ':capacitor-app:javaPreCompileDebug', task ':capacitor-app:compileDebugJavaWithJavac', task ':capacitor-app:bundleLibCompileToJarDebug', task ':capacitor-cordova-android-plugins:javaPreCompileDebug', task ':capacitor-cordova-android-plugins:compileDebugJavaWithJavac', task ':capacitor-cordova-android-plugins:bundleLibCompileToJarDebug', task ':capacitor-local-notifications:javaPreCompileDebug', task ':capacitor-local-notifications:compileDebugJavaWithJavac', task ':capacitor-local-notifications:bundleLibCompileToJarDebug', task ':capawesome-team-capacitor-android-foreground-service:javaPreCompileDebug', task ':capawesome-team-capacitor-android-foreground-service:compileDebugJavaWithJavac', task ':capawesome-team-capacitor-android-foreground-service:bundleLibCompileToJarDebug', task ':app:compileDebugJavaWithJavac', task ':app:mergeDebugShaders', task ':app:compileDebugShaders', task ':app:generateDebugAssets', task ':capacitor-android:mergeDebugShaders', task ':capacitor-android:compileDebugShaders', task ':capacitor-android:generateDebugAssets', task ':capacitor-android:packageDebugAssets', task ':capacitor-app:mergeDebugShaders', task ':capacitor-app:compileDebugShaders', task ':capacitor-app:generateDebugAssets', task ':capacitor-app:packageDebugAssets', task ':capacitor-cordova-android-plugins:mergeDebugShaders', task ':capacitor-cordova-android-plugins:compileDebugShaders', task ':capacitor-cordova-android-plugins:generateDebugAssets', task ':capacitor-cordova-android-plugins:packageDebugAssets', task ':capacitor-local-notifications:mergeDebugShaders', task ':capacitor-local-notifications:compileDebugShaders', task ':capacitor-local-notifications:generateDebugAssets', task ':capacitor-local-notifications:packageDebugAssets', task ':capawesome-team-capacitor-android-foreground-service:mergeDebugShaders', task ':capawesome-team-capacitor-android-foreground-service:compileDebugShaders', task ':capawesome-team-capacitor-android-foreground-service:generateDebugAssets', task ':capawesome-team-capacitor-android-foreground-service:packageDebugAssets', task ':app:mergeDebugAssets', task ':app:compressDebugAssets', task ':capacitor-app:bundleLibRuntimeToJarDebug', task ':capacitor-android:bundleLibRuntimeToJarDebug', task ':capacitor-local-notifications:bundleLibRuntimeToJarDebug', task ':capawesome-team-capacitor-android-foreground-service:bundleLibRuntimeToJarDebug', task ':capacitor-cordova-android-plugins:bundleLibRuntimeToJarDebug', task ':app:desugarDebugFileDependencies', task ':app:dexBuilderDebug', task ':app:mergeDebugGlobalSynthetics', task ':app:processDebugJavaRes', task ':capacitor-android:processDebugJavaRes', task ':capacitor-app:processDebugJavaRes', task ':capacitor-cordova-android-plugins:processDebugJavaRes', task ':capacitor-local-notifications:processDebugJavaRes', task ':capawesome-team-capacitor-android-foreground-service:processDebugJavaRes', task ':app:mergeDebugJavaResource', task ':app:checkDebugDuplicateClasses', task ':app:mergeExtDexDebug', task ':app:mergeLibDexDebug', task ':app:mergeProjectDexDebug', task ':app:mergeDebugJniLibFolders', task ':capacitor-android:mergeDebugJniLibFolders', task ':capacitor-android:mergeDebugNativeLibs', task ':capacitor-android:copyDebugJniLibsProjectOnly', task ':capacitor-app:mergeDebugJniLibFolders', task ':capacitor-app:mergeDebugNativeLibs', task ':capacitor-app:copyDebugJniLibsProjectOnly', task ':capacitor-cordova-android-plugins:mergeDebugJniLibFolders', task ':capacitor-cordova-android-plugins:mergeDebugNativeLibs', task ':capacitor-cordova-android-plugins:copyDebugJniLibsProjectOnly', task ':capacitor-local-notifications:mergeDebugJniLibFolders', task ':capacitor-local-notifications:mergeDebugNativeLibs', task ':capacitor-local-notifications:copyDebugJniLibsProjectOnly', task ':capawesome-team-capacitor-android-foreground-service:mergeDebugJniLibFolders', task ':capawesome-team-capacitor-android-foreground-service:mergeDebugNativeLibs', task ':capawesome-team-capacitor-android-foreground-service:copyDebugJniLibsProjectOnly', task ':app:mergeDebugNativeLibs', task ':app:stripDebugDebugSymbols', task ':app:validateSigningDebug', task ':app:writeDebugAppMetadata', task ':app:writeDebugSigningConfigVersions', task ':app:packageDebug', task ':app:createDebugApkListingFileRedirect', task ':app:assembleDebug', task ':capacitor-android:stripDebugDebugSymbols', task ':capacitor-android:copyDebugJniLibsProjectAndLocalJars', task ':capacitor-android:extractDebugAnnotations', task ':capacitor-android:extractDeepLinksForAarDebug', task ':capacitor-android:mergeDebugGeneratedProguardFiles', task ':capacitor-android:mergeDebugConsumerProguardFiles', task ':capacitor-android:prepareDebugArtProfile', task ':capacitor-android:prepareLintJarForPublish', task ':capacitor-android:mergeDebugJavaResource', task ':capacitor-android:syncDebugLibJars', task ':capacitor-android:bundleDebugAar', task ':capacitor-android:assembleDebug', task ':capacitor-app:stripDebugDebugSymbols', task ':capacitor-app:copyDebugJniLibsProjectAndLocalJars', task ':capacitor-app:extractDebugAnnotations', task ':capacitor-app:extractDeepLinksForAarDebug', task ':capacitor-app:mergeDebugGeneratedProguardFiles', task ':capacitor-app:mergeDebugConsumerProguardFiles', task ':capacitor-app:prepareDebugArtProfile', task ':capacitor-app:prepareLintJarForPublish', task ':capacitor-app:mergeDebugJavaResource', task ':capacitor-app:syncDebugLibJars', task ':capacitor-app:bundleDebugAar', task ':capacitor-app:assembleDebug', task ':capacitor-cordova-android-plugins:stripDebugDebugSymbols', task ':capacitor-cordova-android-plugins:copyDebugJniLibsProjectAndLocalJars', task ':capacitor-cordova-android-plugins:extractDebugAnnotations', task ':capacitor-cordova-android-plugins:extractDeepLinksForAarDebug', task ':capacitor-cordova-android-plugins:mergeDebugGeneratedProguardFiles', task ':capacitor-cordova-android-plugins:mergeDebugConsumerProguardFiles', task ':capacitor-cordova-android-plugins:prepareDebugArtProfile', task ':capacitor-cordova-android-plugins:prepareLintJarForPublish', task ':capacitor-cordova-android-plugins:mergeDebugJavaResource', task ':capacitor-cordova-android-plugins:syncDebugLibJars', task ':capacitor-cordova-android-plugins:bundleDebugAar', task ':capacitor-cordova-android-plugins:assembleDebug', task ':capacitor-local-notifications:stripDebugDebugSymbols', task ':capacitor-local-notifications:copyDebugJniLibsProjectAndLocalJars', task ':capacitor-local-notifications:extractDebugAnnotations', task ':capacitor-local-notifications:extractDeepLinksForAarDebug', task ':capacitor-local-notifications:mergeDebugGeneratedProguardFiles', task ':capacitor-local-notifications:mergeDebugConsumerProguardFiles', task ':capacitor-local-notifications:prepareDebugArtProfile', task ':capacitor-local-notifications:prepareLintJarForPublish', task ':capacitor-local-notifications:mergeDebugJavaResource', task ':capacitor-local-notifications:syncDebugLibJars', task ':capacitor-local-notifications:bundleDebugAar', task ':capacitor-local-notifications:assembleDebug', task ':capawesome-team-capacitor-android-foreground-service:stripDebugDebugSymbols', task ':capawesome-team-capacitor-android-foreground-service:copyDebugJniLibsProjectAndLocalJars', task ':capawesome-team-capacitor-android-foreground-service:extractDebugAnnotations', task ':capawesome-team-capacitor-android-foreground-service:extractDeepLinksForAarDebug', task ':capawesome-team-capacitor-android-foreground-service:mergeDebugGeneratedProguardFiles', task ':capawesome-team-capacitor-android-foreground-service:mergeDebugConsumerProguardFiles', task ':capawesome-team-capacitor-android-foreground-service:prepareDebugArtProfile', task ':capawesome-team-capacitor-android-foreground-service:prepareLintJarForPublish', task ':capawesome-team-capacitor-android-foreground-service:mergeDebugJavaResource', task ':capawesome-team-capacitor-android-foreground-service:syncDebugLibJars', task ':capawesome-team-capacitor-android-foreground-service:bundleDebugAar', task ':capawesome-team-capacitor-android-foreground-service:assembleDebug']
+Tasks that were excluded: []
+Analytics other plugin to proto: Unknown plugin type org.gradle.api.plugins.JvmEcosystemPlugin$Inject expected enum ORG_GRADLE_API_PLUGINS_JVMECOSYSTEMPLUGIN
+Analytics other plugin to proto: Unknown plugin type org.gradle.api.plugins.JvmToolchainsPlugin$Inject expected enum ORG_GRADLE_API_PLUGINS_JVMTOOLCHAINSPLUGIN
+Analytics other plugin to proto: Unknown plugin type org.gradle.api.plugins.JvmEcosystemPlugin$Inject expected enum ORG_GRADLE_API_PLUGINS_JVMECOSYSTEMPLUGIN
+Analytics other plugin to proto: Unknown plugin type org.gradle.api.plugins.JvmToolchainsPlugin$Inject expected enum ORG_GRADLE_API_PLUGINS_JVMTOOLCHAINSPLUGIN
+Analytics other plugin to proto: Unknown plugin type org.gradle.api.plugins.JvmEcosystemPlugin$Inject expected enum ORG_GRADLE_API_PLUGINS_JVMECOSYSTEMPLUGIN
+Analytics other plugin to proto: Unknown plugin type org.gradle.api.plugins.JvmToolchainsPlugin$Inject expected enum ORG_GRADLE_API_PLUGINS_JVMTOOLCHAINSPLUGIN
+Analytics other plugin to proto: Unknown plugin type org.gradle.api.plugins.JvmEcosystemPlugin$Inject expected enum ORG_GRADLE_API_PLUGINS_JVMECOSYSTEMPLUGIN
+Analytics other plugin to proto: Unknown plugin type org.gradle.api.plugins.JvmToolchainsPlugin$Inject expected enum ORG_GRADLE_API_PLUGINS_JVMTOOLCHAINSPLUGIN
+Analytics other plugin to proto: Unknown plugin type org.gradle.api.plugins.JvmEcosystemPlugin$Inject expected enum ORG_GRADLE_API_PLUGINS_JVMECOSYSTEMPLUGIN
+Analytics other plugin to proto: Unknown plugin type org.gradle.api.plugins.JvmToolchainsPlugin$Inject expected enum ORG_GRADLE_API_PLUGINS_JVMTOOLCHAINSPLUGIN
+Analytics other plugin to proto: Unknown plugin type org.gradle.api.plugins.JvmEcosystemPlugin$Inject expected enum ORG_GRADLE_API_PLUGINS_JVMECOSYSTEMPLUGIN
+Analytics other plugin to proto: Unknown plugin type org.gradle.api.plugins.JvmToolchainsPlugin$Inject expected enum ORG_GRADLE_API_PLUGINS_JVMTOOLCHAINSPLUGIN
+work action Parameters of DexingWithClasspathTransform (Thread[Execution worker,5,main]) started.
+work action Parameters of DexingOutputSplitTransform (Thread[Execution worker,5,main]) started.
+work action org.gradle.api.internal.artifacts.transform.DefaultTransformUpstreamDependenciesResolver$FinalizeTransformDependenciesFromSelectedArtifacts$CalculateFinalDependencies@7008f710 (Thread[Execution worker,5,main]) started.
+work action Dependencies for project :capacitor-android {artifactType=android-classes-jar, asm-transformed-variant=NONE, dexing-enable-desugaring=true, dexing-enable-jacoco-instrumentation=false, dexing-is-debuggable=true, dexing-min-sdk=23} (Thread[Execution worker,5,main]) started.
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\app\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\app\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capawesome-team\capacitor-android-foreground-service\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\android\capacitor\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\capacitor-cordova-android-plugins\src\main\libs', not found
+Transforming appcompat-resources-1.7.0.aar (androidx.appcompat:appcompat-resources:1.7.0) with AarToClassTransform
+Transforming coordinatorlayout-1.2.0.aar (androidx.coordinatorlayout:coordinatorlayout:1.2.0) with AarToClassTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with AarToClassTransform
+Transforming appcompat-1.7.0.aar (androidx.appcompat:appcompat:1.7.0) with AarToClassTransform
+Transforming activity-1.9.2.aar (androidx.activity:activity:1.9.2) with AarToClassTransform
+Transforming emoji2-1.3.0.aar (androidx.emoji2:emoji2:1.3.0) with AarToClassTransform
+Transforming emoji2-views-helper-1.3.0.aar (androidx.emoji2:emoji2-views-helper:1.3.0) with AarToClassTransform
+Transforming cursoradapter-1.0.0.aar (androidx.cursoradapter:cursoradapter:1.0.0) with AarToClassTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with AarToClassTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with AarToClassTransform
+Transforming webkit-1.12.1.aar (androidx.webkit:webkit:1.12.1) with AarToClassTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with AarToClassTransform
+Transforming annotations-13.0.jar (org.jetbrains:annotations:13.0) with IdentityTransform
+Transforming drawerlayout-1.1.1.aar (androidx.drawerlayout:drawerlayout:1.1.1) with AarToClassTransform
+Transforming vectordrawable-animated-1.1.0.aar (androidx.vectordrawable:vectordrawable-animated:1.1.0) with AarToClassTransform
+Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with AarToClassTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with AarToClassTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with AarToClassTransform
+Transforming lifecycle-livedata-2.6.2.aar (androidx.lifecycle:lifecycle-livedata:2.6.2) with AarToClassTransform
+Transforming lifecycle-common-2.6.2.jar (androidx.lifecycle:lifecycle-common:2.6.2) with IdentityTransform
+Transforming lifecycle-process-2.6.2.aar (androidx.lifecycle:lifecycle-process:2.6.2) with AarToClassTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with AarToClassTransform
+Transforming core-ktx-1.15.0.aar (androidx.core:core-ktx:1.15.0) with AarToClassTransform
+Transforming viewpager-1.0.0.aar (androidx.viewpager:viewpager:1.0.0) with AarToClassTransform
+Transforming lifecycle-livedata-core-2.6.2.aar (androidx.lifecycle:lifecycle-livedata-core:2.6.2) with AarToClassTransform
+Transforming lifecycle-viewmodel-savedstate-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2) with AarToClassTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with AarToClassTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with AarToClassTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with AarToClassTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with AarToClassTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with AarToClassTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarToClassTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarToClassTransform
+Transforming tracing-1.2.0.aar (androidx.tracing:tracing:1.2.0) with AarToClassTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarToClassTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarToClassTransform
+Transforming concurrent-futures-1.1.0.jar (androidx.concurrent:concurrent-futures:1.1.0) with IdentityTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarToClassTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarToClassTransform
+Transforming lifecycle-runtime-2.6.2.aar (androidx.lifecycle:lifecycle-runtime:2.6.2) with AarToClassTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarToClassTransform
+Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with AarToClassTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarToClassTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarToClassTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with AarToClassTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with AarToClassTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarToClassTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarToClassTransform
+Transforming kotlin-stdlib-jdk7-1.9.25.jar (org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.25) with IdentityTransform
+Transforming startup-runtime-1.1.1.aar (androidx.startup:startup-runtime:1.1.1) with AarToClassTransform
+Transforming core-common-2.2.0.jar (androidx.arch.core:core-common:2.2.0) with IdentityTransform
+Transforming kotlin-stdlib-jdk8-1.9.25.jar (org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.25) with IdentityTransform
+Transforming profileinstaller-1.3.1.aar (androidx.profileinstaller:profileinstaller:1.3.1) with AarToClassTransform
+Transforming framework-10.1.1.aar (org.apache.cordova:framework:10.1.1) with AarToClassTransform
+Transforming listenablefuture-1.0.jar (com.google.guava:listenablefuture:1.0) with IdentityTransform
+Transforming collection-jvm-1.4.2.jar (androidx.collection:collection-jvm:1.4.2) with IdentityTransform
+Transforming core-runtime-2.2.0.aar (androidx.arch.core:core-runtime:2.2.0) with AarToClassTransform
+Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with AarToClassTransform
+work action org.gradle.api.internal.artifacts.transform.DefaultTransformUpstreamDependenciesResolver$FinalizeTransformDependenciesFromSelectedArtifacts$CalculateFinalDependencies@427fab02 (Thread[Execution worker Thread 11,5,main]) started.
+Transforming annotation-jvm-1.8.1.jar (androidx.annotation:annotation-jvm:1.8.1) with IdentityTransform
+Transforming kotlinx-coroutines-core-jvm-1.6.4.jar (org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.4) with IdentityTransform
+Transforming kotlinx-coroutines-android-1.6.4.jar (org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4) with IdentityTransform
+work action Dependencies for project :capacitor-cordova-android-plugins {artifactType=android-classes-jar, asm-transformed-variant=NONE, dexing-enable-desugaring=true, dexing-enable-jacoco-instrumentation=false, dexing-is-debuggable=true, dexing-min-sdk=23} (Thread[Execution worker Thread 13,5,main]) started.
+Transforming resourceinspection-annotation-1.0.1.jar (androidx.resourceinspection:resourceinspection-annotation:1.0.1) with IdentityTransform
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\app\libs', not found
+Transforming kotlin-stdlib-1.9.25.jar (org.jetbrains.kotlin:kotlin-stdlib:1.9.25) with IdentityTransform
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\app\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capawesome-team\capacitor-android-foreground-service\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\android\capacitor\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\capacitor-cordova-android-plugins\src\main\libs', not found
+work action Parameters of DexingOutputSplitTransform (Thread[Execution worker Thread 13,5,main]) started.
+Resolve mutations for :app:preBuild (Thread[Execution worker Thread 10,5,main]) started.
+:app:preBuild (Thread[Execution worker Thread 10,5,main]) started.
+
+> Task :app:preBuild UP-TO-DATE
+Skipping task ':app:preBuild' as it has no actions.
+Resolve mutations for :app:preDebugBuild (Thread[Execution worker Thread 10,5,main]) started.
+:app:preDebugBuild (Thread[Execution worker Thread 10,5,main]) started.
+
+> Task :app:preDebugBuild UP-TO-DATE
+Skipping task ':app:preDebugBuild' as it has no actions.
+Resolve mutations for :app:mergeDebugNativeDebugMetadata (Thread[Execution worker Thread 10,5,main]) started.
+:app:mergeDebugNativeDebugMetadata (Thread[Execution worker Thread 10,5,main]) started.
+
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+Skipping task ':app:mergeDebugNativeDebugMetadata' as it has no source files and no previous output files.
+Resolve mutations for :app:javaPreCompileDebug (Thread[Execution worker Thread 3,5,main]) started.
+:app:javaPreCompileDebug (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :app:javaPreCompileDebug UP-TO-DATE
+Caching disabled for task ':app:javaPreCompileDebug' because:
+  Build cache is disabled
+Skipping task ':app:javaPreCompileDebug' as it is up-to-date.
+Resolve mutations for :capacitor-android:preBuild (Thread[Execution worker Thread 3,5,main]) started.
+:capacitor-android:preBuild (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :capacitor-android:preBuild UP-TO-DATE
+Skipping task ':capacitor-android:preBuild' as it has no actions.
+Resolve mutations for :capacitor-android:preDebugBuild (Thread[Execution worker Thread 3,5,main]) started.
+:capacitor-android:preDebugBuild (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :capacitor-android:preDebugBuild UP-TO-DATE
+Skipping task ':capacitor-android:preDebugBuild' as it has no actions.
+Resolve mutations for :capacitor-android:writeDebugAarMetadata (Thread[Execution worker Thread 6,5,main]) started.
+:capacitor-android:writeDebugAarMetadata (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :capacitor-android:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':capacitor-android:writeDebugAarMetadata' because:
+  Build cache is disabled
+Skipping task ':capacitor-android:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :capacitor-android) (Thread[Execution worker Thread 6,5,main]) started.
+Resolve mutations for :capacitor-app:preBuild (Thread[Execution worker Thread 6,5,main]) started.
+:capacitor-app:preBuild (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :capacitor-app:preBuild UP-TO-DATE
+Skipping task ':capacitor-app:preBuild' as it has no actions.
+Resolve mutations for :capacitor-app:preDebugBuild (Thread[Execution worker Thread 6,5,main]) started.
+:capacitor-app:preDebugBuild (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-app:preDebugBuild UP-TO-DATE
+Skipping task ':capacitor-app:preDebugBuild' as it has no actions.
+Resolve mutations for :capacitor-app:writeDebugAarMetadata (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-app:writeDebugAarMetadata (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-app:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':capacitor-app:writeDebugAarMetadata' because:
+  Build cache is disabled
+Skipping task ':capacitor-app:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :capacitor-app) (Thread[Execution worker Thread 9,5,main]) started.
+Resolve mutations for :capacitor-cordova-android-plugins:preBuild (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-cordova-android-plugins:preBuild (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-cordova-android-plugins:preBuild UP-TO-DATE
+Skipping task ':capacitor-cordova-android-plugins:preBuild' as it has no actions.
+Resolve mutations for :capacitor-cordova-android-plugins:preDebugBuild (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-cordova-android-plugins:preDebugBuild (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-cordova-android-plugins:preDebugBuild UP-TO-DATE
+Skipping task ':capacitor-cordova-android-plugins:preDebugBuild' as it has no actions.
+Resolve mutations for :capacitor-cordova-android-plugins:writeDebugAarMetadata (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-cordova-android-plugins:writeDebugAarMetadata (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-cordova-android-plugins:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':capacitor-cordova-android-plugins:writeDebugAarMetadata' because:
+  Build cache is disabled
+Skipping task ':capacitor-cordova-android-plugins:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :capacitor-cordova-android-plugins) (Thread[Execution worker Thread 9,5,main]) started.
+Resolve mutations for :capacitor-local-notifications:preBuild (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-local-notifications:preBuild (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-local-notifications:preBuild UP-TO-DATE
+Skipping task ':capacitor-local-notifications:preBuild' as it has no actions.
+Resolve mutations for :capacitor-local-notifications:preDebugBuild (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-local-notifications:preDebugBuild (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-local-notifications:preDebugBuild UP-TO-DATE
+Skipping task ':capacitor-local-notifications:preDebugBuild' as it has no actions.
+Resolve mutations for :capacitor-local-notifications:writeDebugAarMetadata (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-local-notifications:writeDebugAarMetadata (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-local-notifications:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':capacitor-local-notifications:writeDebugAarMetadata' because:
+  Build cache is disabled
+Skipping task ':capacitor-local-notifications:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :capacitor-local-notifications) (Thread[Execution worker Thread 9,5,main]) started.
+Resolve mutations for :capawesome-team-capacitor-android-foreground-service:preBuild (Thread[Execution worker Thread 9,5,main]) started.
+:capawesome-team-capacitor-android-foreground-service:preBuild (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capawesome-team-capacitor-android-foreground-service:preBuild UP-TO-DATE
+Skipping task ':capawesome-team-capacitor-android-foreground-service:preBuild' as it has no actions.
+Resolve mutations for :capawesome-team-capacitor-android-foreground-service:preDebugBuild (Thread[Execution worker Thread 9,5,main]) started.
+:capawesome-team-capacitor-android-foreground-service:preDebugBuild (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capawesome-team-capacitor-android-foreground-service:preDebugBuild UP-TO-DATE
+Skipping task ':capawesome-team-capacitor-android-foreground-service:preDebugBuild' as it has no actions.
+Resolve mutations for :capawesome-team-capacitor-android-foreground-service:writeDebugAarMetadata (Thread[Execution worker Thread 9,5,main]) started.
+:capawesome-team-capacitor-android-foreground-service:writeDebugAarMetadata (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capawesome-team-capacitor-android-foreground-service:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':capawesome-team-capacitor-android-foreground-service:writeDebugAarMetadata' because:
+  Build cache is disabled
+Skipping task ':capawesome-team-capacitor-android-foreground-service:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :capawesome-team-capacitor-android-foreground-service) (Thread[Execution worker Thread 9,5,main]) started.
+Resolve mutations for :app:checkDebugAarMetadata (Thread[Execution worker Thread 9,5,main]) started.
+:app:checkDebugAarMetadata (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\app\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\app\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capawesome-team\capacitor-android-foreground-service\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\android\capacitor\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\capacitor-cordova-android-plugins\src\main\libs', not found
+Transforming appcompat-resources-1.7.0.aar (androidx.appcompat:appcompat-resources:1.7.0) with ExtractAarTransform
+Transforming appcompat-resources-1.7.0.aar (androidx.appcompat:appcompat-resources:1.7.0) with AarTransform
+Transforming material-1.11.0.aar (com.google.android.material:material:1.11.0) with ExtractAarTransform
+Transforming material-1.11.0.aar (com.google.android.material:material:1.11.0) with AarTransform
+Transforming constraintlayout-2.0.1.aar (androidx.constraintlayout:constraintlayout:2.0.1) with ExtractAarTransform
+Transforming constraintlayout-2.0.1.aar (androidx.constraintlayout:constraintlayout:2.0.1) with AarTransform
+Transforming appcompat-1.7.0.aar (androidx.appcompat:appcompat:1.7.0) with ExtractAarTransform
+Transforming appcompat-1.7.0.aar (androidx.appcompat:appcompat:1.7.0) with AarTransform
+Transforming coordinatorlayout-1.2.0.aar (androidx.coordinatorlayout:coordinatorlayout:1.2.0) with ExtractAarTransform
+Transforming coordinatorlayout-1.2.0.aar (androidx.coordinatorlayout:coordinatorlayout:1.2.0) with AarTransform
+Transforming core-splashscreen-1.0.1.aar (androidx.core:core-splashscreen:1.0.1) with ExtractAarTransform
+Transforming core-splashscreen-1.0.1.aar (androidx.core:core-splashscreen:1.0.1) with AarTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with ExtractAarTransform
+Transforming viewpager2-1.0.0.aar (androidx.viewpager2:viewpager2:1.0.0) with ExtractAarTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with AarTransform
+Transforming viewpager2-1.0.0.aar (androidx.viewpager2:viewpager2:1.0.0) with AarTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with ExtractAarTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with AarTransform
+Transforming activity-1.9.2.aar (androidx.activity:activity:1.9.2) with ExtractAarTransform
+Transforming activity-1.9.2.aar (androidx.activity:activity:1.9.2) with AarTransform
+Transforming cursoradapter-1.0.0.aar (androidx.cursoradapter:cursoradapter:1.0.0) with ExtractAarTransform
+Transforming cursoradapter-1.0.0.aar (androidx.cursoradapter:cursoradapter:1.0.0) with AarTransform
+Transforming emoji2-views-helper-1.3.0.aar (androidx.emoji2:emoji2-views-helper:1.3.0) with ExtractAarTransform
+Transforming emoji2-views-helper-1.3.0.aar (androidx.emoji2:emoji2-views-helper:1.3.0) with AarTransform
+Transforming emoji2-1.3.0.aar (androidx.emoji2:emoji2:1.3.0) with ExtractAarTransform
+Transforming emoji2-1.3.0.aar (androidx.emoji2:emoji2:1.3.0) with AarTransform
+Transforming vectordrawable-animated-1.1.0.aar (androidx.vectordrawable:vectordrawable-animated:1.1.0) with ExtractAarTransform
+Transforming vectordrawable-animated-1.1.0.aar (androidx.vectordrawable:vectordrawable-animated:1.1.0) with AarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with ExtractAarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with AarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with ExtractAarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with AarTransform
+Transforming webkit-1.12.1.aar (androidx.webkit:webkit:1.12.1) with ExtractAarTransform
+Transforming webkit-1.12.1.aar (androidx.webkit:webkit:1.12.1) with AarTransform
+Transforming drawerlayout-1.1.1.aar (androidx.drawerlayout:drawerlayout:1.1.1) with ExtractAarTransform
+Transforming drawerlayout-1.1.1.aar (androidx.drawerlayout:drawerlayout:1.1.1) with AarTransform
+Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with ExtractAarTransform
+Transforming dynamicanimation-1.0.0.aar (androidx.dynamicanimation:dynamicanimation:1.0.0) with ExtractAarTransform
+Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with AarTransform
+Transforming transition-1.2.0.aar (androidx.transition:transition:1.2.0) with ExtractAarTransform
+Transforming dynamicanimation-1.0.0.aar (androidx.dynamicanimation:dynamicanimation:1.0.0) with AarTransform
+Transforming transition-1.2.0.aar (androidx.transition:transition:1.2.0) with AarTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with ExtractAarTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with AarTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with ExtractAarTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with AarTransform
+Transforming legacy-support-core-utils-1.0.0.aar (androidx.legacy:legacy-support-core-utils:1.0.0) with ExtractAarTransform
+Transforming lifecycle-livedata-2.6.2.aar (androidx.lifecycle:lifecycle-livedata:2.6.2) with ExtractAarTransform
+Transforming lifecycle-livedata-2.6.2.aar (androidx.lifecycle:lifecycle-livedata:2.6.2) with AarTransform
+Transforming legacy-support-core-utils-1.0.0.aar (androidx.legacy:legacy-support-core-utils:1.0.0) with AarTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with ExtractAarTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with AarTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with ExtractAarTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with AarTransform
+Transforming lifecycle-process-2.6.2.aar (androidx.lifecycle:lifecycle-process:2.6.2) with ExtractAarTransform
+Transforming lifecycle-process-2.6.2.aar (androidx.lifecycle:lifecycle-process:2.6.2) with AarTransform
+Transforming lifecycle-livedata-core-2.6.2.aar (androidx.lifecycle:lifecycle-livedata-core:2.6.2) with ExtractAarTransform
+Transforming lifecycle-livedata-core-2.6.2.aar (androidx.lifecycle:lifecycle-livedata-core:2.6.2) with AarTransform
+Transforming lifecycle-viewmodel-savedstate-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2) with ExtractAarTransform
+Transforming lifecycle-viewmodel-savedstate-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2) with AarTransform
+Transforming core-ktx-1.15.0.aar (androidx.core:core-ktx:1.15.0) with ExtractAarTransform
+Transforming core-ktx-1.15.0.aar (androidx.core:core-ktx:1.15.0) with AarTransform
+Transforming viewpager-1.0.0.aar (androidx.viewpager:viewpager:1.0.0) with ExtractAarTransform
+Transforming viewpager-1.0.0.aar (androidx.viewpager:viewpager:1.0.0) with AarTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with ExtractAarTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with AarTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with ExtractAarTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with ExtractAarTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with ExtractAarTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with AarTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with AarTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with AarTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with ExtractAarTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with ExtractAarTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarTransform
+Transforming lifecycle-runtime-2.6.2.aar (androidx.lifecycle:lifecycle-runtime:2.6.2) with ExtractAarTransform
+Transforming lifecycle-runtime-2.6.2.aar (androidx.lifecycle:lifecycle-runtime:2.6.2) with AarTransform
+Transforming profileinstaller-1.3.1.aar (androidx.profileinstaller:profileinstaller:1.3.1) with ExtractAarTransform
+Transforming profileinstaller-1.3.1.aar (androidx.profileinstaller:profileinstaller:1.3.1) with AarTransform
+Transforming startup-runtime-1.1.1.aar (androidx.startup:startup-runtime:1.1.1) with ExtractAarTransform
+Transforming startup-runtime-1.1.1.aar (androidx.startup:startup-runtime:1.1.1) with AarTransform
+Transforming tracing-1.2.0.aar (androidx.tracing:tracing:1.2.0) with ExtractAarTransform
+Transforming cardview-1.0.0.aar (androidx.cardview:cardview:1.0.0) with ExtractAarTransform
+Transforming tracing-1.2.0.aar (androidx.tracing:tracing:1.2.0) with AarTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with ExtractAarTransform
+Transforming cardview-1.0.0.aar (androidx.cardview:cardview:1.0.0) with AarTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with AarTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with ExtractAarTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with AarTransform
+Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with ExtractAarTransform
+Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with AarTransform
+Transforming core-runtime-2.2.0.aar (androidx.arch.core:core-runtime:2.2.0) with ExtractAarTransform
+Transforming core-runtime-2.2.0.aar (androidx.arch.core:core-runtime:2.2.0) with AarTransform
+Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with ExtractAarTransform
+Transforming documentfile-1.0.0.aar (androidx.documentfile:documentfile:1.0.0) with ExtractAarTransform
+Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with AarTransform
+Transforming documentfile-1.0.0.aar (androidx.documentfile:documentfile:1.0.0) with AarTransform
+Transforming framework-10.1.1.aar (org.apache.cordova:framework:10.1.1) with ExtractAarTransform
+Transforming framework-10.1.1.aar (org.apache.cordova:framework:10.1.1) with AarTransform
+Transforming localbroadcastmanager-1.0.0.aar (androidx.localbroadcastmanager:localbroadcastmanager:1.0.0) with ExtractAarTransform
+Transforming localbroadcastmanager-1.0.0.aar (androidx.localbroadcastmanager:localbroadcastmanager:1.0.0) with AarTransform
+Transforming print-1.0.0.aar (androidx.print:print:1.0.0) with ExtractAarTransform
+Transforming print-1.0.0.aar (androidx.print:print:1.0.0) with AarTransform
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\app\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\app\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capawesome-team\capacitor-android-foreground-service\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\android\capacitor\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\capacitor-cordova-android-plugins\src\main\libs', not found
+Caching disabled for task ':app:checkDebugAarMetadata' because:
+  Build cache is disabled
+Skipping task ':app:checkDebugAarMetadata' as it is up-to-date.
+Resolve mutations for :app:generateDebugResValues (Thread[Execution worker Thread 9,5,main]) started.
+:app:generateDebugResValues (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :app:generateDebugResValues UP-TO-DATE
+Caching disabled for task ':app:generateDebugResValues' because:
+  Build cache is disabled
+Skipping task ':app:generateDebugResValues' as it is up-to-date.
+Resolve mutations for :capacitor-android:generateDebugResValues (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-android:generateDebugResValues (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-android:generateDebugResValues UP-TO-DATE
+Caching disabled for task ':capacitor-android:generateDebugResValues' because:
+  Build cache is disabled
+Skipping task ':capacitor-android:generateDebugResValues' as it is up-to-date.
+Resolve mutations for :capacitor-android:generateDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-android:generateDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-android:generateDebugResources UP-TO-DATE
+Skipping task ':capacitor-android:generateDebugResources' as it has no actions.
+Resolve mutations for :capacitor-android:packageDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-android:packageDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-android:packageDebugResources UP-TO-DATE
+Caching disabled for task ':capacitor-android:packageDebugResources' because:
+  Build cache is disabled
+Skipping task ':capacitor-android:packageDebugResources' as it is up-to-date.
+work action resolve debug (project :capacitor-android) (Thread[Execution worker Thread 9,5,main]) started.
+Resolve mutations for :capacitor-app:generateDebugResValues (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-app:generateDebugResValues (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-app:generateDebugResValues UP-TO-DATE
+Caching disabled for task ':capacitor-app:generateDebugResValues' because:
+  Build cache is disabled
+Skipping task ':capacitor-app:generateDebugResValues' as it is up-to-date.
+Resolve mutations for :capacitor-app:generateDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-app:generateDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-app:generateDebugResources UP-TO-DATE
+Skipping task ':capacitor-app:generateDebugResources' as it has no actions.
+Resolve mutations for :capacitor-app:packageDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-app:packageDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-app:packageDebugResources UP-TO-DATE
+Caching disabled for task ':capacitor-app:packageDebugResources' because:
+  Build cache is disabled
+Skipping task ':capacitor-app:packageDebugResources' as it is up-to-date.
+work action resolve debug (project :capacitor-app) (Thread[Execution worker Thread 9,5,main]) started.
+Resolve mutations for :capacitor-cordova-android-plugins:generateDebugResValues (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-cordova-android-plugins:generateDebugResValues (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-cordova-android-plugins:generateDebugResValues UP-TO-DATE
+Caching disabled for task ':capacitor-cordova-android-plugins:generateDebugResValues' because:
+  Build cache is disabled
+Skipping task ':capacitor-cordova-android-plugins:generateDebugResValues' as it is up-to-date.
+Resolve mutations for :capacitor-cordova-android-plugins:generateDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-cordova-android-plugins:generateDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-cordova-android-plugins:generateDebugResources UP-TO-DATE
+Skipping task ':capacitor-cordova-android-plugins:generateDebugResources' as it has no actions.
+Resolve mutations for :capacitor-cordova-android-plugins:packageDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-cordova-android-plugins:packageDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-cordova-android-plugins:packageDebugResources UP-TO-DATE
+Caching disabled for task ':capacitor-cordova-android-plugins:packageDebugResources' because:
+  Build cache is disabled
+Skipping task ':capacitor-cordova-android-plugins:packageDebugResources' as it is up-to-date.
+work action resolve debug (project :capacitor-cordova-android-plugins) (Thread[Execution worker Thread 9,5,main]) started.
+Resolve mutations for :capacitor-local-notifications:generateDebugResValues (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-local-notifications:generateDebugResValues (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-local-notifications:generateDebugResValues UP-TO-DATE
+Caching disabled for task ':capacitor-local-notifications:generateDebugResValues' because:
+  Build cache is disabled
+Skipping task ':capacitor-local-notifications:generateDebugResValues' as it is up-to-date.
+Resolve mutations for :capacitor-local-notifications:generateDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-local-notifications:generateDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-local-notifications:generateDebugResources UP-TO-DATE
+Skipping task ':capacitor-local-notifications:generateDebugResources' as it has no actions.
+Resolve mutations for :capacitor-local-notifications:packageDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-local-notifications:packageDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-local-notifications:packageDebugResources UP-TO-DATE
+Caching disabled for task ':capacitor-local-notifications:packageDebugResources' because:
+  Build cache is disabled
+Skipping task ':capacitor-local-notifications:packageDebugResources' as it is up-to-date.
+work action resolve debug (project :capacitor-local-notifications) (Thread[Execution worker Thread 9,5,main]) started.
+Resolve mutations for :capawesome-team-capacitor-android-foreground-service:generateDebugResValues (Thread[Execution worker Thread 9,5,main]) started.
+:capawesome-team-capacitor-android-foreground-service:generateDebugResValues (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capawesome-team-capacitor-android-foreground-service:generateDebugResValues UP-TO-DATE
+Caching disabled for task ':capawesome-team-capacitor-android-foreground-service:generateDebugResValues' because:
+  Build cache is disabled
+Skipping task ':capawesome-team-capacitor-android-foreground-service:generateDebugResValues' as it is up-to-date.
+Resolve mutations for :capawesome-team-capacitor-android-foreground-service:generateDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+:capawesome-team-capacitor-android-foreground-service:generateDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capawesome-team-capacitor-android-foreground-service:generateDebugResources UP-TO-DATE
+Skipping task ':capawesome-team-capacitor-android-foreground-service:generateDebugResources' as it has no actions.
+Resolve mutations for :capawesome-team-capacitor-android-foreground-service:packageDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+:capawesome-team-capacitor-android-foreground-service:packageDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capawesome-team-capacitor-android-foreground-service:packageDebugResources UP-TO-DATE
+Caching disabled for task ':capawesome-team-capacitor-android-foreground-service:packageDebugResources' because:
+  Build cache is disabled
+Skipping task ':capawesome-team-capacitor-android-foreground-service:packageDebugResources' as it is up-to-date.
+work action resolve debug (project :capawesome-team-capacitor-android-foreground-service) (Thread[Execution worker Thread 9,5,main]) started.
+Resolve mutations for :app:mapDebugSourceSetPaths (Thread[Execution worker,5,main]) started.
+:app:mapDebugSourceSetPaths (Thread[Execution worker,5,main]) started.
+
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\app\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\app\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capawesome-team\capacitor-android-foreground-service\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\android\capacitor\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\capacitor-cordova-android-plugins\src\main\libs', not found
+Transforming appcompat-resources-1.7.0.aar (androidx.appcompat:appcompat-resources:1.7.0) with ExtractAarTransform
+Transforming appcompat-resources-1.7.0.aar (androidx.appcompat:appcompat-resources:1.7.0) with AarTransform
+Transforming material-1.11.0.aar (com.google.android.material:material:1.11.0) with ExtractAarTransform
+Transforming material-1.11.0.aar (com.google.android.material:material:1.11.0) with AarTransform
+Transforming constraintlayout-2.0.1.aar (androidx.constraintlayout:constraintlayout:2.0.1) with ExtractAarTransform
+Transforming constraintlayout-2.0.1.aar (androidx.constraintlayout:constraintlayout:2.0.1) with AarTransform
+Transforming appcompat-1.7.0.aar (androidx.appcompat:appcompat:1.7.0) with ExtractAarTransform
+Transforming appcompat-1.7.0.aar (androidx.appcompat:appcompat:1.7.0) with AarTransform
+Transforming coordinatorlayout-1.2.0.aar (androidx.coordinatorlayout:coordinatorlayout:1.2.0) with ExtractAarTransform
+Transforming coordinatorlayout-1.2.0.aar (androidx.coordinatorlayout:coordinatorlayout:1.2.0) with AarTransform
+Transforming core-splashscreen-1.0.1.aar (androidx.core:core-splashscreen:1.0.1) with ExtractAarTransform
+Transforming core-splashscreen-1.0.1.aar (androidx.core:core-splashscreen:1.0.1) with AarTransform
+Transforming viewpager2-1.0.0.aar (androidx.viewpager2:viewpager2:1.0.0) with ExtractAarTransform
+Transforming viewpager2-1.0.0.aar (androidx.viewpager2:viewpager2:1.0.0) with AarTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with ExtractAarTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with AarTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with ExtractAarTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with AarTransform
+Transforming activity-1.9.2.aar (androidx.activity:activity:1.9.2) with ExtractAarTransform
+Transforming activity-1.9.2.aar (androidx.activity:activity:1.9.2) with AarTransform
+Transforming cursoradapter-1.0.0.aar (androidx.cursoradapter:cursoradapter:1.0.0) with ExtractAarTransform
+Transforming cursoradapter-1.0.0.aar (androidx.cursoradapter:cursoradapter:1.0.0) with AarTransform
+Transforming emoji2-views-helper-1.3.0.aar (androidx.emoji2:emoji2-views-helper:1.3.0) with ExtractAarTransform
+Transforming emoji2-views-helper-1.3.0.aar (androidx.emoji2:emoji2-views-helper:1.3.0) with AarTransform
+Transforming emoji2-1.3.0.aar (androidx.emoji2:emoji2:1.3.0) with ExtractAarTransform
+Transforming emoji2-1.3.0.aar (androidx.emoji2:emoji2:1.3.0) with AarTransform
+Transforming vectordrawable-animated-1.1.0.aar (androidx.vectordrawable:vectordrawable-animated:1.1.0) with ExtractAarTransform
+Transforming vectordrawable-animated-1.1.0.aar (androidx.vectordrawable:vectordrawable-animated:1.1.0) with AarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with ExtractAarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with AarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with ExtractAarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with AarTransform
+Transforming webkit-1.12.1.aar (androidx.webkit:webkit:1.12.1) with ExtractAarTransform
+Transforming webkit-1.12.1.aar (androidx.webkit:webkit:1.12.1) with AarTransform
+Transforming drawerlayout-1.1.1.aar (androidx.drawerlayout:drawerlayout:1.1.1) with ExtractAarTransform
+Transforming drawerlayout-1.1.1.aar (androidx.drawerlayout:drawerlayout:1.1.1) with AarTransform
+Transforming dynamicanimation-1.0.0.aar (androidx.dynamicanimation:dynamicanimation:1.0.0) with ExtractAarTransform
+Transforming dynamicanimation-1.0.0.aar (androidx.dynamicanimation:dynamicanimation:1.0.0) with AarTransform
+Transforming transition-1.2.0.aar (androidx.transition:transition:1.2.0) with ExtractAarTransform
+Transforming transition-1.2.0.aar (androidx.transition:transition:1.2.0) with AarTransform
+Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with ExtractAarTransform
+Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with AarTransform
+Transforming legacy-support-core-utils-1.0.0.aar (androidx.legacy:legacy-support-core-utils:1.0.0) with ExtractAarTransform
+Transforming legacy-support-core-utils-1.0.0.aar (androidx.legacy:legacy-support-core-utils:1.0.0) with AarTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with ExtractAarTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with AarTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with ExtractAarTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with AarTransform
+Transforming lifecycle-livedata-2.6.2.aar (androidx.lifecycle:lifecycle-livedata:2.6.2) with ExtractAarTransform
+Transforming lifecycle-livedata-2.6.2.aar (androidx.lifecycle:lifecycle-livedata:2.6.2) with AarTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with ExtractAarTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with AarTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with ExtractAarTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with AarTransform
+Transforming lifecycle-process-2.6.2.aar (androidx.lifecycle:lifecycle-process:2.6.2) with ExtractAarTransform
+Transforming lifecycle-process-2.6.2.aar (androidx.lifecycle:lifecycle-process:2.6.2) with AarTransform
+Transforming lifecycle-livedata-core-2.6.2.aar (androidx.lifecycle:lifecycle-livedata-core:2.6.2) with ExtractAarTransform
+Transforming lifecycle-livedata-core-2.6.2.aar (androidx.lifecycle:lifecycle-livedata-core:2.6.2) with AarTransform
+Transforming lifecycle-viewmodel-savedstate-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2) with ExtractAarTransform
+Transforming lifecycle-viewmodel-savedstate-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2) with AarTransform
+Transforming core-ktx-1.15.0.aar (androidx.core:core-ktx:1.15.0) with ExtractAarTransform
+Transforming core-ktx-1.15.0.aar (androidx.core:core-ktx:1.15.0) with AarTransform
+Transforming viewpager-1.0.0.aar (androidx.viewpager:viewpager:1.0.0) with ExtractAarTransform
+Transforming viewpager-1.0.0.aar (androidx.viewpager:viewpager:1.0.0) with AarTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with ExtractAarTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with AarTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with ExtractAarTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with AarTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with ExtractAarTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with AarTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with ExtractAarTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with AarTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with ExtractAarTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with ExtractAarTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarTransform
+Transforming lifecycle-runtime-2.6.2.aar (androidx.lifecycle:lifecycle-runtime:2.6.2) with ExtractAarTransform
+Transforming lifecycle-runtime-2.6.2.aar (androidx.lifecycle:lifecycle-runtime:2.6.2) with AarTransform
+Transforming profileinstaller-1.3.1.aar (androidx.profileinstaller:profileinstaller:1.3.1) with ExtractAarTransform
+Transforming profileinstaller-1.3.1.aar (androidx.profileinstaller:profileinstaller:1.3.1) with AarTransform
+Transforming startup-runtime-1.1.1.aar (androidx.startup:startup-runtime:1.1.1) with ExtractAarTransform
+Transforming startup-runtime-1.1.1.aar (androidx.startup:startup-runtime:1.1.1) with AarTransform
+Transforming cardview-1.0.0.aar (androidx.cardview:cardview:1.0.0) with ExtractAarTransform
+Transforming cardview-1.0.0.aar (androidx.cardview:cardview:1.0.0) with AarTransform
+Transforming tracing-1.2.0.aar (androidx.tracing:tracing:1.2.0) with ExtractAarTransform
+Transforming tracing-1.2.0.aar (androidx.tracing:tracing:1.2.0) with AarTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with ExtractAarTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with AarTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with ExtractAarTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with AarTransform
+Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with ExtractAarTransform
+Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with AarTransform
+Transforming core-runtime-2.2.0.aar (androidx.arch.core:core-runtime:2.2.0) with ExtractAarTransform
+Transforming core-runtime-2.2.0.aar (androidx.arch.core:core-runtime:2.2.0) with AarTransform
+Transforming documentfile-1.0.0.aar (androidx.documentfile:documentfile:1.0.0) with ExtractAarTransform
+Transforming documentfile-1.0.0.aar (androidx.documentfile:documentfile:1.0.0) with AarTransform
+Transforming localbroadcastmanager-1.0.0.aar (androidx.localbroadcastmanager:localbroadcastmanager:1.0.0) with ExtractAarTransform
+Transforming localbroadcastmanager-1.0.0.aar (androidx.localbroadcastmanager:localbroadcastmanager:1.0.0) with AarTransform
+Transforming print-1.0.0.aar (androidx.print:print:1.0.0) with ExtractAarTransform
+Transforming print-1.0.0.aar (androidx.print:print:1.0.0) with AarTransform
+Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with ExtractAarTransform
+Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with AarTransform
+Transforming framework-10.1.1.aar (org.apache.cordova:framework:10.1.1) with ExtractAarTransform
+Transforming framework-10.1.1.aar (org.apache.cordova:framework:10.1.1) with AarTransform
+Caching disabled for task ':app:mapDebugSourceSetPaths' because:
+  Build cache is disabled
+Skipping task ':app:mapDebugSourceSetPaths' as it is up-to-date.
+Resolve mutations for :app:generateDebugResources (Thread[Execution worker,5,main]) started.
+:app:generateDebugResources (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :app:generateDebugResources UP-TO-DATE
+Skipping task ':app:generateDebugResources' as it has no actions.
+Resolve mutations for :app:mergeDebugResources (Thread[Execution worker Thread 3,5,main]) started.
+:app:mergeDebugResources (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :app:mergeDebugResources UP-TO-DATE
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\app\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\app\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capawesome-team\capacitor-android-foreground-service\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\android\capacitor\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\capacitor-cordova-android-plugins\src\main\libs', not found
+Caching disabled for task ':app:mergeDebugResources' because:
+  Build cache is disabled
+Skipping task ':app:mergeDebugResources' as it is up-to-date.
+Resolve mutations for :app:packageDebugResources (Thread[Execution worker Thread 3,5,main]) started.
+:app:packageDebugResources (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :app:packageDebugResources UP-TO-DATE
+Caching disabled for task ':app:packageDebugResources' because:
+  Build cache is disabled
+Skipping task ':app:packageDebugResources' as it is up-to-date.
+Resolve mutations for :app:parseDebugLocalResources (Thread[Execution worker Thread 3,5,main]) started.
+:app:parseDebugLocalResources (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :app:parseDebugLocalResources UP-TO-DATE
+Transforming android.jar with PlatformAttrTransform
+Transforming android.jar with PlatformAttrTransform
+Caching disabled for task ':app:parseDebugLocalResources' because:
+  Build cache is disabled
+Skipping task ':app:parseDebugLocalResources' as it is up-to-date.
+Resolve mutations for :app:createDebugCompatibleScreenManifests (Thread[Execution worker Thread 3,5,main]) started.
+:app:createDebugCompatibleScreenManifests (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+Caching disabled for task ':app:createDebugCompatibleScreenManifests' because:
+  Build cache is disabled
+Skipping task ':app:createDebugCompatibleScreenManifests' as it is up-to-date.
+Resolve mutations for :app:extractDeepLinksDebug (Thread[Execution worker Thread 3,5,main]) started.
+:app:extractDeepLinksDebug (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+Caching disabled for task ':app:extractDeepLinksDebug' because:
+  Build cache is disabled
+Skipping task ':app:extractDeepLinksDebug' as it is up-to-date.
+Resolve mutations for :capacitor-android:extractDeepLinksDebug (Thread[Execution worker Thread 3,5,main]) started.
+:capacitor-android:extractDeepLinksDebug (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :capacitor-android:extractDeepLinksDebug UP-TO-DATE
+Caching disabled for task ':capacitor-android:extractDeepLinksDebug' because:
+  Build cache is disabled
+Skipping task ':capacitor-android:extractDeepLinksDebug' as it is up-to-date.
+work action resolve navigation.json (project :capacitor-android) (Thread[Execution worker Thread 3,5,main]) started.
+Resolve mutations for :capacitor-android:processDebugManifest (Thread[Execution worker Thread 3,5,main]) started.
+:capacitor-android:processDebugManifest (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :capacitor-android:processDebugManifest UP-TO-DATE
+Caching disabled for task ':capacitor-android:processDebugManifest' because:
+  Build cache is disabled
+Skipping task ':capacitor-android:processDebugManifest' as it is up-to-date.
+work action resolve AndroidManifest.xml (project :capacitor-android) (Thread[Execution worker Thread 3,5,main]) started.
+Resolve mutations for :capacitor-app:extractDeepLinksDebug (Thread[Execution worker Thread 3,5,main]) started.
+:capacitor-app:extractDeepLinksDebug (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :capacitor-app:extractDeepLinksDebug UP-TO-DATE
+Caching disabled for task ':capacitor-app:extractDeepLinksDebug' because:
+  Build cache is disabled
+Skipping task ':capacitor-app:extractDeepLinksDebug' as it is up-to-date.
+work action resolve navigation.json (project :capacitor-app) (Thread[Execution worker Thread 3,5,main]) started.
+Resolve mutations for :capacitor-app:processDebugManifest (Thread[Execution worker Thread 3,5,main]) started.
+:capacitor-app:processDebugManifest (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :capacitor-app:processDebugManifest UP-TO-DATE
+Caching disabled for task ':capacitor-app:processDebugManifest' because:
+  Build cache is disabled
+Skipping task ':capacitor-app:processDebugManifest' as it is up-to-date.
+work action resolve AndroidManifest.xml (project :capacitor-app) (Thread[Execution worker Thread 3,5,main]) started.
+Resolve mutations for :capacitor-cordova-android-plugins:extractDeepLinksDebug (Thread[Execution worker Thread 3,5,main]) started.
+:capacitor-cordova-android-plugins:extractDeepLinksDebug (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :capacitor-cordova-android-plugins:extractDeepLinksDebug UP-TO-DATE
+Caching disabled for task ':capacitor-cordova-android-plugins:extractDeepLinksDebug' because:
+  Build cache is disabled
+Skipping task ':capacitor-cordova-android-plugins:extractDeepLinksDebug' as it is up-to-date.
+work action resolve navigation.json (project :capacitor-cordova-android-plugins) (Thread[Execution worker Thread 3,5,main]) started.
+Resolve mutations for :capacitor-cordova-android-plugins:processDebugManifest (Thread[Execution worker Thread 3,5,main]) started.
+:capacitor-cordova-android-plugins:processDebugManifest (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :capacitor-cordova-android-plugins:processDebugManifest UP-TO-DATE
+Caching disabled for task ':capacitor-cordova-android-plugins:processDebugManifest' because:
+  Build cache is disabled
+Skipping task ':capacitor-cordova-android-plugins:processDebugManifest' as it is up-to-date.
+work action resolve AndroidManifest.xml (project :capacitor-cordova-android-plugins) (Thread[Execution worker Thread 3,5,main]) started.
+Resolve mutations for :capacitor-local-notifications:extractDeepLinksDebug (Thread[Execution worker Thread 3,5,main]) started.
+:capacitor-local-notifications:extractDeepLinksDebug (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :capacitor-local-notifications:extractDeepLinksDebug UP-TO-DATE
+Caching disabled for task ':capacitor-local-notifications:extractDeepLinksDebug' because:
+  Build cache is disabled
+Skipping task ':capacitor-local-notifications:extractDeepLinksDebug' as it is up-to-date.
+work action resolve navigation.json (project :capacitor-local-notifications) (Thread[Execution worker Thread 3,5,main]) started.
+Resolve mutations for :capacitor-local-notifications:processDebugManifest (Thread[Execution worker Thread 3,5,main]) started.
+:capacitor-local-notifications:processDebugManifest (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :capacitor-local-notifications:processDebugManifest UP-TO-DATE
+Caching disabled for task ':capacitor-local-notifications:processDebugManifest' because:
+  Build cache is disabled
+Skipping task ':capacitor-local-notifications:processDebugManifest' as it is up-to-date.
+work action resolve AndroidManifest.xml (project :capacitor-local-notifications) (Thread[Execution worker Thread 3,5,main]) started.
+Resolve mutations for :capawesome-team-capacitor-android-foreground-service:extractDeepLinksDebug (Thread[Execution worker Thread 3,5,main]) started.
+:capawesome-team-capacitor-android-foreground-service:extractDeepLinksDebug (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :capawesome-team-capacitor-android-foreground-service:extractDeepLinksDebug UP-TO-DATE
+Caching disabled for task ':capawesome-team-capacitor-android-foreground-service:extractDeepLinksDebug' because:
+  Build cache is disabled
+Skipping task ':capawesome-team-capacitor-android-foreground-service:extractDeepLinksDebug' as it is up-to-date.
+work action resolve navigation.json (project :capawesome-team-capacitor-android-foreground-service) (Thread[Execution worker Thread 3,5,main]) started.
+Resolve mutations for :capawesome-team-capacitor-android-foreground-service:processDebugManifest (Thread[Execution worker Thread 3,5,main]) started.
+:capawesome-team-capacitor-android-foreground-service:processDebugManifest (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :capawesome-team-capacitor-android-foreground-service:processDebugManifest UP-TO-DATE
+Caching disabled for task ':capawesome-team-capacitor-android-foreground-service:processDebugManifest' because:
+  Build cache is disabled
+Skipping task ':capawesome-team-capacitor-android-foreground-service:processDebugManifest' as it is up-to-date.
+work action resolve AndroidManifest.xml (project :capawesome-team-capacitor-android-foreground-service) (Thread[Execution worker Thread 3,5,main]) started.
+Resolve mutations for :app:processDebugMainManifest (Thread[Execution worker Thread 9,5,main]) started.
+:app:processDebugMainManifest (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :app:processDebugMainManifest UP-TO-DATE
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\app\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\app\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capawesome-team\capacitor-android-foreground-service\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\android\capacitor\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\capacitor-cordova-android-plugins\src\main\libs', not found
+Transforming appcompat-resources-1.7.0.aar (androidx.appcompat:appcompat-resources:1.7.0) with ExtractAarTransform
+Transforming appcompat-resources-1.7.0.aar (androidx.appcompat:appcompat-resources:1.7.0) with AarTransform
+Transforming material-1.11.0.aar (com.google.android.material:material:1.11.0) with ExtractAarTransform
+Transforming material-1.11.0.aar (com.google.android.material:material:1.11.0) with AarTransform
+Transforming constraintlayout-2.0.1.aar (androidx.constraintlayout:constraintlayout:2.0.1) with ExtractAarTransform
+Transforming constraintlayout-2.0.1.aar (androidx.constraintlayout:constraintlayout:2.0.1) with AarTransform
+Transforming appcompat-1.7.0.aar (androidx.appcompat:appcompat:1.7.0) with ExtractAarTransform
+Transforming appcompat-1.7.0.aar (androidx.appcompat:appcompat:1.7.0) with AarTransform
+Transforming coordinatorlayout-1.2.0.aar (androidx.coordinatorlayout:coordinatorlayout:1.2.0) with ExtractAarTransform
+Transforming coordinatorlayout-1.2.0.aar (androidx.coordinatorlayout:coordinatorlayout:1.2.0) with AarTransform
+Transforming core-splashscreen-1.0.1.aar (androidx.core:core-splashscreen:1.0.1) with ExtractAarTransform
+Transforming core-splashscreen-1.0.1.aar (androidx.core:core-splashscreen:1.0.1) with AarTransform
+Transforming viewpager2-1.0.0.aar (androidx.viewpager2:viewpager2:1.0.0) with ExtractAarTransform
+Transforming viewpager2-1.0.0.aar (androidx.viewpager2:viewpager2:1.0.0) with AarTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with ExtractAarTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with AarTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with ExtractAarTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with AarTransform
+Transforming activity-1.9.2.aar (androidx.activity:activity:1.9.2) with ExtractAarTransform
+Transforming activity-1.9.2.aar (androidx.activity:activity:1.9.2) with AarTransform
+Transforming cursoradapter-1.0.0.aar (androidx.cursoradapter:cursoradapter:1.0.0) with ExtractAarTransform
+Transforming cursoradapter-1.0.0.aar (androidx.cursoradapter:cursoradapter:1.0.0) with AarTransform
+Transforming emoji2-views-helper-1.3.0.aar (androidx.emoji2:emoji2-views-helper:1.3.0) with ExtractAarTransform
+Transforming emoji2-views-helper-1.3.0.aar (androidx.emoji2:emoji2-views-helper:1.3.0) with AarTransform
+Transforming emoji2-1.3.0.aar (androidx.emoji2:emoji2:1.3.0) with ExtractAarTransform
+Transforming emoji2-1.3.0.aar (androidx.emoji2:emoji2:1.3.0) with AarTransform
+Transforming vectordrawable-animated-1.1.0.aar (androidx.vectordrawable:vectordrawable-animated:1.1.0) with ExtractAarTransform
+Transforming vectordrawable-animated-1.1.0.aar (androidx.vectordrawable:vectordrawable-animated:1.1.0) with AarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with ExtractAarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with AarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with ExtractAarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with AarTransform
+Transforming webkit-1.12.1.aar (androidx.webkit:webkit:1.12.1) with ExtractAarTransform
+Transforming webkit-1.12.1.aar (androidx.webkit:webkit:1.12.1) with AarTransform
+Transforming drawerlayout-1.1.1.aar (androidx.drawerlayout:drawerlayout:1.1.1) with ExtractAarTransform
+Transforming drawerlayout-1.1.1.aar (androidx.drawerlayout:drawerlayout:1.1.1) with AarTransform
+Transforming dynamicanimation-1.0.0.aar (androidx.dynamicanimation:dynamicanimation:1.0.0) with ExtractAarTransform
+Transforming dynamicanimation-1.0.0.aar (androidx.dynamicanimation:dynamicanimation:1.0.0) with AarTransform
+Transforming transition-1.2.0.aar (androidx.transition:transition:1.2.0) with ExtractAarTransform
+Transforming transition-1.2.0.aar (androidx.transition:transition:1.2.0) with AarTransform
+Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with ExtractAarTransform
+Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with AarTransform
+Transforming legacy-support-core-utils-1.0.0.aar (androidx.legacy:legacy-support-core-utils:1.0.0) with ExtractAarTransform
+Transforming legacy-support-core-utils-1.0.0.aar (androidx.legacy:legacy-support-core-utils:1.0.0) with AarTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with ExtractAarTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with AarTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with ExtractAarTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with AarTransform
+Transforming lifecycle-livedata-2.6.2.aar (androidx.lifecycle:lifecycle-livedata:2.6.2) with ExtractAarTransform
+Transforming lifecycle-livedata-2.6.2.aar (androidx.lifecycle:lifecycle-livedata:2.6.2) with AarTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with ExtractAarTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with AarTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with ExtractAarTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with AarTransform
+Transforming lifecycle-process-2.6.2.aar (androidx.lifecycle:lifecycle-process:2.6.2) with ExtractAarTransform
+Transforming lifecycle-process-2.6.2.aar (androidx.lifecycle:lifecycle-process:2.6.2) with AarTransform
+Transforming lifecycle-livedata-core-2.6.2.aar (androidx.lifecycle:lifecycle-livedata-core:2.6.2) with ExtractAarTransform
+Transforming lifecycle-livedata-core-2.6.2.aar (androidx.lifecycle:lifecycle-livedata-core:2.6.2) with AarTransform
+Transforming lifecycle-viewmodel-savedstate-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2) with ExtractAarTransform
+Transforming lifecycle-viewmodel-savedstate-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2) with AarTransform
+Transforming core-ktx-1.15.0.aar (androidx.core:core-ktx:1.15.0) with ExtractAarTransform
+Transforming core-ktx-1.15.0.aar (androidx.core:core-ktx:1.15.0) with AarTransform
+Transforming viewpager-1.0.0.aar (androidx.viewpager:viewpager:1.0.0) with ExtractAarTransform
+Transforming viewpager-1.0.0.aar (androidx.viewpager:viewpager:1.0.0) with AarTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with ExtractAarTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with AarTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with ExtractAarTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with AarTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with ExtractAarTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with AarTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with ExtractAarTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with AarTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with ExtractAarTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with ExtractAarTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarTransform
+Transforming lifecycle-runtime-2.6.2.aar (androidx.lifecycle:lifecycle-runtime:2.6.2) with ExtractAarTransform
+Transforming lifecycle-runtime-2.6.2.aar (androidx.lifecycle:lifecycle-runtime:2.6.2) with AarTransform
+Transforming profileinstaller-1.3.1.aar (androidx.profileinstaller:profileinstaller:1.3.1) with ExtractAarTransform
+Transforming profileinstaller-1.3.1.aar (androidx.profileinstaller:profileinstaller:1.3.1) with AarTransform
+Transforming startup-runtime-1.1.1.aar (androidx.startup:startup-runtime:1.1.1) with ExtractAarTransform
+Transforming startup-runtime-1.1.1.aar (androidx.startup:startup-runtime:1.1.1) with AarTransform
+Transforming cardview-1.0.0.aar (androidx.cardview:cardview:1.0.0) with ExtractAarTransform
+Transforming cardview-1.0.0.aar (androidx.cardview:cardview:1.0.0) with AarTransform
+Transforming tracing-1.2.0.aar (androidx.tracing:tracing:1.2.0) with ExtractAarTransform
+Transforming tracing-1.2.0.aar (androidx.tracing:tracing:1.2.0) with AarTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with ExtractAarTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with AarTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with ExtractAarTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with AarTransform
+Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with ExtractAarTransform
+Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with AarTransform
+Transforming core-runtime-2.2.0.aar (androidx.arch.core:core-runtime:2.2.0) with ExtractAarTransform
+Transforming core-runtime-2.2.0.aar (androidx.arch.core:core-runtime:2.2.0) with AarTransform
+Transforming documentfile-1.0.0.aar (androidx.documentfile:documentfile:1.0.0) with ExtractAarTransform
+Transforming documentfile-1.0.0.aar (androidx.documentfile:documentfile:1.0.0) with AarTransform
+Transforming localbroadcastmanager-1.0.0.aar (androidx.localbroadcastmanager:localbroadcastmanager:1.0.0) with ExtractAarTransform
+Transforming localbroadcastmanager-1.0.0.aar (androidx.localbroadcastmanager:localbroadcastmanager:1.0.0) with AarTransform
+Transforming print-1.0.0.aar (androidx.print:print:1.0.0) with ExtractAarTransform
+Transforming print-1.0.0.aar (androidx.print:print:1.0.0) with AarTransform
+Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with ExtractAarTransform
+Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with AarTransform
+Transforming framework-10.1.1.aar (org.apache.cordova:framework:10.1.1) with ExtractAarTransform
+Transforming framework-10.1.1.aar (org.apache.cordova:framework:10.1.1) with AarTransform
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\app\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\app\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capawesome-team\capacitor-android-foreground-service\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\android\capacitor\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\capacitor-cordova-android-plugins\src\main\libs', not found
+Transforming appcompat-resources-1.7.0.aar (androidx.appcompat:appcompat-resources:1.7.0) with ExtractAarTransform
+Transforming appcompat-resources-1.7.0.aar (androidx.appcompat:appcompat-resources:1.7.0) with AarTransform
+Transforming material-1.11.0.aar (com.google.android.material:material:1.11.0) with ExtractAarTransform
+Transforming material-1.11.0.aar (com.google.android.material:material:1.11.0) with AarTransform
+Transforming constraintlayout-2.0.1.aar (androidx.constraintlayout:constraintlayout:2.0.1) with ExtractAarTransform
+Transforming constraintlayout-2.0.1.aar (androidx.constraintlayout:constraintlayout:2.0.1) with AarTransform
+Transforming appcompat-1.7.0.aar (androidx.appcompat:appcompat:1.7.0) with ExtractAarTransform
+Transforming appcompat-1.7.0.aar (androidx.appcompat:appcompat:1.7.0) with AarTransform
+Transforming coordinatorlayout-1.2.0.aar (androidx.coordinatorlayout:coordinatorlayout:1.2.0) with ExtractAarTransform
+Transforming coordinatorlayout-1.2.0.aar (androidx.coordinatorlayout:coordinatorlayout:1.2.0) with AarTransform
+Transforming core-splashscreen-1.0.1.aar (androidx.core:core-splashscreen:1.0.1) with ExtractAarTransform
+Transforming core-splashscreen-1.0.1.aar (androidx.core:core-splashscreen:1.0.1) with AarTransform
+Transforming viewpager2-1.0.0.aar (androidx.viewpager2:viewpager2:1.0.0) with ExtractAarTransform
+Transforming viewpager2-1.0.0.aar (androidx.viewpager2:viewpager2:1.0.0) with AarTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with ExtractAarTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with AarTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with ExtractAarTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with AarTransform
+Transforming activity-1.9.2.aar (androidx.activity:activity:1.9.2) with ExtractAarTransform
+Transforming activity-1.9.2.aar (androidx.activity:activity:1.9.2) with AarTransform
+Transforming cursoradapter-1.0.0.aar (androidx.cursoradapter:cursoradapter:1.0.0) with ExtractAarTransform
+Transforming cursoradapter-1.0.0.aar (androidx.cursoradapter:cursoradapter:1.0.0) with AarTransform
+Transforming emoji2-views-helper-1.3.0.aar (androidx.emoji2:emoji2-views-helper:1.3.0) with ExtractAarTransform
+Transforming emoji2-views-helper-1.3.0.aar (androidx.emoji2:emoji2-views-helper:1.3.0) with AarTransform
+Transforming emoji2-1.3.0.aar (androidx.emoji2:emoji2:1.3.0) with ExtractAarTransform
+Transforming emoji2-1.3.0.aar (androidx.emoji2:emoji2:1.3.0) with AarTransform
+Transforming vectordrawable-animated-1.1.0.aar (androidx.vectordrawable:vectordrawable-animated:1.1.0) with ExtractAarTransform
+Transforming vectordrawable-animated-1.1.0.aar (androidx.vectordrawable:vectordrawable-animated:1.1.0) with AarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with ExtractAarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with AarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with ExtractAarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with AarTransform
+Transforming webkit-1.12.1.aar (androidx.webkit:webkit:1.12.1) with ExtractAarTransform
+Transforming webkit-1.12.1.aar (androidx.webkit:webkit:1.12.1) with AarTransform
+Transforming drawerlayout-1.1.1.aar (androidx.drawerlayout:drawerlayout:1.1.1) with ExtractAarTransform
+Transforming drawerlayout-1.1.1.aar (androidx.drawerlayout:drawerlayout:1.1.1) with AarTransform
+Transforming dynamicanimation-1.0.0.aar (androidx.dynamicanimation:dynamicanimation:1.0.0) with ExtractAarTransform
+Transforming dynamicanimation-1.0.0.aar (androidx.dynamicanimation:dynamicanimation:1.0.0) with AarTransform
+Transforming transition-1.2.0.aar (androidx.transition:transition:1.2.0) with ExtractAarTransform
+Transforming transition-1.2.0.aar (androidx.transition:transition:1.2.0) with AarTransform
+Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with ExtractAarTransform
+Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with AarTransform
+Transforming legacy-support-core-utils-1.0.0.aar (androidx.legacy:legacy-support-core-utils:1.0.0) with ExtractAarTransform
+Transforming legacy-support-core-utils-1.0.0.aar (androidx.legacy:legacy-support-core-utils:1.0.0) with AarTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with ExtractAarTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with AarTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with ExtractAarTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with AarTransform
+Transforming lifecycle-livedata-2.6.2.aar (androidx.lifecycle:lifecycle-livedata:2.6.2) with ExtractAarTransform
+Transforming lifecycle-livedata-2.6.2.aar (androidx.lifecycle:lifecycle-livedata:2.6.2) with AarTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with ExtractAarTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with AarTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with ExtractAarTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with AarTransform
+Transforming lifecycle-process-2.6.2.aar (androidx.lifecycle:lifecycle-process:2.6.2) with ExtractAarTransform
+Transforming lifecycle-process-2.6.2.aar (androidx.lifecycle:lifecycle-process:2.6.2) with AarTransform
+Transforming lifecycle-livedata-core-2.6.2.aar (androidx.lifecycle:lifecycle-livedata-core:2.6.2) with ExtractAarTransform
+Transforming lifecycle-livedata-core-2.6.2.aar (androidx.lifecycle:lifecycle-livedata-core:2.6.2) with AarTransform
+Transforming lifecycle-viewmodel-savedstate-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2) with ExtractAarTransform
+Transforming lifecycle-viewmodel-savedstate-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2) with AarTransform
+Transforming core-ktx-1.15.0.aar (androidx.core:core-ktx:1.15.0) with ExtractAarTransform
+Transforming core-ktx-1.15.0.aar (androidx.core:core-ktx:1.15.0) with AarTransform
+Transforming viewpager-1.0.0.aar (androidx.viewpager:viewpager:1.0.0) with ExtractAarTransform
+Transforming viewpager-1.0.0.aar (androidx.viewpager:viewpager:1.0.0) with AarTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with ExtractAarTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with AarTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with ExtractAarTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with AarTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with ExtractAarTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with AarTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with ExtractAarTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with AarTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with ExtractAarTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with ExtractAarTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarTransform
+Transforming lifecycle-runtime-2.6.2.aar (androidx.lifecycle:lifecycle-runtime:2.6.2) with ExtractAarTransform
+Transforming lifecycle-runtime-2.6.2.aar (androidx.lifecycle:lifecycle-runtime:2.6.2) with AarTransform
+Transforming profileinstaller-1.3.1.aar (androidx.profileinstaller:profileinstaller:1.3.1) with ExtractAarTransform
+Transforming profileinstaller-1.3.1.aar (androidx.profileinstaller:profileinstaller:1.3.1) with AarTransform
+Transforming startup-runtime-1.1.1.aar (androidx.startup:startup-runtime:1.1.1) with ExtractAarTransform
+Transforming startup-runtime-1.1.1.aar (androidx.startup:startup-runtime:1.1.1) with AarTransform
+Transforming cardview-1.0.0.aar (androidx.cardview:cardview:1.0.0) with ExtractAarTransform
+Transforming cardview-1.0.0.aar (androidx.cardview:cardview:1.0.0) with AarTransform
+Transforming tracing-1.2.0.aar (androidx.tracing:tracing:1.2.0) with ExtractAarTransform
+Transforming tracing-1.2.0.aar (androidx.tracing:tracing:1.2.0) with AarTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with ExtractAarTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with AarTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with ExtractAarTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with AarTransform
+Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with ExtractAarTransform
+Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with AarTransform
+Transforming core-runtime-2.2.0.aar (androidx.arch.core:core-runtime:2.2.0) with ExtractAarTransform
+Transforming core-runtime-2.2.0.aar (androidx.arch.core:core-runtime:2.2.0) with AarTransform
+Transforming documentfile-1.0.0.aar (androidx.documentfile:documentfile:1.0.0) with ExtractAarTransform
+Transforming documentfile-1.0.0.aar (androidx.documentfile:documentfile:1.0.0) with AarTransform
+Transforming localbroadcastmanager-1.0.0.aar (androidx.localbroadcastmanager:localbroadcastmanager:1.0.0) with ExtractAarTransform
+Transforming localbroadcastmanager-1.0.0.aar (androidx.localbroadcastmanager:localbroadcastmanager:1.0.0) with AarTransform
+Transforming print-1.0.0.aar (androidx.print:print:1.0.0) with ExtractAarTransform
+Transforming print-1.0.0.aar (androidx.print:print:1.0.0) with AarTransform
+Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with ExtractAarTransform
+Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with AarTransform
+Transforming framework-10.1.1.aar (org.apache.cordova:framework:10.1.1) with ExtractAarTransform
+Transforming framework-10.1.1.aar (org.apache.cordova:framework:10.1.1) with AarTransform
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\app\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\app\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capawesome-team\capacitor-android-foreground-service\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\android\capacitor\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\capacitor-cordova-android-plugins\src\main\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\app\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\app\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capawesome-team\capacitor-android-foreground-service\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\android\capacitor\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\capacitor-cordova-android-plugins\src\main\libs', not found
+Caching disabled for task ':app:processDebugMainManifest' because:
+  Build cache is disabled
+Skipping task ':app:processDebugMainManifest' as it is up-to-date.
+Resolve mutations for :app:processDebugManifest (Thread[Execution worker Thread 9,5,main]) started.
+:app:processDebugManifest (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :app:processDebugManifest UP-TO-DATE
+Caching disabled for task ':app:processDebugManifest' because:
+  Build cache is disabled
+Skipping task ':app:processDebugManifest' as it is up-to-date.
+Resolve mutations for :app:processDebugManifestForPackage (Thread[Execution worker Thread 9,5,main]) started.
+:app:processDebugManifestForPackage (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+Caching disabled for task ':app:processDebugManifestForPackage' because:
+  Build cache is disabled
+Skipping task ':app:processDebugManifestForPackage' as it is up-to-date.
+Resolve mutations for :capacitor-android:compileDebugLibraryResources (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-android:compileDebugLibraryResources (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-android:compileDebugLibraryResources UP-TO-DATE
+Caching disabled for task ':capacitor-android:compileDebugLibraryResources' because:
+  Build cache is disabled
+Skipping task ':capacitor-android:compileDebugLibraryResources' as it is up-to-date.
+work action resolve out (project :capacitor-android) (Thread[Execution worker Thread 9,5,main]) started.
+Resolve mutations for :capacitor-android:parseDebugLocalResources (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-android:parseDebugLocalResources (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-android:parseDebugLocalResources UP-TO-DATE
+Transforming android.jar with PlatformAttrTransform
+Transforming android.jar with PlatformAttrTransform
+Caching disabled for task ':capacitor-android:parseDebugLocalResources' because:
+  Build cache is disabled
+Skipping task ':capacitor-android:parseDebugLocalResources' as it is up-to-date.
+Resolve mutations for :capacitor-android:generateDebugRFile (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-android:generateDebugRFile (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-android:generateDebugRFile UP-TO-DATE
+Transforming android.jar with PlatformAttrTransform
+Caching disabled for task ':capacitor-android:generateDebugRFile' because:
+  Build cache is disabled
+Skipping task ':capacitor-android:generateDebugRFile' as it is up-to-date.
+work action resolve package-aware-r.txt (project :capacitor-android) (Thread[Execution worker Thread 9,5,main]) started.
+Resolve mutations for :capacitor-app:compileDebugLibraryResources (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-app:compileDebugLibraryResources (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-app:compileDebugLibraryResources UP-TO-DATE
+Caching disabled for task ':capacitor-app:compileDebugLibraryResources' because:
+  Build cache is disabled
+Skipping task ':capacitor-app:compileDebugLibraryResources' as it is up-to-date.
+work action resolve out (project :capacitor-app) (Thread[Execution worker Thread 9,5,main]) started.
+Resolve mutations for :capacitor-app:parseDebugLocalResources (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-app:parseDebugLocalResources (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-app:parseDebugLocalResources UP-TO-DATE
+Transforming android.jar with PlatformAttrTransform
+Transforming android.jar with PlatformAttrTransform
+Caching disabled for task ':capacitor-app:parseDebugLocalResources' because:
+  Build cache is disabled
+Skipping task ':capacitor-app:parseDebugLocalResources' as it is up-to-date.
+Resolve mutations for :capacitor-app:generateDebugRFile (Thread[Execution worker Thread 9,5,main]) started.
+:capacitor-app:generateDebugRFile (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :capacitor-app:generateDebugRFile UP-TO-DATE
+Transforming android.jar with PlatformAttrTransform
+Caching disabled for task ':capacitor-app:generateDebugRFile' because:
+  Build cache is disabled
+Skipping task ':capacitor-app:generateDebugRFile' as it is up-to-date.
+work action resolve package-aware-r.txt (project :capacitor-app) (Thread[included builds,5,main]) started.
+Resolve mutations for :capacitor-cordova-android-plugins:compileDebugLibraryResources (Thread[included builds,5,main]) started.
+:capacitor-cordova-android-plugins:compileDebugLibraryResources (Thread[included builds,5,main]) started.
+
+> Task :capacitor-cordova-android-plugins:compileDebugLibraryResources UP-TO-DATE
+Caching disabled for task ':capacitor-cordova-android-plugins:compileDebugLibraryResources' because:
+  Build cache is disabled
+Skipping task ':capacitor-cordova-android-plugins:compileDebugLibraryResources' as it is up-to-date.
+work action resolve out (project :capacitor-cordova-android-plugins) (Thread[included builds,5,main]) started.
+Resolve mutations for :capacitor-cordova-android-plugins:parseDebugLocalResources (Thread[included builds,5,main]) started.
+:capacitor-cordova-android-plugins:parseDebugLocalResources (Thread[included builds,5,main]) started.
+
+> Task :capacitor-cordova-android-plugins:parseDebugLocalResources UP-TO-DATE
+Transforming android.jar with PlatformAttrTransform
+Transforming android.jar with PlatformAttrTransform
+Caching disabled for task ':capacitor-cordova-android-plugins:parseDebugLocalResources' because:
+  Build cache is disabled
+Skipping task ':capacitor-cordova-android-plugins:parseDebugLocalResources' as it is up-to-date.
+Resolve mutations for :capacitor-cordova-android-plugins:generateDebugRFile (Thread[included builds,5,main]) started.
+:capacitor-cordova-android-plugins:generateDebugRFile (Thread[included builds,5,main]) started.
+
+> Task :capacitor-cordova-android-plugins:generateDebugRFile UP-TO-DATE
+Transforming android.jar with PlatformAttrTransform
+Caching disabled for task ':capacitor-cordova-android-plugins:generateDebugRFile' because:
+  Build cache is disabled
+Skipping task ':capacitor-cordova-android-plugins:generateDebugRFile' as it is up-to-date.
+work action resolve package-aware-r.txt (project :capacitor-cordova-android-plugins) (Thread[included builds,5,main]) started.
+Resolve mutations for :capacitor-local-notifications:compileDebugLibraryResources (Thread[included builds,5,main]) started.
+:capacitor-local-notifications:compileDebugLibraryResources (Thread[included builds,5,main]) started.
+
+> Task :capacitor-local-notifications:compileDebugLibraryResources UP-TO-DATE
+Caching disabled for task ':capacitor-local-notifications:compileDebugLibraryResources' because:
+  Build cache is disabled
+Skipping task ':capacitor-local-notifications:compileDebugLibraryResources' as it is up-to-date.
+work action resolve out (project :capacitor-local-notifications) (Thread[included builds,5,main]) started.
+Resolve mutations for :capacitor-local-notifications:parseDebugLocalResources (Thread[included builds,5,main]) started.
+:capacitor-local-notifications:parseDebugLocalResources (Thread[included builds,5,main]) started.
+
+> Task :capacitor-local-notifications:parseDebugLocalResources UP-TO-DATE
+Transforming android.jar with PlatformAttrTransform
+Transforming android.jar with PlatformAttrTransform
+Caching disabled for task ':capacitor-local-notifications:parseDebugLocalResources' because:
+  Build cache is disabled
+Skipping task ':capacitor-local-notifications:parseDebugLocalResources' as it is up-to-date.
+Resolve mutations for :capacitor-local-notifications:generateDebugRFile (Thread[included builds,5,main]) started.
+:capacitor-local-notifications:generateDebugRFile (Thread[included builds,5,main]) started.
+
+> Task :capacitor-local-notifications:generateDebugRFile UP-TO-DATE
+Transforming android.jar with PlatformAttrTransform
+Caching disabled for task ':capacitor-local-notifications:generateDebugRFile' because:
+  Build cache is disabled
+Skipping task ':capacitor-local-notifications:generateDebugRFile' as it is up-to-date.
+work action resolve package-aware-r.txt (project :capacitor-local-notifications) (Thread[included builds,5,main]) started.
+Resolve mutations for :capawesome-team-capacitor-android-foreground-service:compileDebugLibraryResources (Thread[included builds,5,main]) started.
+:capawesome-team-capacitor-android-foreground-service:compileDebugLibraryResources (Thread[included builds,5,main]) started.
+
+> Task :capawesome-team-capacitor-android-foreground-service:compileDebugLibraryResources UP-TO-DATE
+Caching disabled for task ':capawesome-team-capacitor-android-foreground-service:compileDebugLibraryResources' because:
+  Build cache is disabled
+Skipping task ':capawesome-team-capacitor-android-foreground-service:compileDebugLibraryResources' as it is up-to-date.
+work action resolve out (project :capawesome-team-capacitor-android-foreground-service) (Thread[included builds,5,main]) started.
+Resolve mutations for :capawesome-team-capacitor-android-foreground-service:parseDebugLocalResources (Thread[included builds,5,main]) started.
+:capawesome-team-capacitor-android-foreground-service:parseDebugLocalResources (Thread[included builds,5,main]) started.
+
+> Task :capawesome-team-capacitor-android-foreground-service:parseDebugLocalResources UP-TO-DATE
+Transforming android.jar with PlatformAttrTransform
+Transforming android.jar with PlatformAttrTransform
+Caching disabled for task ':capawesome-team-capacitor-android-foreground-service:parseDebugLocalResources' because:
+  Build cache is disabled
+Skipping task ':capawesome-team-capacitor-android-foreground-service:parseDebugLocalResources' as it is up-to-date.
+Resolve mutations for :capawesome-team-capacitor-android-foreground-service:generateDebugRFile (Thread[included builds,5,main]) started.
+:capawesome-team-capacitor-android-foreground-service:generateDebugRFile (Thread[included builds,5,main]) started.
+
+> Task :capawesome-team-capacitor-android-foreground-service:generateDebugRFile UP-TO-DATE
+Transforming android.jar with PlatformAttrTransform
+Caching disabled for task ':capawesome-team-capacitor-android-foreground-service:generateDebugRFile' because:
+  Build cache is disabled
+Skipping task ':capawesome-team-capacitor-android-foreground-service:generateDebugRFile' as it is up-to-date.
+work action resolve package-aware-r.txt (project :capawesome-team-capacitor-android-foreground-service) (Thread[included builds,5,main]) started.
+Resolve mutations for :app:processDebugResources (Thread[included builds,5,main]) started.
+:app:processDebugResources (Thread[included builds,5,main]) started.
+
+> Task :app:processDebugResources UP-TO-DATE
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\app\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\app\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capawesome-team\capacitor-android-foreground-service\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\android\capacitor\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\capacitor-cordova-android-plugins\src\main\libs', not found
+Transforming aapt2-8.2.2-10154469-windows.jar (com.android.tools.build:aapt2:8.2.2-10154469) with Aapt2Extractor
+Transforming appcompat-resources-1.7.0.aar (androidx.appcompat:appcompat-resources:1.7.0) with ExtractAarTransform
+Transforming appcompat-resources-1.7.0.aar (androidx.appcompat:appcompat-resources:1.7.0) with AarResourcesCompilerTransform
+Transforming material-1.11.0.aar (com.google.android.material:material:1.11.0) with ExtractAarTransform
+Transforming material-1.11.0.aar (com.google.android.material:material:1.11.0) with AarResourcesCompilerTransform
+Transforming constraintlayout-2.0.1.aar (androidx.constraintlayout:constraintlayout:2.0.1) with ExtractAarTransform
+Transforming constraintlayout-2.0.1.aar (androidx.constraintlayout:constraintlayout:2.0.1) with AarResourcesCompilerTransform
+Transforming appcompat-1.7.0.aar (androidx.appcompat:appcompat:1.7.0) with ExtractAarTransform
+Transforming appcompat-1.7.0.aar (androidx.appcompat:appcompat:1.7.0) with AarResourcesCompilerTransform
+Transforming coordinatorlayout-1.2.0.aar (androidx.coordinatorlayout:coordinatorlayout:1.2.0) with ExtractAarTransform
+Transforming coordinatorlayout-1.2.0.aar (androidx.coordinatorlayout:coordinatorlayout:1.2.0) with AarResourcesCompilerTransform
+Transforming core-splashscreen-1.0.1.aar (androidx.core:core-splashscreen:1.0.1) with ExtractAarTransform
+Transforming core-splashscreen-1.0.1.aar (androidx.core:core-splashscreen:1.0.1) with AarResourcesCompilerTransform
+Transforming viewpager2-1.0.0.aar (androidx.viewpager2:viewpager2:1.0.0) with ExtractAarTransform
+Transforming viewpager2-1.0.0.aar (androidx.viewpager2:viewpager2:1.0.0) with AarResourcesCompilerTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with ExtractAarTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with AarResourcesCompilerTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with ExtractAarTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with AarResourcesCompilerTransform
+Transforming activity-1.9.2.aar (androidx.activity:activity:1.9.2) with ExtractAarTransform
+Transforming activity-1.9.2.aar (androidx.activity:activity:1.9.2) with AarResourcesCompilerTransform
+Transforming cursoradapter-1.0.0.aar (androidx.cursoradapter:cursoradapter:1.0.0) with ExtractAarTransform
+Transforming cursoradapter-1.0.0.aar (androidx.cursoradapter:cursoradapter:1.0.0) with AarResourcesCompilerTransform
+Transforming emoji2-views-helper-1.3.0.aar (androidx.emoji2:emoji2-views-helper:1.3.0) with ExtractAarTransform
+Transforming emoji2-views-helper-1.3.0.aar (androidx.emoji2:emoji2-views-helper:1.3.0) with AarResourcesCompilerTransform
+Transforming emoji2-1.3.0.aar (androidx.emoji2:emoji2:1.3.0) with ExtractAarTransform
+Transforming emoji2-1.3.0.aar (androidx.emoji2:emoji2:1.3.0) with AarResourcesCompilerTransform
+Transforming vectordrawable-animated-1.1.0.aar (androidx.vectordrawable:vectordrawable-animated:1.1.0) with ExtractAarTransform
+Transforming vectordrawable-animated-1.1.0.aar (androidx.vectordrawable:vectordrawable-animated:1.1.0) with AarResourcesCompilerTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with ExtractAarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with AarResourcesCompilerTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with ExtractAarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with AarResourcesCompilerTransform
+Transforming webkit-1.12.1.aar (androidx.webkit:webkit:1.12.1) with ExtractAarTransform
+Transforming webkit-1.12.1.aar (androidx.webkit:webkit:1.12.1) with AarResourcesCompilerTransform
+Transforming drawerlayout-1.1.1.aar (androidx.drawerlayout:drawerlayout:1.1.1) with ExtractAarTransform
+Transforming drawerlayout-1.1.1.aar (androidx.drawerlayout:drawerlayout:1.1.1) with AarResourcesCompilerTransform
+Transforming dynamicanimation-1.0.0.aar (androidx.dynamicanimation:dynamicanimation:1.0.0) with ExtractAarTransform
+Transforming dynamicanimation-1.0.0.aar (androidx.dynamicanimation:dynamicanimation:1.0.0) with AarResourcesCompilerTransform
+Transforming transition-1.2.0.aar (androidx.transition:transition:1.2.0) with ExtractAarTransform
+Transforming transition-1.2.0.aar (androidx.transition:transition:1.2.0) with AarResourcesCompilerTransform
+Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with ExtractAarTransform
+Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with AarResourcesCompilerTransform
+Transforming legacy-support-core-utils-1.0.0.aar (androidx.legacy:legacy-support-core-utils:1.0.0) with ExtractAarTransform
+Transforming legacy-support-core-utils-1.0.0.aar (androidx.legacy:legacy-support-core-utils:1.0.0) with AarResourcesCompilerTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with ExtractAarTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with AarResourcesCompilerTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with ExtractAarTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with AarResourcesCompilerTransform
+Transforming lifecycle-livedata-2.6.2.aar (androidx.lifecycle:lifecycle-livedata:2.6.2) with ExtractAarTransform
+Transforming lifecycle-livedata-2.6.2.aar (androidx.lifecycle:lifecycle-livedata:2.6.2) with AarResourcesCompilerTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with ExtractAarTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with AarResourcesCompilerTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with ExtractAarTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with AarResourcesCompilerTransform
+Transforming lifecycle-process-2.6.2.aar (androidx.lifecycle:lifecycle-process:2.6.2) with ExtractAarTransform
+Transforming lifecycle-process-2.6.2.aar (androidx.lifecycle:lifecycle-process:2.6.2) with AarResourcesCompilerTransform
+Transforming lifecycle-livedata-core-2.6.2.aar (androidx.lifecycle:lifecycle-livedata-core:2.6.2) with ExtractAarTransform
+Transforming lifecycle-livedata-core-2.6.2.aar (androidx.lifecycle:lifecycle-livedata-core:2.6.2) with AarResourcesCompilerTransform
+Transforming lifecycle-viewmodel-savedstate-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2) with ExtractAarTransform
+Transforming lifecycle-viewmodel-savedstate-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2) with AarResourcesCompilerTransform
+Transforming core-ktx-1.15.0.aar (androidx.core:core-ktx:1.15.0) with ExtractAarTransform
+Transforming core-ktx-1.15.0.aar (androidx.core:core-ktx:1.15.0) with AarResourcesCompilerTransform
+Transforming viewpager-1.0.0.aar (androidx.viewpager:viewpager:1.0.0) with ExtractAarTransform
+Transforming viewpager-1.0.0.aar (androidx.viewpager:viewpager:1.0.0) with AarResourcesCompilerTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with ExtractAarTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with AarResourcesCompilerTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with ExtractAarTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with AarResourcesCompilerTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with ExtractAarTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with AarResourcesCompilerTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with ExtractAarTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with AarResourcesCompilerTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with ExtractAarTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarResourcesCompilerTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with ExtractAarTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarResourcesCompilerTransform
+Transforming lifecycle-runtime-2.6.2.aar (androidx.lifecycle:lifecycle-runtime:2.6.2) with ExtractAarTransform
+Transforming lifecycle-runtime-2.6.2.aar (androidx.lifecycle:lifecycle-runtime:2.6.2) with AarResourcesCompilerTransform
+Transforming profileinstaller-1.3.1.aar (androidx.profileinstaller:profileinstaller:1.3.1) with ExtractAarTransform
+Transforming profileinstaller-1.3.1.aar (androidx.profileinstaller:profileinstaller:1.3.1) with AarResourcesCompilerTransform
+Transforming startup-runtime-1.1.1.aar (androidx.startup:startup-runtime:1.1.1) with ExtractAarTransform
+Transforming startup-runtime-1.1.1.aar (androidx.startup:startup-runtime:1.1.1) with AarResourcesCompilerTransform
+Transforming cardview-1.0.0.aar (androidx.cardview:cardview:1.0.0) with ExtractAarTransform
+Transforming cardview-1.0.0.aar (androidx.cardview:cardview:1.0.0) with AarResourcesCompilerTransform
+Transforming tracing-1.2.0.aar (androidx.tracing:tracing:1.2.0) with ExtractAarTransform
+Transforming tracing-1.2.0.aar (androidx.tracing:tracing:1.2.0) with AarResourcesCompilerTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with ExtractAarTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with AarResourcesCompilerTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with ExtractAarTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with AarResourcesCompilerTransform
+Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with ExtractAarTransform
+Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with AarResourcesCompilerTransform
+Transforming core-runtime-2.2.0.aar (androidx.arch.core:core-runtime:2.2.0) with ExtractAarTransform
+Transforming core-runtime-2.2.0.aar (androidx.arch.core:core-runtime:2.2.0) with AarResourcesCompilerTransform
+Transforming documentfile-1.0.0.aar (androidx.documentfile:documentfile:1.0.0) with ExtractAarTransform
+Transforming documentfile-1.0.0.aar (androidx.documentfile:documentfile:1.0.0) with AarResourcesCompilerTransform
+Transforming localbroadcastmanager-1.0.0.aar (androidx.localbroadcastmanager:localbroadcastmanager:1.0.0) with ExtractAarTransform
+Transforming localbroadcastmanager-1.0.0.aar (androidx.localbroadcastmanager:localbroadcastmanager:1.0.0) with AarResourcesCompilerTransform
+Transforming print-1.0.0.aar (androidx.print:print:1.0.0) with ExtractAarTransform
+Transforming print-1.0.0.aar (androidx.print:print:1.0.0) with AarResourcesCompilerTransform
+Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with ExtractAarTransform
+Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with AarResourcesCompilerTransform
+Transforming framework-10.1.1.aar (org.apache.cordova:framework:10.1.1) with ExtractAarTransform
+Transforming framework-10.1.1.aar (org.apache.cordova:framework:10.1.1) with AarResourcesCompilerTransform
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\app\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\app\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capawesome-team\capacitor-android-foreground-service\android\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\android\capacitor\libs', not found
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\capacitor-cordova-android-plugins\src\main\libs', not found
+Transforming appcompat-resources-1.7.0.aar (androidx.appcompat:appcompat-resources:1.7.0) with ExtractAarTransform
+Transforming appcompat-resources-1.7.0.aar (androidx.appcompat:appcompat-resources:1.7.0) with LibrarySymbolTableTransform
+Transforming material-1.11.0.aar (com.google.android.material:material:1.11.0) with ExtractAarTransform
+Transforming material-1.11.0.aar (com.google.android.material:material:1.11.0) with LibrarySymbolTableTransform
+Transforming constraintlayout-2.0.1.aar (androidx.constraintlayout:constraintlayout:2.0.1) with ExtractAarTransform
+Transforming constraintlayout-2.0.1.aar (androidx.constraintlayout:constraintlayout:2.0.1) with LibrarySymbolTableTransform
+Transforming appcompat-1.7.0.aar (androidx.appcompat:appcompat:1.7.0) with ExtractAarTransform
+Transforming appcompat-1.7.0.aar (androidx.appcompat:appcompat:1.7.0) with LibrarySymbolTableTransform
+Transforming coordinatorlayout-1.2.0.aar (androidx.coordinatorlayout:coordinatorlayout:1.2.0) with ExtractAarTransform
+Transforming coordinatorlayout-1.2.0.aar (androidx.coordinatorlayout:coordinatorlayout:1.2.0) with LibrarySymbolTableTransform
+Transforming core-splashscreen-1.0.1.aar (androidx.core:core-splashscreen:1.0.1) with ExtractAarTransform
+Transforming core-splashscreen-1.0.1.aar (androidx.core:core-splashscreen:1.0.1) with LibrarySymbolTableTransform
+Transforming viewpager2-1.0.0.aar (androidx.viewpager2:viewpager2:1.0.0) with ExtractAarTransform
+Transforming viewpager2-1.0.0.aar (androidx.viewpager2:viewpager2:1.0.0) with LibrarySymbolTableTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with ExtractAarTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with LibrarySymbolTableTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with ExtractAarTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with LibrarySymbolTableTransform
+Transforming activity-1.9.2.aar (androidx.activity:activity:1.9.2) with ExtractAarTransform
+Transforming activity-1.9.2.aar (androidx.activity:activity:1.9.2) with LibrarySymbolTableTransform
+Transforming cursoradapter-1.0.0.aar (androidx.cursoradapter:cursoradapter:1.0.0) with ExtractAarTransform
+Transforming cursoradapter-1.0.0.aar (androidx.cursoradapter:cursoradapter:1.0.0) with LibrarySymbolTableTransform
+Transforming emoji2-views-helper-1.3.0.aar (androidx.emoji2:emoji2-views-helper:1.3.0) with ExtractAarTransform
+Transforming emoji2-views-helper-1.3.0.aar (androidx.emoji2:emoji2-views-helper:1.3.0) with LibrarySymbolTableTransform
+Transforming emoji2-1.3.0.aar (androidx.emoji2:emoji2:1.3.0) with ExtractAarTransform
+Transforming emoji2-1.3.0.aar (androidx.emoji2:emoji2:1.3.0) with LibrarySymbolTableTransform
+Transforming vectordrawable-animated-1.1.0.aar (androidx.vectordrawable:vectordrawable-animated:1.1.0) with ExtractAarTransform
+Transforming vectordrawable-animated-1.1.0.aar (androidx.vectordrawable:vectordrawable-animated:1.1.0) with LibrarySymbolTableTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with ExtractAarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with LibrarySymbolTableTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with ExtractAarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with LibrarySymbolTableTransform
+Transforming webkit-1.12.1.aar (androidx.webkit:webkit:1.12.1) with ExtractAarTransform
+Transforming webkit-1.12.1.aar (androidx.webkit:webkit:1.12.1) with LibrarySymbolTableTransform
+Transforming drawerlayout-1.1.1.aar (androidx.drawerlayout:drawerlayout:1.1.1) with ExtractAarTransform
+Transforming drawerlayout-1.1.1.aar (androidx.drawerlayout:drawerlayout:1.1.1) with LibrarySymbolTableTransform
+Transforming dynamicanimation-1.0.0.aar (androidx.dynamicanimation:dynamicanimation:1.0.0) with ExtractAarTransform
+Transforming dynamicanimation-1.0.0.aar (androidx.dynamicanimation:dynamicanimation:1.0.0) with LibrarySymbolTableTransform
+Transforming transition-1.2.0.aar (androidx.transition:transition:1.2.0) with ExtractAarTransform
+Transforming transition-1.2.0.aar (androidx.transition:transition:1.2.0) with LibrarySymbolTableTransform
+Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with ExtractAarTransform
+Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with LibrarySymbolTableTransform
+Transforming legacy-support-core-utils-1.0.0.aar (androidx.legacy:legacy-support-core-utils:1.0.0) with ExtractAarTransform
+Transforming legacy-support-core-utils-1.0.0.aar (androidx.legacy:legacy-support-core-utils:1.0.0) with LibrarySymbolTableTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with ExtractAarTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with LibrarySymbolTableTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with ExtractAarTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with LibrarySymbolTableTransform
+Transforming lifecycle-livedata-2.6.2.aar (androidx.lifecycle:lifecycle-livedata:2.6.2) with ExtractAarTransform
+Transforming lifecycle-livedata-2.6.2.aar (androidx.lifecycle:lifecycle-livedata:2.6.2) with LibrarySymbolTableTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with ExtractAarTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with LibrarySymbolTableTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with ExtractAarTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with LibrarySymbolTableTransform
+Transforming lifecycle-process-2.6.2.aar (androidx.lifecycle:lifecycle-process:2.6.2) with ExtractAarTransform
+Transforming lifecycle-process-2.6.2.aar (androidx.lifecycle:lifecycle-process:2.6.2) with LibrarySymbolTableTransform
+Transforming lifecycle-livedata-core-2.6.2.aar (androidx.lifecycle:lifecycle-livedata-core:2.6.2) with ExtractAarTransform
+Transforming lifecycle-livedata-core-2.6.2.aar (androidx.lifecycle:lifecycle-livedata-core:2.6.2) with LibrarySymbolTableTransform
+Transforming lifecycle-viewmodel-savedstate-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2) with ExtractAarTransform
+Transforming lifecycle-viewmodel-savedstate-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2) with LibrarySymbolTableTransform
+Transforming core-ktx-1.15.0.aar (androidx.core:core-ktx:1.15.0) with ExtractAarTransform
+Transforming core-ktx-1.15.0.aar (androidx.core:core-ktx:1.15.0) with LibrarySymbolTableTransform
+Transforming viewpager-1.0.0.aar (androidx.viewpager:viewpager:1.0.0) with ExtractAarTransform
+Transforming viewpager-1.0.0.aar (androidx.viewpager:viewpager:1.0.0) with LibrarySymbolTableTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with ExtractAarTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with LibrarySymbolTableTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with ExtractAarTransform
+Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with LibrarySymbolTableTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with ExtractAarTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with LibrarySymbolTableTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with ExtractAarTransform
+Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with LibrarySymbolTableTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with ExtractAarTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with LibrarySymbolTableTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with ExtractAarTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with LibrarySymbolTableTransform
+Transforming lifecycle-runtime-2.6.2.aar (androidx.lifecycle:lifecycle-runtime:2.6.2) with ExtractAarTransform
+Transforming lifecycle-runtime-2.6.2.aar (androidx.lifecycle:lifecycle-runtime:2.6.2) with LibrarySymbolTableTransform
+Transforming profileinstaller-1.3.1.aar (androidx.profileinstaller:profileinstaller:1.3.1) with ExtractAarTransform
+Transforming profileinstaller-1.3.1.aar (androidx.profileinstaller:profileinstaller:1.3.1) with LibrarySymbolTableTransform
+Transforming startup-runtime-1.1.1.aar (androidx.startup:startup-runtime:1.1.1) with ExtractAarTransform
+Transforming startup-runtime-1.1.1.aar (androidx.startup:startup-runtime:1.1.1) with LibrarySymbolTableTransform
+Transforming cardview-1.0.0.aar (androidx.cardview:cardview:1.0.0) with ExtractAarTransform
+Transforming cardview-1.0.0.aar (androidx.cardview:cardview:1.0.0) with LibrarySymbolTableTransform
+Transforming tracing-1.2.0.aar (androidx.tracing:tracing:1.2.0) with ExtractAarTransform
+Transforming tracing-1.2.0.aar (androidx.tracing:tracing:1.2.0) with LibrarySymbolTableTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with ExtractAarTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with LibrarySymbolTableTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with ExtractAarTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with LibrarySymbolTableTransform
+Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with ExtractAarTransform
+Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with LibrarySymbolTableTransform
+Transforming core-runtime-2.2.0.aar (androidx.arch.core:core-runtime:2.2.0) with ExtractAarTransform
+Transforming core-runtime-2.2.0.aar (androidx.arch.core:core-runtime:2.2.0) with LibrarySymbolTableTransform
+Transforming documentfile-1.0.0.aar (androidx.documentfile:documentfile:1.0.0) with ExtractAarTransform
+Transforming documentfile-1.0.0.aar (androidx.documentfile:documentfile:1.0.0) with LibrarySymbolTableTransform
+Transforming localbroadcastmanager-1.0.0.aar (androidx.localbroadcastmanager:localbroadcastmanager:1.0.0) with ExtractAarTransform
+Transforming localbroadcastmanager-1.0.0.aar (androidx.localbroadcastmanager:localbroadcastmanager:1.0.0) with LibrarySymbolTableTransform
+Transforming print-1.0.0.aar (androidx.print:print:1.0.0) with ExtractAarTransform
+Transforming print-1.0.0.aar (androidx.print:print:1.0.0) with LibrarySymbolTableTransform
+Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with ExtractAarTransform
+Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with LibrarySymbolTableTransform
+Transforming framework-10.1.1.aar (org.apache.cordova:framework:10.1.1) with ExtractAarTransform
+Transforming framework-10.1.1.aar (org.apache.cordova:framework:10.1.1) with LibrarySymbolTableTransform
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\android\app\libs', not found
+Caching disabled for task ':app:processDebugResources' because:
+  Build cache is disabled
+Skipping task ':app:processDebugResources' as it is up-to-date.
+Resolve mutations for :capacitor-android:javaPreCompileDebug (Thread[included builds,5,main]) started.
+:capacitor-android:javaPreCompileDebug (Thread[included builds,5,main]) started.
+
+> Task :capacitor-android:javaPreCompileDebug UP-TO-DATE
+Caching disabled for task ':capacitor-android:javaPreCompileDebug' because:
+  Build cache is disabled
+Skipping task ':capacitor-android:javaPreCompileDebug' as it is up-to-date.
+Resolve mutations for :capacitor-android:compileDebugJavaWithJavac (Thread[included builds,5,main]) started.
+:capacitor-android:compileDebugJavaWithJavac (Thread[included builds,5,main]) started.
+
+> Task :capacitor-android:compileDebugJavaWithJavac UP-TO-DATE
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\android\capacitor\libs', not found
+Transforming appcompat-resources-1.7.0.aar (androidx.appcompat:appcompat-resources:1.7.0) with AarToClassTransform
+Transforming appcompat-1.7.0.aar (androidx.appcompat:appcompat:1.7.0) with AarToClassTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with AarToClassTransform
+Transforming activity-1.9.2.aar (androidx.activity:activity:1.9.2) with AarToClassTransform
+Transforming coordinatorlayout-1.2.0.aar (androidx.coordinatorlayout:coordinatorlayout:1.2.0) with AarToClassTransform
+Transforming webkit-1.12.1.aar (androidx.webkit:webkit:1.12.1) with AarToClassTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with AarToClassTransform
+Transforming lifecycle-livedata-2.6.2.aar (androidx.lifecycle:lifecycle-livedata:2.6.2) with AarToClassTransform
+Transforming drawerlayout-1.0.0.aar (androidx.drawerlayout:drawerlayout:1.0.0) with AarToClassTransform
+Transforming lifecycle-common-2.6.2.jar (androidx.lifecycle:lifecycle-common:2.6.2) with IdentityTransform
+Transforming lifecycle-livedata-core-2.6.2.aar (androidx.lifecycle:lifecycle-livedata-core:2.6.2) with AarToClassTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with AarToClassTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with AarToClassTransform
+Transforming lifecycle-runtime-2.6.2.aar (androidx.lifecycle:lifecycle-runtime:2.6.2) with AarToClassTransform
+Transforming lifecycle-viewmodel-savedstate-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2) with AarToClassTransform
+Transforming core-ktx-1.15.0.aar (androidx.core:core-ktx:1.15.0) with AarToClassTransform
+Transforming viewpager-1.0.0.aar (androidx.viewpager:viewpager:1.0.0) with AarToClassTransform
+Transforming vectordrawable-animated-1.1.0.aar (androidx.vectordrawable:vectordrawable-animated:1.1.0) with AarToClassTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with AarToClassTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with AarToClassTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarToClassTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarToClassTransform
+Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with AarToClassTransform
+Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with AarToClassTransform
+Transforming cursoradapter-1.0.0.aar (androidx.cursoradapter:cursoradapter:1.0.0) with AarToClassTransform
+Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with AarToClassTransform
+Transforming customview-1.0.0.aar (androidx.customview:customview:1.0.0) with AarToClassTransform
+Transforming customview-1.0.0.aar (androidx.customview:customview:1.0.0) with AarToClassTransform
+Transforming core-runtime-2.2.0.aar (androidx.arch.core:core-runtime:2.2.0) with AarToClassTransform
+Transforming customview-1.0.0.aar (androidx.customview:customview:1.0.0) with AarToClassTransform
+Transforming core-common-2.2.0.jar (androidx.arch.core:core-common:2.2.0) with IdentityTransform
+Transforming collection-jvm-1.4.2.jar (androidx.collection:collection-jvm:1.4.2) with IdentityTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with AarToClassTransform
+Transforming annotation-jvm-1.8.1.jar (androidx.annotation:annotation-jvm:1.8.1) with IdentityTransform
+Transforming kotlinx-coroutines-core-jvm-1.6.4.jar (org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.4) with IdentityTransform
+Transforming kotlinx-coroutines-android-1.6.4.jar (org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4) with IdentityTransform
+Transforming kotlin-stdlib-jdk8-1.9.25.jar (org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.25) with IdentityTransform
+Transforming kotlin-stdlib-jdk7-1.9.25.jar (org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.25) with IdentityTransform
+Transforming kotlin-stdlib-1.9.25.jar (org.jetbrains.kotlin:kotlin-stdlib:1.9.25) with IdentityTransform
+Transforming annotations-13.0.jar (org.jetbrains:annotations:13.0) with IdentityTransform
+Transforming framework-10.1.1.aar (org.apache.cordova:framework:10.1.1) with AarToClassTransform
+Transforming core-for-system-modules.jar with JdkImageTransform
+Transforming core-for-system-modules.jar with JdkImageTransform
+Transforming core-for-system-modules.jar with JdkImageTransform
+Transforming core-for-system-modules.jar with JdkImageTransform
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\android\capacitor\libs', not found
+Transforming core-for-system-modules.jar with JdkImageTransform
+Transforming core-for-system-modules.jar with JdkImageTransform
+Caching disabled for task ':capacitor-android:compileDebugJavaWithJavac' because:
+  Build cache is disabled
+Skipping task ':capacitor-android:compileDebugJavaWithJavac' as it is up-to-date.
+No compile result for :capacitor-android:compileDebugJavaWithJavac
+Resolve mutations for :capacitor-android:bundleLibCompileToJarDebug (Thread[included builds,5,main]) started.
+:capacitor-android:bundleLibCompileToJarDebug (Thread[included builds,5,main]) started.
+
+> Task :capacitor-android:bundleLibCompileToJarDebug UP-TO-DATE
+Caching disabled for task ':capacitor-android:bundleLibCompileToJarDebug' because:
+  Build cache is disabled
+Skipping task ':capacitor-android:bundleLibCompileToJarDebug' as it is up-to-date.
+work action resolve classes.jar (project :capacitor-android) (Thread[included builds,5,main]) started.
+Resolve mutations for :capacitor-app:javaPreCompileDebug (Thread[included builds,5,main]) started.
+:capacitor-app:javaPreCompileDebug (Thread[included builds,5,main]) started.
+
+> Task :capacitor-app:javaPreCompileDebug UP-TO-DATE
+Caching disabled for task ':capacitor-app:javaPreCompileDebug' because:
+  Build cache is disabled
+Skipping task ':capacitor-app:javaPreCompileDebug' as it is up-to-date.
+Resolve mutations for :capacitor-app:compileDebugJavaWithJavac (Thread[included builds,5,main]) started.
+:capacitor-app:compileDebugJavaWithJavac (Thread[included builds,5,main]) started.
+
+> Task :capacitor-app:compileDebugJavaWithJavac UP-TO-DATE
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\app\android\libs', not found
+Transforming appcompat-resources-1.7.0.aar (androidx.appcompat:appcompat-resources:1.7.0) with AarToClassTransform
+Transforming appcompat-1.7.0.aar (androidx.appcompat:appcompat:1.7.0) with AarToClassTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with AarToClassTransform
+Transforming activity-1.9.2.aar (androidx.activity:activity:1.9.2) with AarToClassTransform
+Transforming drawerlayout-1.0.0.aar (androidx.drawerlayout:drawerlayout:1.0.0) with AarToClassTransform
+Transforming vectordrawable-animated-1.1.0.aar (androidx.vectordrawable:vectordrawable-animated:1.1.0) with AarToClassTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with AarToClassTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with AarToClassTransform
+Transforming viewpager-1.0.0.aar (androidx.viewpager:viewpager:1.0.0) with AarToClassTransform
+Transforming customview-1.0.0.aar (androidx.customview:customview:1.0.0) with AarToClassTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with AarToClassTransform
+Transforming lifecycle-livedata-2.6.2.aar (androidx.lifecycle:lifecycle-livedata:2.6.2) with AarToClassTransform
+Transforming lifecycle-common-2.6.2.jar (androidx.lifecycle:lifecycle-common:2.6.2) with IdentityTransform
+Transforming lifecycle-livedata-core-2.6.2.aar (androidx.lifecycle:lifecycle-livedata-core:2.6.2) with AarToClassTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with AarToClassTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with AarToClassTransform
+Transforming lifecycle-runtime-2.6.2.aar (androidx.lifecycle:lifecycle-runtime:2.6.2) with AarToClassTransform
+Transforming lifecycle-viewmodel-savedstate-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2) with AarToClassTransform
+Transforming core-ktx-1.15.0.aar (androidx.core:core-ktx:1.15.0) with AarToClassTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarToClassTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarToClassTransform
+Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with AarToClassTransform
+Transforming cursoradapter-1.0.0.aar (androidx.cursoradapter:cursoradapter:1.0.0) with AarToClassTransform
+Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with AarToClassTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with AarToClassTransform
+Transforming core-runtime-2.2.0.aar (androidx.arch.core:core-runtime:2.2.0) with AarToClassTransform
+Transforming core-common-2.2.0.jar (androidx.arch.core:core-common:2.2.0) with IdentityTransform
+Transforming collection-jvm-1.4.2.jar (androidx.collection:collection-jvm:1.4.2) with IdentityTransform
+Transforming annotation-jvm-1.8.1.jar (androidx.annotation:annotation-jvm:1.8.1) with IdentityTransform
+Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with AarToClassTransform
+Transforming kotlinx-coroutines-core-jvm-1.6.4.jar (org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.4) with IdentityTransform
+Transforming kotlinx-coroutines-android-1.6.4.jar (org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4) with IdentityTransform
+Transforming kotlin-stdlib-jdk8-1.9.25.jar (org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.25) with IdentityTransform
+Transforming kotlin-stdlib-jdk7-1.9.25.jar (org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.25) with IdentityTransform
+Transforming kotlin-stdlib-1.9.25.jar (org.jetbrains.kotlin:kotlin-stdlib:1.9.25) with IdentityTransform
+Transforming annotations-13.0.jar (org.jetbrains:annotations:13.0) with IdentityTransform
+Transforming core-for-system-modules.jar with JdkImageTransform
+Transforming core-for-system-modules.jar with JdkImageTransform
+Transforming core-for-system-modules.jar with JdkImageTransform
+Transforming core-for-system-modules.jar with JdkImageTransform
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\app\android\libs', not found
+Transforming core-for-system-modules.jar with JdkImageTransform
+Transforming core-for-system-modules.jar with JdkImageTransform
+Caching disabled for task ':capacitor-app:compileDebugJavaWithJavac' because:
+  Build cache is disabled
+Skipping task ':capacitor-app:compileDebugJavaWithJavac' as it is up-to-date.
+No compile result for :capacitor-app:compileDebugJavaWithJavac
+Resolve mutations for :capacitor-app:bundleLibCompileToJarDebug (Thread[included builds,5,main]) started.
+:capacitor-app:bundleLibCompileToJarDebug (Thread[included builds,5,main]) started.
+
+> Task :capacitor-app:bundleLibCompileToJarDebug UP-TO-DATE
+Caching disabled for task ':capacitor-app:bundleLibCompileToJarDebug' because:
+  Build cache is disabled
+Skipping task ':capacitor-app:bundleLibCompileToJarDebug' as it is up-to-date.
+work action resolve classes.jar (project :capacitor-app) (Thread[included builds,5,main]) started.
+Resolve mutations for :capacitor-cordova-android-plugins:javaPreCompileDebug (Thread[included builds,5,main]) started.
+:capacitor-cordova-android-plugins:javaPreCompileDebug (Thread[included builds,5,main]) started.
+
+> Task :capacitor-cordova-android-plugins:javaPreCompileDebug UP-TO-DATE
+Caching disabled for task ':capacitor-cordova-android-plugins:javaPreCompileDebug' because:
+  Build cache is disabled
+Skipping task ':capacitor-cordova-android-plugins:javaPreCompileDebug' as it is up-to-date.
+Resolve mutations for :capacitor-cordova-android-plugins:compileDebugJavaWithJavac (Thread[included builds,5,main]) started.
+:capacitor-cordova-android-plugins:compileDebugJavaWithJavac (Thread[included builds,5,main]) started.
+
+> Task :capacitor-cordova-android-plugins:compileDebugJavaWithJavac NO-SOURCE
+Skipping task ':capacitor-cordova-android-plugins:compileDebugJavaWithJavac' as it has no source files and no previous output files.
+Resolve mutations for :capacitor-cordova-android-plugins:bundleLibCompileToJarDebug (Thread[included builds,5,main]) started.
+:capacitor-cordova-android-plugins:bundleLibCompileToJarDebug (Thread[included builds,5,main]) started.
+
+> Task :capacitor-cordova-android-plugins:bundleLibCompileToJarDebug UP-TO-DATE
+Caching disabled for task ':capacitor-cordova-android-plugins:bundleLibCompileToJarDebug' because:
+  Build cache is disabled
+Skipping task ':capacitor-cordova-android-plugins:bundleLibCompileToJarDebug' as it is up-to-date.
+work action resolve classes.jar (project :capacitor-cordova-android-plugins) (Thread[included builds,5,main]) started.
+Resolve mutations for :capacitor-local-notifications:javaPreCompileDebug (Thread[Execution worker Thread 7,5,main]) started.
+:capacitor-local-notifications:javaPreCompileDebug (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :capacitor-local-notifications:javaPreCompileDebug UP-TO-DATE
+Caching disabled for task ':capacitor-local-notifications:javaPreCompileDebug' because:
+  Build cache is disabled
+Skipping task ':capacitor-local-notifications:javaPreCompileDebug' as it is up-to-date.
+Resolve mutations for :capacitor-local-notifications:compileDebugJavaWithJavac (Thread[Execution worker Thread 7,5,main]) started.
+:capacitor-local-notifications:compileDebugJavaWithJavac (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :capacitor-local-notifications:compileDebugJavaWithJavac FAILED
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\libs', not found
+Transforming appcompat-resources-1.7.0.aar (androidx.appcompat:appcompat-resources:1.7.0) with AarToClassTransform
+Transforming appcompat-1.7.0.aar (androidx.appcompat:appcompat:1.7.0) with AarToClassTransform
+Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with AarToClassTransform
+Transforming activity-1.9.2.aar (androidx.activity:activity:1.9.2) with AarToClassTransform
+Transforming drawerlayout-1.0.0.aar (androidx.drawerlayout:drawerlayout:1.0.0) with AarToClassTransform
+Transforming vectordrawable-animated-1.1.0.aar (androidx.vectordrawable:vectordrawable-animated:1.1.0) with AarToClassTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with AarToClassTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with AarToClassTransform
+Transforming viewpager-1.0.0.aar (androidx.viewpager:viewpager:1.0.0) with AarToClassTransform
+Transforming customview-1.0.0.aar (androidx.customview:customview:1.0.0) with AarToClassTransform
+Transforming loader-1.0.0.aar (androidx.loader:loader:1.0.0) with AarToClassTransform
+Transforming lifecycle-livedata-2.6.2.aar (androidx.lifecycle:lifecycle-livedata:2.6.2) with AarToClassTransform
+Transforming lifecycle-common-2.6.2.jar (androidx.lifecycle:lifecycle-common:2.6.2) with IdentityTransform
+Transforming lifecycle-livedata-core-2.6.2.aar (androidx.lifecycle:lifecycle-livedata-core:2.6.2) with AarToClassTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with AarToClassTransform
+Transforming lifecycle-viewmodel-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel:2.6.2) with AarToClassTransform
+Transforming lifecycle-runtime-2.6.2.aar (androidx.lifecycle:lifecycle-runtime:2.6.2) with AarToClassTransform
+Transforming lifecycle-viewmodel-savedstate-2.6.2.aar (androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2) with AarToClassTransform
+Transforming core-ktx-1.15.0.aar (androidx.core:core-ktx:1.15.0) with AarToClassTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarToClassTransform
+Transforming core-1.15.0.aar (androidx.core:core:1.15.0) with AarToClassTransform
+Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with AarToClassTransform
+Transforming cursoradapter-1.0.0.aar (androidx.cursoradapter:cursoradapter:1.0.0) with AarToClassTransform
+Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with AarToClassTransform
+Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with AarToClassTransform
+Transforming core-runtime-2.2.0.aar (androidx.arch.core:core-runtime:2.2.0) with AarToClassTransform
+Transforming core-common-2.2.0.jar (androidx.arch.core:core-common:2.2.0) with IdentityTransform
+Transforming collection-jvm-1.4.2.jar (androidx.collection:collection-jvm:1.4.2) with IdentityTransform
+Transforming annotation-jvm-1.8.1.jar (androidx.annotation:annotation-jvm:1.8.1) with IdentityTransform
+Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with AarToClassTransform
+Transforming kotlinx-coroutines-core-jvm-1.6.4.jar (org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.4) with IdentityTransform
+Transforming kotlinx-coroutines-android-1.6.4.jar (org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4) with IdentityTransform
+Transforming kotlin-stdlib-jdk8-1.9.25.jar (org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.25) with IdentityTransform
+Transforming kotlin-stdlib-jdk7-1.9.25.jar (org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.25) with IdentityTransform
+Transforming kotlin-stdlib-1.9.25.jar (org.jetbrains.kotlin:kotlin-stdlib:1.9.25) with IdentityTransform
+Transforming annotations-13.0.jar (org.jetbrains:annotations:13.0) with IdentityTransform
+Transforming core-for-system-modules.jar with JdkImageTransform
+Transforming core-for-system-modules.jar with JdkImageTransform
+Transforming core-for-system-modules.jar with JdkImageTransform
+Transforming core-for-system-modules.jar with JdkImageTransform
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\libs', not found
+Transforming core-for-system-modules.jar with JdkImageTransform
+Transforming core-for-system-modules.jar with JdkImageTransform
+Caching disabled for task ':capacitor-local-notifications:compileDebugJavaWithJavac' because:
+  Build cache is disabled
+Task ':capacitor-local-notifications:compileDebugJavaWithJavac' is not up-to-date because:
+  Task has failed previously.
+The input changes require a full rebuild for incremental task ':capacitor-local-notifications:compileDebugJavaWithJavac'.
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\libs', not found
+Transforming core-for-system-modules.jar with JdkImageTransform
+Full recompilation is required because no incremental change information is available. This is usually caused by clean builds or changing compiler arguments.
+Compiling with toolchain 'C:\Program Files\Microsoft\jdk-17.0.17.10-hotspot'.
+file or directory 'C:\Users\marce\Downloads\cardiokinetic(1)\node_modules\@capacitor\local-notifications\android\src\debug\java', not found
+Compiling with JDK Java compiler API.
+63 actionable tasks: 1 executed, 62 up-to-date
+Watched directory hierarchies: [C:\Users\marce\Downloads\cardiokinetic(1)\android]
+.\gradlew : 
+No linha:1 caractere:71
++ ... \jdk-17.0.17.10-hotspot"; .\gradlew assembleDebug 
+--info 2>&1 | Out-F ...
++                               
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], 
+    RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':capacitor-local-notifications:
+compileDebugJavaWithJavac'.
+> error: invalid source release: 21
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 12s

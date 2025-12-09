@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Convert SVG to PNG</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #1a1a1a;
+      color: white;
+      padding: 40px;
+      text-align: center;
+    }
+    h1 { margin-bottom: 20px; }
+    #preview {
+      border: 2px solid #333;
+      margin: 20px auto;
+      display: block;
+      max-width: 100%;
+    }
+    button {
+      background: #8b5cf6;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    button:hover { background: #7c3aed; }
+    .info { color: #888; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>CardioKinetic Banner Converter</h1>
+  <p>Preview the SVG banner and download as PNG for GitHub</p>
+  
+  <img id="preview" src="github-banner.svg" alt="Banner Preview" width="1280" height="640">
+  
+  <br>
+  <button onclick="downloadPNG()">Download as PNG (1280x640)</button>
+  <button onclick="downloadPNG(2)">Download as PNG @2x (2560x1280)</button>
+  
+  <p class="info">
+    After downloading, rename to <code>banner.png</code> and place in the <code>assets/</code> folder.<br>
+    Then commit and push to GitHub.
+  </p>
+
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <script>
+    function downloadPNG(scale = 1) {
+      const img = document.getElementById('preview');
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      canvas.width = 1280 * scale;
+      canvas.height = 640 * scale;
+      
+      // Create a new image to ensure fonts are loaded
+      const svgImg = new Image();
+      svgImg.onload = function() {
+        ctx.drawImage(svgImg, 0, 0, canvas.width, canvas.height);
+        
+        const link = document.createElement('a');
+        link.download = scale > 1 ? 'banner@2x.png' : 'banner.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      };
+      svgImg.src = img.src;
+    }
+  </script>
+</body>
+</html>
