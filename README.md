@@ -19,7 +19,7 @@
 
 ## Features
 
-### 🎯 Smart Training Programs
+### Smart Training Programs
 
 Build structured periodized training programs with intelligent progression. CardioKinetic supports three progression modes:
 
@@ -29,7 +29,7 @@ Build structured periodized training programs with intelligent progression. Card
 
 Programs can be **fixed-length** (e.g., exactly 8 weeks) or **variable-length** (e.g., 4-12 weeks), automatically interpolating training phases to fit your schedule.
 
-### 📊 Comprehensive Analytics
+### Comprehensive Analytics
 
 Track every session and visualize your progress with detailed analytics:
 
@@ -38,7 +38,7 @@ Track every session and visualize your progress with detailed analytics:
 - **Fatigue & Readiness Scores** — Real-time physiological state estimation based on training load
 - **Session History** — Complete log of all sessions with RPE, duration, and performance metrics
 
-### 🧠 Adaptive Fatigue System
+### Adaptive Fatigue System
 
 CardioKinetic uses an evidence-based **Fitness-Fatigue model** (Banister model) to track your training state:
 
@@ -54,7 +54,7 @@ This reflects the physiological reality that high-intensity sessions cause dispr
 
 **Fatigue Modifiers** can automatically adjust your training based on these scores — reducing intensity when you're tired or pushing harder when you're fresh.
 
-### ⚡ Flexible Session Types
+### Flexible Session Types
 
 #### Interval Training
 Customizable high-intensity interval sessions with:
@@ -75,14 +75,14 @@ Mix and match training blocks in a single session:
 - Each block has independent power targets and durations
 - Define sessions with explicit cycles, work/rest durations per block
 
-### 🎨 Personalized Experience
+### Personalized Experience
 
 - **Material You Theming** — On Android, automatically adapts accent colors from your wallpaper
 - **Light & Dark Mode** — System-aware or manual toggle
 - **Custom Accent Colors** — Choose your own accent with saturation/brightness controls
 - **Monospace Numbers** — Clean, readable numeric displays with Inconsolata font
 
-### 📱 Native Android Experience
+### Native Android Experience
 
 Built with Capacitor for a true native feel:
 - **Foreground Service** — Sessions continue running when the app is in the background
@@ -224,7 +224,7 @@ CardioKinetic's template system lets you create sophisticated, shareable trainin
 }
 ```
 
-📖 **[Full Template Documentation →](TEMPLATE_DOCUMENTATION.md)**
+**[Full Template Documentation →](TEMPLATE_DOCUMENTATION.md)**
 
 ---
 
@@ -248,13 +248,13 @@ CardioKinetic's template system lets you create sophisticated, shareable trainin
 This project is licensed under **CC BY-NC 4.0** (Creative Commons Attribution-NonCommercial 4.0).
 
 You are free to:
-- ✅ Use, copy, and modify the code
-- ✅ Share and redistribute
-- ✅ Build upon this work
+- Use, copy, and modify the code
+- Share and redistribute
+- Build upon this work
 
 Under these conditions:
-- 📝 **Attribution** — You must give appropriate credit
-- 🚫 **NonCommercial** — You may not use this for commercial purposes
+- **Attribution** — You must give appropriate credit
+- **NonCommercial** — You may not use this for commercial purposes
 
 See the [LICENSE](LICENSE) file for details.
 
@@ -262,7 +262,7 @@ See the [LICENSE](LICENSE) file for details.
 
 <div align="center">
 
-Made with ❤️ for athletes who want smarter training
+Made for athletes who want smarter training
 
 **[Report Bug](https://github.com/TchelloSimis/CardioKinetic/issues)** • **[Request Feature](https://github.com/TchelloSimis/CardioKinetic/issues)**
 
