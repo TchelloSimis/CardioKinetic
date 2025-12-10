@@ -9,7 +9,7 @@
 [![Capacitor](https://img.shields.io/badge/Capacitor-Android-119EFF?logo=capacitor&logoColor=white)](https://capacitorjs.com)
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
 
-[![Download APK](https://img.shields.io/badge/Download-APK-green?style=for-the-badge&logo=android&logoColor=white)](https://github.com/TchelloSimis/CardioKinetic/releases/latest/download/app-debug.apk)
+[![Download APK](https://img.shields.io/badge/Download-APK-green?style=for-the-badge&logo=android&logoColor=white)](https://github.com/TchelloSimis/CardioKinetic/releases/latest/download/CardioKinetic.apk)
 
 **Intelligent cardio training with adaptive programs, real-time fatigue tracking, and personalized coaching.**
 
@@ -21,7 +21,7 @@
 
 ## Download
 
-**[Download APK (v1.0.0)](https://github.com/TchelloSimis/CardioKinetic/releases/latest/download/app-debug.apk)** — Install directly on your Android device.
+**[Download APK (v1.0.0)](https://github.com/TchelloSimis/CardioKinetic/releases/latest/download/CardioKinetic.apk)** — Install directly on your Android device.
 
 > To install, enable "Install from unknown sources" in your Android settings when prompted.
 
