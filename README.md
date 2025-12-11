@@ -7,7 +7,7 @@
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Capacitor](https://img.shields.io/badge/Capacitor-Android-119EFF?logo=capacitor&logoColor=white)](https://capacitorjs.com)
-[![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 [![Download APK](https://img.shields.io/badge/Download-APK-green?style=for-the-badge&logo=android&logoColor=white)](https://github.com/TchelloSimis/CardioKinetic/releases/latest/download/CardioKinetic.apk)
 
@@ -255,18 +255,11 @@ CardioKinetic's template system lets you create sophisticated, shareable trainin
 
 ## License
 
-This project is licensed under **CC BY-NC 4.0** (Creative Commons Attribution-NonCommercial 4.0).
-
-You are free to:
-- Use, copy, and modify the code
-- Share and redistribute
-- Build upon this work
-
-Under these conditions:
-- **Attribution** — You must give appropriate credit
-- **NonCommercial** — You may not use this for commercial purposes
+This project is licensed under the **GNU General Public License v3.0**.
 
 See the [LICENSE](LICENSE) file for details.
+
+
 
 ---
 
