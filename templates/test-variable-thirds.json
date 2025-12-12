@@ -1,0 +1,47 @@
+{
+    "templateVersion": "1.0",
+    "id": "test-variable-thirds",
+    "name": "Variable Thirds Test",
+    "description": "Test program with keyframes at 0%, 33.33%, and 66.66% to verify stepped interpolation.",
+    "author": "Test",
+    "weekConfig": {
+        "type": "variable",
+        "range": {
+            "min": 6,
+            "max": 18,
+            "step": 3
+        }
+    },
+    "defaultSessionStyle": "steady-state",
+    "progressionMode": "power",
+    "defaultSessionDurationMinutes": 20,
+    "weeks": [
+        {
+            "position": "0%",
+            "phaseName": "Phase 1",
+            "focus": "Volume",
+            "description": "First third of program",
+            "powerMultiplier": 1.0,
+            "workRestRatio": "steady",
+            "targetRPE": 5
+        },
+        {
+            "position": "33.3333%",
+            "phaseName": "Phase 2",
+            "focus": "Density",
+            "description": "Second third of program",
+            "powerMultiplier": 1.1,
+            "workRestRatio": "steady",
+            "targetRPE": 6
+        },
+        {
+            "position": "66.6666%",
+            "phaseName": "Phase 3",
+            "focus": "Intensity",
+            "description": "Final third of program",
+            "powerMultiplier": 1.2,
+            "workRestRatio": "steady",
+            "targetRPE": 7
+        }
+    ]
+}

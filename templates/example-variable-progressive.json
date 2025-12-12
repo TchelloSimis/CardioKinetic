@@ -52,6 +52,7 @@
     "fatigueModifiers": [
         {
             "condition": "overreached",
+            "priority": 0,
             "adjustments": {
                 "powerMultiplier": 0.75,
                 "volumeMultiplier": 0.5,
@@ -60,6 +61,7 @@
         },
         {
             "condition": "very_high_fatigue",
+            "priority": 1,
             "adjustments": {
                 "powerMultiplier": 0.85,
                 "restMultiplier": 1.5,
@@ -68,6 +70,7 @@
         },
         {
             "condition": "tired",
+            "priority": 30,
             "adjustments": {
                 "rpeAdjust": -1,
                 "message": "😴 Fatigue elevated. Targeting lower RPE today to allow recovery."
@@ -75,6 +78,7 @@
         },
         {
             "condition": "fresh",
+            "priority": 40,
             "adjustments": {
                 "powerMultiplier": 1.05,
                 "message": "✅ Well recovered! Adding 5% intensity boost."

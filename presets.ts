@@ -69,9 +69,10 @@ const FIXED_TIME_POWER_TEMPLATE: ProgramTemplate = {
         }
     ],
     fatigueModifiers: [
-        // Critical safety modifiers
+        // Critical safety modifiers (highest priority)
         {
             condition: 'overreached',
+            priority: 0,
             adjustments: {
                 powerMultiplier: 0.75,
                 volumeMultiplier: 0.5,
@@ -80,6 +81,7 @@ const FIXED_TIME_POWER_TEMPLATE: ProgramTemplate = {
         },
         {
             condition: 'very_high_fatigue',
+            priority: 1,
             adjustments: {
                 powerMultiplier: 0.85,
                 volumeMultiplier: 0.8,
@@ -91,6 +93,7 @@ const FIXED_TIME_POWER_TEMPLATE: ProgramTemplate = {
             condition: 'high_fatigue',
             phase: 'Intensity',
             weekPosition: 'late',
+            priority: 10,
             adjustments: {
                 powerMultiplier: 0.90,
                 message: 'Late-program fatigue during intensity phase. Backing off power.'
@@ -99,9 +102,21 @@ const FIXED_TIME_POWER_TEMPLATE: ProgramTemplate = {
         {
             condition: 'high_fatigue',
             phase: 'Volume',
+            priority: 11,
             adjustments: {
                 volumeMultiplier: 0.90,
                 message: 'High fatigue during volume phase. Slightly reducing duration.'
+            }
+        },
+        // Compound: worst case
+        {
+            condition: { fatigue: '>70', readiness: '<40', logic: 'and' },
+            phase: 'Intensity',
+            priority: 5,
+            adjustments: {
+                powerMultiplier: 0.80,
+                volumeMultiplier: 0.70,
+                message: 'High fatigue + low readiness. Strong reduction recommended.'
             }
         },
         // Moderate fatigue handling
@@ -109,6 +124,7 @@ const FIXED_TIME_POWER_TEMPLATE: ProgramTemplate = {
             condition: 'moderate_fatigue',
             phase: 'Intensity',
             weekPosition: ['mid', 'late'],
+            priority: 20,
             adjustments: {
                 powerMultiplier: 0.95,
                 message: 'Moderate fatigue in intensity phase. Small power reduction.'
@@ -116,6 +132,7 @@ const FIXED_TIME_POWER_TEMPLATE: ProgramTemplate = {
         },
         {
             condition: 'tired',
+            priority: 30,
             adjustments: {
                 rpeAdjust: -1,
                 message: 'Feeling tired. Targeting lower effort today.'
@@ -125,17 +142,19 @@ const FIXED_TIME_POWER_TEMPLATE: ProgramTemplate = {
             condition: 'tired',
             phase: 'Intensity',
             weekPosition: 'last',
+            priority: 25,
             adjustments: {
                 powerMultiplier: 0.90,
                 rpeAdjust: -1,
                 message: 'Tired at peak week. Significant reduction to preserve quality.'
             }
         },
-        // Fresh/recovered bonuses
+        // Fresh/recovered bonuses (lowest priority - only if nothing negative matches)
         {
             condition: 'fresh',
             phase: 'Intensity',
             weekPosition: ['mid', 'late'],
+            priority: 40,
             adjustments: {
                 powerMultiplier: 1.05,
                 message: 'Feeling fresh! Adding 5% power boost.'
@@ -145,6 +164,7 @@ const FIXED_TIME_POWER_TEMPLATE: ProgramTemplate = {
             condition: 'fresh',
             phase: 'Volume',
             weekPosition: 'early',
+            priority: 41,
             adjustments: {
                 volumeMultiplier: 1.10,
                 message: 'Well recovered early in program. Extending session 10%.'
@@ -153,19 +173,10 @@ const FIXED_TIME_POWER_TEMPLATE: ProgramTemplate = {
         {
             condition: 'low_fatigue',
             weekPosition: '>50%',
+            priority: 42,
             adjustments: {
                 powerMultiplier: 1.03,
                 message: 'Low fatigue in second half. Small intensity boost.'
-            }
-        },
-        // Compound condition
-        {
-            condition: { fatigue: '>70', readiness: '<40', logic: 'and' },
-            phase: 'Intensity',
-            adjustments: {
-                powerMultiplier: 0.80,
-                volumeMultiplier: 0.70,
-                message: 'High fatigue + low readiness. Strong reduction recommended.'
             }
         }
     ]
@@ -271,9 +282,10 @@ const DOUBLE_INTERCALATED_TEMPLATE: ProgramTemplate = {
         }
     ],
     fatigueModifiers: [
-        // Critical safety
+        // Critical safety (highest priority)
         {
             condition: 'overreached',
+            priority: 0,
             adjustments: {
                 powerMultiplier: 0.70,
                 volumeMultiplier: 0.50,
@@ -282,33 +294,39 @@ const DOUBLE_INTERCALATED_TEMPLATE: ProgramTemplate = {
         },
         {
             condition: 'very_high_fatigue',
+            priority: 1,
             adjustments: {
                 powerMultiplier: 0.80,
                 volumeMultiplier: 0.75,
                 message: 'High fatigue from wave-loading. Major reduction applied.'
             }
         },
+        // Compound: worst case during compression
+        {
+            condition: { fatigue: '>75', readiness: '<35', logic: 'and' },
+            phase: 'Intensity',
+            priority: 5,
+            adjustments: {
+                powerMultiplier: 0.75,
+                volumeMultiplier: 0.65,
+                message: 'Critical fatigue during compression. Emergency reduction.'
+            }
+        },
         // Compression phase protection
         {
             condition: 'high_fatigue',
             phase: 'Intensity',
+            priority: 10,
             adjustments: {
                 powerMultiplier: 0.88,
                 message: 'High fatigue during compression. Reducing power demand.'
-            }
-        },
-        {
-            condition: 'moderate_fatigue',
-            phase: 'Intensity',
-            adjustments: {
-                powerMultiplier: 0.93,
-                message: 'Moderate fatigue in hard phase. Slight power reduction.'
             }
         },
         // Expansion phase protection
         {
             condition: 'high_fatigue',
             phase: 'Volume',
+            priority: 11,
             adjustments: {
                 volumeMultiplier: 0.85,
                 message: 'High fatigue during expansion. Cutting duration.'
@@ -316,7 +334,17 @@ const DOUBLE_INTERCALATED_TEMPLATE: ProgramTemplate = {
         },
         {
             condition: 'moderate_fatigue',
+            phase: 'Intensity',
+            priority: 20,
+            adjustments: {
+                powerMultiplier: 0.93,
+                message: 'Moderate fatigue in hard phase. Slight power reduction.'
+            }
+        },
+        {
+            condition: 'moderate_fatigue',
             phase: 'Volume',
+            priority: 21,
             adjustments: {
                 volumeMultiplier: 0.92,
                 message: 'Moderate fatigue. Slightly shorter expansion.'
@@ -325,6 +353,7 @@ const DOUBLE_INTERCALATED_TEMPLATE: ProgramTemplate = {
         // General tired handling
         {
             condition: 'tired',
+            priority: 30,
             adjustments: {
                 rpeAdjust: -1,
                 message: 'Tired today. Lower effort target.'
@@ -333,16 +362,18 @@ const DOUBLE_INTERCALATED_TEMPLATE: ProgramTemplate = {
         {
             condition: 'tired',
             weekPosition: 'late',
+            priority: 25,
             adjustments: {
                 powerMultiplier: 0.88,
                 rpeAdjust: -1,
                 message: 'Late-program fatigue. Backing off significantly.'
             }
         },
-        // Fresh bonuses
+        // Fresh bonuses (lowest priority)
         {
             condition: 'fresh',
             phase: 'Intensity',
+            priority: 40,
             adjustments: {
                 powerMultiplier: 1.05,
                 message: 'Fresh during compression! Pushing harder.'
@@ -351,6 +382,7 @@ const DOUBLE_INTERCALATED_TEMPLATE: ProgramTemplate = {
         {
             condition: 'fresh',
             phase: 'Volume',
+            priority: 41,
             adjustments: {
                 volumeMultiplier: 1.08,
                 message: 'Well recovered. Extending expansion phase.'
@@ -359,25 +391,17 @@ const DOUBLE_INTERCALATED_TEMPLATE: ProgramTemplate = {
         {
             condition: 'low_fatigue',
             weekPosition: ['mid', 'late'],
+            priority: 42,
             adjustments: {
                 powerMultiplier: 1.03,
                 message: 'Low fatigue mid-program. Small boost applied.'
-            }
-        },
-        // Compound: worst case during compression
-        {
-            condition: { fatigue: '>75', readiness: '<35', logic: 'and' },
-            phase: 'Intensity',
-            adjustments: {
-                powerMultiplier: 0.75,
-                volumeMultiplier: 0.65,
-                message: 'Critical fatigue during compression. Emergency reduction.'
             }
         },
         // Compound: great shape during expansion
         {
             condition: { fatigue: '<25', readiness: '>70', logic: 'and' },
             phase: 'Volume',
+            priority: 43,
             adjustments: {
                 volumeMultiplier: 1.15,
                 powerMultiplier: 1.03,
@@ -480,9 +504,10 @@ const STANDARD_HIIT_TEMPLATE: ProgramTemplate = {
         }
     ],
     fatigueModifiers: [
-        // Critical safety
+        // Critical safety (highest priority)
         {
             condition: 'overreached',
+            priority: 0,
             adjustments: {
                 powerMultiplier: 0.75,
                 volumeMultiplier: 0.50,
@@ -492,10 +517,23 @@ const STANDARD_HIIT_TEMPLATE: ProgramTemplate = {
         },
         {
             condition: 'very_high_fatigue',
+            priority: 1,
             adjustments: {
                 powerMultiplier: 0.85,
                 restMultiplier: 1.5,
                 message: 'High fatigue. Reducing power, extending rest intervals.'
+            }
+        },
+        // Compound: critical state
+        {
+            condition: { fatigue: '>70', readiness: '<40', logic: 'and' },
+            phase: 'Intensity',
+            priority: 5,
+            adjustments: {
+                powerMultiplier: 0.80,
+                restMultiplier: 1.5,
+                volumeMultiplier: 0.75,
+                message: 'Critical fatigue state. Emergency adjustments active.'
             }
         },
         // Phase-specific high fatigue
@@ -503,6 +541,7 @@ const STANDARD_HIIT_TEMPLATE: ProgramTemplate = {
             condition: 'high_fatigue',
             phase: 'Intensity',
             weekPosition: 'late',
+            priority: 10,
             adjustments: {
                 powerMultiplier: 0.90,
                 restMultiplier: 1.3,
@@ -512,6 +551,7 @@ const STANDARD_HIIT_TEMPLATE: ProgramTemplate = {
         {
             condition: 'high_fatigue',
             phase: 'Density',
+            priority: 11,
             adjustments: {
                 restMultiplier: 1.25,
                 message: 'High fatigue during density phase. Extending rest periods.'
@@ -520,15 +560,29 @@ const STANDARD_HIIT_TEMPLATE: ProgramTemplate = {
         {
             condition: 'high_fatigue',
             phase: 'Volume',
+            priority: 12,
             adjustments: {
                 volumeMultiplier: 0.85,
                 message: 'High fatigue early. Reducing session volume.'
+            }
+        },
+        // Recovery phase special handling
+        {
+            condition: 'high_fatigue',
+            phase: 'Recovery',
+            priority: 13,
+            adjustments: {
+                powerMultiplier: 0.85,
+                volumeMultiplier: 0.70,
+                restMultiplier: 1.4,
+                message: 'Prioritizing recovery. Heavy reductions applied.'
             }
         },
         // Moderate fatigue
         {
             condition: 'moderate_fatigue',
             phase: 'Intensity',
+            priority: 20,
             adjustments: {
                 restMultiplier: 1.15,
                 message: 'Moderate fatigue. Slightly longer rest between intervals.'
@@ -537,6 +591,7 @@ const STANDARD_HIIT_TEMPLATE: ProgramTemplate = {
         {
             condition: 'moderate_fatigue',
             phase: 'Density',
+            priority: 21,
             adjustments: {
                 restMultiplier: 1.10,
                 message: 'Managing fatigue with extended rest.'
@@ -545,6 +600,7 @@ const STANDARD_HIIT_TEMPLATE: ProgramTemplate = {
         // Tired handling
         {
             condition: 'tired',
+            priority: 30,
             adjustments: {
                 rpeAdjust: -1,
                 message: 'Tired today. Targeting lower RPE.'
@@ -554,6 +610,7 @@ const STANDARD_HIIT_TEMPLATE: ProgramTemplate = {
             condition: 'tired',
             phase: 'Intensity',
             weekPosition: 'late',
+            priority: 25,
             adjustments: {
                 powerMultiplier: 0.90,
                 rpeAdjust: -1,
@@ -561,11 +618,12 @@ const STANDARD_HIIT_TEMPLATE: ProgramTemplate = {
                 message: 'Tired at peak weeks. Full recovery protocol.'
             }
         },
-        // Fresh bonuses
+        // Fresh bonuses (lowest priority)
         {
             condition: 'fresh',
             phase: 'Intensity',
             weekPosition: ['mid', 'late'],
+            priority: 40,
             adjustments: {
                 powerMultiplier: 1.05,
                 message: 'Fresh during intensity! Pushing harder.'
@@ -575,6 +633,7 @@ const STANDARD_HIIT_TEMPLATE: ProgramTemplate = {
             condition: 'fresh',
             phase: ['Volume', 'Density'],
             weekPosition: 'early',
+            priority: 41,
             adjustments: {
                 volumeMultiplier: 1.10,
                 message: 'Well recovered early. Extending session.'
@@ -584,40 +643,21 @@ const STANDARD_HIIT_TEMPLATE: ProgramTemplate = {
             condition: 'low_fatigue',
             weekPosition: '>50%',
             phase: 'Intensity',
+            priority: 42,
             adjustments: {
                 powerMultiplier: 1.03,
                 message: 'Low fatigue in intensity phase. Small boost!'
             }
         },
-        // Compound conditions
-        {
-            condition: { fatigue: '>70', readiness: '<40', logic: 'and' },
-            phase: 'Intensity',
-            adjustments: {
-                powerMultiplier: 0.80,
-                restMultiplier: 1.5,
-                volumeMultiplier: 0.75,
-                message: 'Critical fatigue state. Emergency adjustments active.'
-            }
-        },
+        // Compound: peak performance
         {
             condition: { fatigue: '<30', readiness: '>65', logic: 'and' },
             phase: 'Intensity',
             weekPosition: 'late',
+            priority: 43,
             adjustments: {
                 powerMultiplier: 1.07,
                 message: 'Peak condition at peak phase! Maximizing output.'
-            }
-        },
-        // Recovery phase special handling
-        {
-            condition: 'high_fatigue',
-            phase: 'Recovery',
-            adjustments: {
-                powerMultiplier: 0.85,
-                volumeMultiplier: 0.70,
-                restMultiplier: 1.4,
-                message: 'Prioritizing recovery. Heavy reductions applied.'
             }
         }
     ]

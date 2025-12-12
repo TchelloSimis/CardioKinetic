@@ -320,7 +320,7 @@ In this example:
 
 ## Understanding Fatigue & Readiness Scores
 
-CardioKinetic calculates fatigue and readiness scores using an **Exponentially Weighted Moving Average (EWMA)** model, a well-established approach in sports science for tracking training load and recovery.
+CardioKinetic calculates fatigue and readiness scores using an **Exponentially Weighted Moving Average (EWMA)** model combined with advanced normalization functions based on sports science research.
 
 ### The Training Load Model
 
@@ -337,6 +337,7 @@ Performance readiness is the balance between accumulated fitness and current fat
 |--------|-----------|-------------|
 | **ATL** | Acute Training Load | 7-day EWMA of training load. Represents short-term fatigue accumulation. |
 | **CTL** | Chronic Training Load | 42-day EWMA of training load. Represents long-term fitness/adaptation. |
+| **ACWR** | Acute:Chronic Workload Ratio | `ATL / CTL`. Values >1.5 indicate elevated injury risk. |
 | **TSB** | Training Stress Balance | `CTL - ATL`. Positive = fresh/recovered, Negative = fatigued. |
 
 ### Daily Load Calculation
@@ -353,31 +354,8 @@ Where `PowerRatio = Session Power / Recent Average Power` (28-day weighted avera
 
 - **RPE exponent (1.5)**: Higher RPE sessions cause disproportionately more fatigue. An RPE 10 session is approximately **2.8× more demanding** than an RPE 5 session (not just 2×).
 - **Duration exponent (0.75)**: Longer sessions have diminishing returns per minute. A 120-minute session is about **22× more load** than a 2-minute session (not 60×).
-- **Power ratio exponent (0.5)**: Sessions harder than your recent average add more load; sessions easier than average add less. A 200W session when averaging 100W adds **~41% more load**; 200W when averaging 400W reduces load by **~29%**.
+- **Power ratio exponent (0.5)**: Sessions harder than your recent average add more load; sessions easier than average add less.
 - **Scaling factor (0.3)**: Calibrates scores to practical ranges.
-
-**Example calculations (assuming PowerRatio = 1.0):**
-
-| Session | Calculation | Load |
-|---------|-------------|------|
-| 15 min @ RPE 7 | 7^1.5 × 15^0.75 × 1.0^0.5 × 0.3 | ~42 |
-| 2 min @ RPE 7 | 7^1.5 × 2^0.75 × 1.0^0.5 × 0.3 | ~9 |
-| 120 min @ RPE 7 | 7^1.5 × 120^0.75 × 1.0^0.5 × 0.3 | ~184 |
-| 15 min @ RPE 10 | 10^1.5 × 15^0.75 × 1.0^0.5 × 0.3 | ~72 |
-
-**Power ratio impact (15 min @ RPE 7):**
-
-| Session Power | Recent Avg | PowerRatio | Load |
-|--------------|------------|------------|------|
-| 200W | 100W | 2.0 | ~59 (+41%) |
-| 200W | 200W | 1.0 | ~42 (baseline) |
-| 200W | 400W | 0.5 | ~30 (-29%) |
-
-This approach reflects the physiological reality that:
-- Very short sessions, even at high intensity, don't accumulate massive fatigue
-- Very long sessions don't scale linearly (a 2-hour session isn't 8× harder than a 15-minute one)
-- High RPE sessions require more recovery than low RPE sessions at the same duration
-- Working above your recent training load is more stressful than working below it
 
 ### EWMA Smoothing
 
@@ -397,32 +375,54 @@ CTL_today = CTL_yesterday × (1 - α_CTL) + Load_today × α_CTL
 
 ### Score Derivation
 
-From these raw metrics, the app derives two 0-100 scores:
+CardioKinetic uses advanced normalization functions to convert raw metrics into meaningful 0-100 scores:
 
-| Score | Formula | Interpretation |
-|-------|---------|----------------|
-| **Fatigue Score** | `min(ATL, 100)` | Higher = more accumulated short-term stress. Capped at 100. |
-| **Readiness Score** | `50 + (TSB × 1.25)` (clamped 0-100) | Centered at 50. Positive TSB → higher readiness. Negative TSB → lower readiness. |
+#### Fatigue Score (ACWR Sigmoid)
 
-#### Readiness Score Examples
+The **Fatigue Score** uses the Acute:Chronic Workload Ratio (ACWR) with a Logistic Sigmoid function. This creates high sensitivity around training load variations.
+
+```
+Fatigue Score = 100 / (1 + e^(-4.5 × (ACWR - 1.15)))
+```
+
+| ACWR Range | Fatigue Score | Interpretation |
+|------------|---------------|----------------|
+| < 0.9 | < 20 | **Fully Recovered** — Training load is well below chronic capacity |
+| 0.9 - 1.15 | 20 - 50 | **Functional Fatigue** — Normal training zone, optimal adaptation |
+| 1.15 - 1.35 | 50 - 75 | **Elevated Load** — Monitor recovery, training is above average |
+| 1.35 - 1.5 | 75 - 85 | **Overreaching** — Caution advised, consider reducing intensity |
+| > 1.5 | > 85 | **High Risk** — Elevated injury risk, taper or rest recommended |
+
+
+#### Readiness Score (TSB Gaussian)
+
+The **Readiness Score** uses Training Stress Balance (TSB) with a Gaussian distribution centered at the optimal "freshness" point. This creates an inverted-U curve that penalizes both excessive fatigue AND excessive rest (detraining).
+
+```
+Readiness Score = 100 × e^(-(TSB - 20)² / 1250)
+```
 
 | TSB Value | Readiness Score | Interpretation |
 |-----------|-----------------|----------------|
-| +40 | 100 | Very fresh, well-tapered |
-| +20 | 75 | Well recovered, ready to push |
-| 0 | 50 | Balanced training load |
-| -20 | 25 | Fatigued, maintain or reduce |
-| -40 | 0 | Significantly overreached |
+| +20 | **100** | **Peak Performance** — Optimal freshness for competition |
+| +50 | ~48 | **Too Rested** — Risk of detraining, may feel "stale" |
+| 0 | ~72 | **Good Training State** — Balanced load, sustainable training |
+| -30 | ~13 | **Deep Fatigue** — Significant recovery deficit |
+| -50 | ~3 | **Overreached** — Extended recovery needed |
+
+> [!IMPORTANT]
+> Unlike simpler linear models, the Gaussian readiness curve recognizes that being **too fresh** can be as problematic as being fatigued. Athletes who taper too long may experience detraining effects and reduced performance.
 
 ### Practical Implications
 
-- **High Fatigue (>60%)**: Recent training has been demanding. Consider reducing intensity or volume.
-- **Low Readiness (<40%)**: Accumulated fatigue exceeds fitness gains. Prioritize recovery.
-- **High Readiness (>65%)**: Well-recovered state. Good opportunity to push harder or extend sessions.
-- **Negative TSB for extended periods**: Risk of non-functional overreaching. Plan a deload.
+- **High Fatigue (>60%)**: ACWR approaching danger zone. Recent training is significantly higher than your chronic capacity. Reduce intensity or volume.
+- **Low Readiness (<50%)**: Negative TSB territory. Accumulated fatigue exceeds fitness gains. Prioritize recovery.
+- **Peak Readiness (>85%)**: Near the optimal TSB sweet spot. Excellent opportunity for key sessions or competition.
+- **Very High Readiness (>95%)**: Check if you're adequately maintaining training load. Extended freshness may indicate detraining.
 
 > [!TIP]
 > The fatigue and readiness scores update automatically based on logged sessions. Fatigue modifiers in your templates can use these scores to automatically adjust training prescriptions in real-time.
+
 
 ---
 
@@ -515,6 +515,71 @@ Quick presets for common scenarios:
 | `restMultiplier` | Multiply rest duration (1.5 = +50%) |
 | `volumeMultiplier` | Multiply session duration (0.75 = -25%) |
 | `message` | Display in Coach's Advice |
+
+### Modifier Priority
+
+> [!IMPORTANT]
+> **Only one fatigue modifier can trigger per session.** When multiple modifiers match, the one with the highest priority (lowest `priority` number) is applied.
+
+The `priority` field determines which modifier takes precedence:
+
+```json
+{
+  "condition": "overreached",
+  "priority": 0,
+  "adjustments": {
+    "powerMultiplier": 0.75,
+    "message": "Critical: Major reduction for safety."
+  }
+}
+```
+
+**Priority Rules:**
+
+| Priority Value | Recommended Use |
+|----------------|-----------------|
+| 0 | Critical safety (overreached) |
+| 1-9 | Very high fatigue / compound emergencies |
+| 10-19 | High fatigue handling |
+| 20-29 | Moderate fatigue handling |
+| 30-39 | Tired / general fatigue |
+| 40+ | Fresh / low fatigue bonuses |
+
+**Key Points:**
+
+- **Lower number = higher priority** (priority 0 is applied before priority 10)
+- **Default is 0** if not specified (maintains backward compatibility)
+- If multiple modifiers have the same priority, the **first one in array order** wins
+- Safety-critical modifiers should always have the lowest priority numbers
+
+**Example: Prioritized Modifier List**
+
+```json
+"fatigueModifiers": [
+  {
+    "condition": "overreached",
+    "priority": 0,
+    "adjustments": { "powerMultiplier": 0.75, "message": "🛑 Overreaching! Major reduction." }
+  },
+  {
+    "condition": "very_high_fatigue",
+    "priority": 1,
+    "adjustments": { "powerMultiplier": 0.85, "message": "⚠️ High fatigue. Reducing intensity." }
+  },
+  {
+    "condition": "tired",
+    "priority": 30,
+    "adjustments": { "rpeAdjust": -1, "message": "😴 Tired today. Lower effort." }
+  },
+  {
+    "condition": "fresh",
+    "priority": 40,
+    "adjustments": { "powerMultiplier": 1.05, "message": "✅ Fresh! Small boost." }
+  }
+]
+```
+
+In this example, if an athlete is both "overreached" AND "fresh", only the "overreached" modifier (priority 0) will trigger.
 
 
 ### Phase & Week Position Filters
@@ -632,8 +697,8 @@ For a **12-week program**:
   ],
   
   "fatigueModifiers": [
-    { "condition": "very_high_fatigue", "adjustments": { "powerMultiplier": 0.85, "restMultiplier": 1.5, "message": "⚠️ High accumulated fatigue. Reducing intensity to prevent overtraining." } },
-    { "condition": "fresh", "adjustments": { "powerMultiplier": 1.03, "message": "✅ Well recovered. Small intensity boost today." } }
+    { "condition": "very_high_fatigue", "priority": 1, "adjustments": { "powerMultiplier": 0.85, "restMultiplier": 1.5, "message": "⚠️ High accumulated fatigue. Reducing intensity to prevent overtraining." } },
+    { "condition": "fresh", "priority": 40, "adjustments": { "powerMultiplier": 1.03, "message": "✅ Well recovered. Small intensity boost today." } }
   ]
 }
 ```
@@ -664,8 +729,8 @@ For a **12-week program**:
   ],
   
   "fatigueModifiers": [
-    { "condition": "overreached", "adjustments": { "powerMultiplier": 0.75, "volumeMultiplier": 0.5, "message": "🛑 Signs of overreaching. Significant reduction applied." } },
-    { "condition": "tired", "adjustments": { "rpeAdjust": -1, "message": "Take it easier today - reduce perceived effort." } }
+    { "condition": "overreached", "priority": 0, "adjustments": { "powerMultiplier": 0.75, "volumeMultiplier": 0.5, "message": "🛑 Signs of overreaching. Significant reduction applied." } },
+    { "condition": "tired", "priority": 30, "adjustments": { "rpeAdjust": -1, "message": "Take it easier today - reduce perceived effort." } }
   ]
 }
 ```

@@ -203,6 +203,14 @@ export interface FatigueModifier {
     /** The adjustments to apply when condition is true */
     adjustments: FatigueAdjustments;
 
+    /**
+     * Priority for modifier selection when multiple conditions match.
+     * Lower numbers = higher priority (applied first).
+     * Only one modifier triggers per session - the highest priority (lowest number) matching modifier wins.
+     * Default: 0
+     */
+    priority?: number;
+
     /** Optional: Only apply to specific phase(s) - e.g., "Build", "Peak", ["Base", "Build"] */
     phase?: WeekFocus | WeekFocus[];
 

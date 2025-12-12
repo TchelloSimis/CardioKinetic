@@ -14,7 +14,12 @@ import {
 } from 'recharts';
 import { Session, PlanWeek, ProgramRecord } from '../types';
 import { ZoomIn, ZoomOut, RefreshCcw, Check, Square, CheckSquare } from 'lucide-react';
-import { calculateSessionLoad, calculateRecentAveragePower } from '../utils/metricsUtils';
+import {
+  calculateSessionLoad,
+  calculateRecentAveragePower,
+  calculateFatigueScore,
+  calculateReadinessScore
+} from '../utils/metricsUtils';
 
 interface ChartProps {
   sessions: Session[];
@@ -199,6 +204,7 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
   );
 
   // --- DATA ENGINE: EWMA SMOOTHING ---
+  // Uses new ACWR Sigmoid (fatigue) and TSB Gaussian (readiness) scoring
   const generateMetrics = (totalDays: number, dailyLoads: Float32Array) => {
     const metrics = [];
     let atl = 0;
@@ -216,8 +222,10 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
       const tsb = ctl - atl;
 
       metrics.push({
-        fatigue: Math.min(100, Math.round(atl)),
-        readiness: Math.max(0, Math.min(100, Math.round(50 + tsb * 1.25)))
+        // NEW: ACWR Sigmoid for fatigue (sensitive to injury-risk thresholds)
+        fatigue: calculateFatigueScore(atl, ctl),
+        // NEW: TSB Gaussian for readiness (peaks at TSB +20, penalizes detraining)
+        readiness: calculateReadinessScore(tsb)
       });
     }
     return metrics;

@@ -113,6 +113,15 @@ const FatigueModifiersStep: React.FC<FatigueModifiersStepProps> = ({ editorState
         }));
     };
 
+    const updatePriority = (index: number, priority: number) => {
+        setEditorState(prev => ({
+            ...prev,
+            fatigueModifiers: prev.fatigueModifiers.map((m, i) =>
+                i === index ? { ...m, priority } : m
+            )
+        }));
+    };
+
     return (
         <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
@@ -152,6 +161,32 @@ const FatigueModifiersStep: React.FC<FatigueModifiersStepProps> = ({ editorState
                                 key={index}
                                 className="p-4 rounded-2xl bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700"
                             >
+                                {/* Header with Priority */}
+                                <div className="flex items-center justify-between mb-3 pb-2 border-b border-neutral-200 dark:border-neutral-700">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-xs font-bold uppercase text-neutral-400">Modifier #{index + 1}</span>
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-[10px] font-medium text-neutral-500">Priority:</span>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="99"
+                                                value={modifier.priority ?? 0}
+                                                onChange={(e) => updatePriority(index, parseInt(e.target.value) || 0)}
+                                                className="w-14 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg px-2 py-1 text-xs font-mono text-center outline-none focus:border-accent"
+                                                title="Lower number = higher priority. Only one modifier triggers per session."
+                                            />
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => removeModifier(index)}
+                                        className="p-1.5 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                        title="Remove modifier"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
+
                                 <div className="flex items-start gap-4">
                                     <div className="flex-1 space-y-4">
                                         {/* Condition Row */}
@@ -331,13 +366,6 @@ const FatigueModifiersStep: React.FC<FatigueModifiersStepProps> = ({ editorState
                                             />
                                         </div>
                                     </div>
-
-                                    <button
-                                        onClick={() => removeModifier(index)}
-                                        className="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
                                 </div>
                             </div>
                         );

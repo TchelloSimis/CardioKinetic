@@ -8,6 +8,7 @@ import { useSessionTimer } from '../hooks/useSessionTimer';
 import { initAudioContext } from '../utils/audioService';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { stopSessionNotification } from '../utils/foregroundService';
+import { formatTime, calculateProgress, getAccentDarkBg, generateSessionChartData } from './liveSessionUtils';
 
 interface LiveSessionGuideProps {
     isOpen: boolean;
@@ -19,22 +20,7 @@ interface LiveSessionGuideProps {
     backButtonPressed?: number; // Increment to trigger back button handling (like X button)
 }
 
-/**
- * Format seconds to MM:SS display
- */
-const formatTime = (seconds: number): string => {
-    const mins = Math.floor(Math.max(0, seconds) / 60);
-    const secs = Math.floor(Math.max(0, seconds) % 60);
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-};
 
-/**
- * Calculate progress percentage
- */
-const calculateProgress = (elapsed: number, total: number): number => {
-    if (total <= 0) return 0;
-    return Math.min(100, (elapsed / total) * 100);
-};
 
 /**
  * Main Live Session Guide Component
@@ -253,138 +239,15 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
     };
 
     // Chart data for completion screen (must be before early return for hooks rules)
-    // Generate both actual (what happened) and planned (original schedule) data
-    // Also generate block boundaries for custom sessions
     const { actualData, plannedData, blockBoundaries } = useMemo(() => {
         const result = completionResult || pendingResultRef.current;
-
-        // Calculate session duration
-        let sessionDuration: number;
-        if (params?.sessionStyle === 'custom' && params.blocks && params.blocks.length > 0) {
-            // For custom sessions, calculate total duration from blocks
-            sessionDuration = params.blocks.reduce((total, block) => total + block.durationMinutes * 60, 0);
-        } else {
-            sessionDuration = (result?.actualDurationMinutes || state.sessionTimeElapsed / 60 || params?.totalDurationMinutes || 2) * 60;
-        }
-
-        // Calculate original work/rest power from params (before any adjustments)
-        // Use INITIAL target power (stored at session start) to prevent chart changing with harder/easier
-        const initialTargetPower = result?.initialTargetPower || initialTargetPowerRef.current || params?.targetPower || state.targetPower;
-
-        const origWork = params?.workDurationSeconds || 30;
-        const origRest = params?.restDurationSeconds || 30;
-        const origCycle = origWork + origRest;
-        const recoveryRatio = 0.5;
-
-        let origWorkPower = initialTargetPower;
-        let origRestPower = origWorkPower;
-
-        if (params?.sessionStyle === 'interval' && origCycle > 0) {
-            origWorkPower = Math.round((initialTargetPower * origCycle) / (origWork + recoveryRatio * origRest));
-            origRestPower = Math.round(origWorkPower * recoveryRatio);
-        }
-
-        // Generate PLANNED data and BLOCK BOUNDARIES
-        const planned: Array<{ time: number; plannedPower: number }> = [];
-        const boundaries: Array<{ time: number; label: string }> = [];
-
-        if (params?.sessionStyle === 'custom' && params.blocks && params.blocks.length > 0) {
-            // Custom session: generate planned data from blocks
-            let currentTime = 0;
-
-            params.blocks.forEach((block, index) => {
-                const blockDurationSeconds = block.durationMinutes * 60;
-                // Use INITIAL target power for planned chart, not current (adjusted) power
-                const blockPower = Math.round(initialTargetPower * block.powerMultiplier);
-
-                // Add block boundary (except for first block)
-                if (index > 0) {
-                    boundaries.push({
-                        time: Math.round(currentTime / 60 * 10) / 10,
-                        label: block.type === 'steady-state' ? 'SS' : 'INT'
-                    });
-                }
-
-                if (block.type === 'steady-state') {
-                    // Steady state block: flat power line
-                    planned.push({ time: Math.round(currentTime / 60 * 10) / 10, plannedPower: blockPower });
-                    currentTime += blockDurationSeconds;
-                    planned.push({ time: Math.round(currentTime / 60 * 10) / 10, plannedPower: blockPower });
-                } else {
-                    // Interval block: generate work/rest cycles
-                    const workSecs = block.workDurationSeconds || 30;
-                    const restSecs = block.restDurationSeconds || 30;
-                    const cycleSecs = workSecs + restSecs;
-
-                    // Calculate work/rest powers for this block
-                    const blockWorkPower = cycleSecs > 0
-                        ? Math.round((blockPower * cycleSecs) / (workSecs + recoveryRatio * restSecs))
-                        : blockPower;
-                    const blockRestPower = Math.round(blockWorkPower * recoveryRatio);
-
-                    const blockEndTime = currentTime + blockDurationSeconds;
-
-                    while (currentTime < blockEndTime) {
-                        // Work phase
-                        planned.push({ time: Math.round(currentTime / 60 * 10) / 10, plannedPower: blockWorkPower });
-                        currentTime += workSecs;
-                        if (currentTime >= blockEndTime) break;
-
-                        // Rest phase
-                        planned.push({ time: Math.round(currentTime / 60 * 10) / 10, plannedPower: blockRestPower });
-                        currentTime += restSecs;
-                    }
-
-                    // Ensure we end at the right time
-                    currentTime = Math.min(currentTime, blockEndTime);
-                }
-            });
-
-            // Add final point
-            if (planned.length > 0) {
-                const lastPower = planned[planned.length - 1]?.plannedPower || origWorkPower;
-                planned.push({ time: Math.round(sessionDuration / 60 * 10) / 10, plannedPower: lastPower });
-            }
-        } else if (params?.sessionStyle === 'interval' && origCycle > 0) {
-            // Standard interval session
-            let t = 0;
-            while (t < sessionDuration) {
-                // Work phase
-                planned.push({ time: Math.round(t / 60 * 10) / 10, plannedPower: origWorkPower });
-                t += origWork;
-                if (t >= sessionDuration) break;
-                // Rest phase
-                planned.push({ time: Math.round(t / 60 * 10) / 10, plannedPower: origRestPower });
-                t += origRest;
-            }
-            // Add final point
-            planned.push({ time: Math.round(sessionDuration / 60 * 10) / 10, plannedPower: planned[planned.length - 1]?.plannedPower || origWorkPower });
-        } else {
-            // Steady state - just a flat line
-            planned.push({ time: 0, plannedPower: origWorkPower });
-            planned.push({ time: Math.round(sessionDuration / 60 * 10) / 10, plannedPower: origWorkPower });
-        }
-
-        // Get ACTUAL data from power history
-        let actual: Array<{ time: number; actualPower: number }> = [];
-        if (result?.powerHistory && result.powerHistory.length > 0) {
-            actual = result.powerHistory.map(p => ({
-                time: Math.round(p.timeSeconds / 60 * 10) / 10,
-                actualPower: p.power,
-            }));
-            // Add final point if not at end
-            const lastTime = actual[actual.length - 1]?.time || 0;
-            const endTime = Math.round(sessionDuration / 60 * 10) / 10;
-            if (lastTime < endTime) {
-                actual.push({ time: endTime, actualPower: actual[actual.length - 1]?.actualPower || origWorkPower });
-            }
-        } else {
-            // Fallback: simple flat line
-            actual.push({ time: 0, actualPower: result?.averagePower || state.targetPower });
-            actual.push({ time: Math.round(sessionDuration / 60 * 10) / 10, actualPower: result?.averagePower || state.targetPower });
-        }
-
-        return { actualData: actual, plannedData: planned, blockBoundaries: boundaries };
+        return generateSessionChartData(
+            params,
+            result,
+            state.sessionTimeElapsed,
+            state.targetPower,
+            initialTargetPowerRef.current
+        );
     }, [completionResult, state.sessionTimeElapsed, state.targetPower, params]);
 
     if (!isOpen) return null;
@@ -418,18 +281,7 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
             ? 'bg-blue-500'
             : 'bg-amber-500';
 
-    // Generate a darker version of accent color for completion background
-    const getAccentDarkBg = (hex: string): string => {
-        try {
-            const r = parseInt(hex.slice(1, 3), 16);
-            const g = parseInt(hex.slice(3, 5), 16);
-            const b = parseInt(hex.slice(5, 7), 16);
-            // Make it very dark (20% brightness)
-            return `rgb(${Math.round(r * 0.15)}, ${Math.round(g * 0.15)}, ${Math.round(b * 0.15)})`;
-        } catch {
-            return 'rgb(15, 15, 15)';
-        }
-    };
+
 
     // Phase background colors (full screen) - with solid base
     const phaseBgFull = isWorkPhase

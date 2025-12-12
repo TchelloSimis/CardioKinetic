@@ -94,6 +94,7 @@
     "fatigueModifiers": [
         {
             "condition": "very_high_fatigue",
+            "priority": 1,
             "adjustments": {
                 "powerMultiplier": 0.85,
                 "restMultiplier": 1.5,
@@ -102,6 +103,7 @@
         },
         {
             "condition": "high_fatigue",
+            "priority": 10,
             "adjustments": {
                 "restMultiplier": 1.25,
                 "message": "💪 Fatigue building as expected. Extending rest slightly to maintain quality."
@@ -109,6 +111,7 @@
         },
         {
             "condition": "fresh",
+            "priority": 40,
             "adjustments": {
                 "powerMultiplier": 1.03,
                 "message": "✅ Well recovered. Small intensity boost today!"

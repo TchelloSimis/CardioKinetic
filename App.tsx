@@ -20,7 +20,14 @@ import {
     generatePlanFromTemplate,
     applyFatigueModifiers
 } from './utils/templateUtils';
-import { calculateSessionLoad, calculateRecentAveragePower } from './utils/metricsUtils';
+import {
+    calculateSessionLoad,
+    calculateRecentAveragePower,
+    getCurrentMetrics,
+    calculateFatigueScore,
+    calculateReadinessScore
+} from './utils/metricsUtils';
+import { useMetrics } from './hooks/useMetrics';
 import { requestNotificationPermission, isAndroid as isAndroidPlatform } from './utils/foregroundService';
 
 const App: React.FC = () => {
@@ -131,120 +138,16 @@ const App: React.FC = () => {
 
     const currentWeekPlan = adaptedPlan.find(p => p.week === currentWeekNum) || adaptedPlan[adaptedPlan.length - 1];
 
-    const metrics = useMemo(() => {
-        const oneDay = 24 * 60 * 60 * 1000;
-        const start = new Date(settings.startDate);
-        const simDate = new Date(simulatedCurrentDate);
-        simDate.setHours(0, 0, 0, 0);
-
-        const daysToSim = Math.floor((simDate.getTime() - start.getTime()) / oneDay);
-        const totalCalcDays = Math.max(1, daysToSim + 1);
-
-        const dailyLoads = new Float32Array(totalCalcDays).fill(0);
-        sessions.forEach(s => {
-            const d = new Date(s.date);
-            d.setHours(0, 0, 0, 0);
-            const dayIndex = Math.floor((d.getTime() - start.getTime()) / oneDay);
-            if (dayIndex >= 0 && dayIndex < totalCalcDays) {
-                // Calculate recent average power up to this session's date for power ratio
-                const recentAvgPower = calculateRecentAveragePower(sessions, d, settings.basePower);
-                const powerRatio = s.power / recentAvgPower;
-                dailyLoads[dayIndex] += calculateSessionLoad(s.rpe, s.duration, powerRatio);
-            }
-        });
-
-        let atl = 0;
-        let ctl = 10;
-        const atlAlpha = 2 / (7 + 1);
-        const ctlAlpha = 2 / (42 + 1);
-
-        for (let i = 0; i < totalCalcDays; i++) {
-            const load = dailyLoads[i];
-            atl = atl * (1 - atlAlpha) + load * atlAlpha;
-            ctl = ctl * (1 - ctlAlpha) + load * ctlAlpha;
-        }
-
-        const tsb = ctl - atl;
-        const fatigueScore = Math.min(Math.round(atl), 100);
-        let readinessScore = 50 + (tsb * 1.25);
-        readinessScore = Math.max(0, Math.min(100, Math.round(readinessScore)));
-
-        let readinessText = ReadinessState.MAINTAIN;
-        let advice = "";
-
-        if (!currentWeekPlan) {
-            return {
-                fatigue: fatigueScore,
-                readiness: readinessScore,
-                status: readinessText,
-                tsb: Math.round(tsb),
-                advice: "No active plan found.",
-                modifiedWeekPlan: null,
-                modifierMessages: []
-            };
-        }
-
-        // Apply fatigue modifiers from the program template (if any)
-        const programModifiers = activeProgram?.fatigueModifiers || [];
-        const fatigueContext = {
-            fatigueScore,
-            readinessScore,
-            tsbValue: tsb,
-            weekNumber: currentWeekNum,
-            totalWeeks: programLength,
-            phase: currentWeekPlan.focus
-        };
-        const modifierResult = applyFatigueModifiers(currentWeekPlan, fatigueContext, programModifiers);
-        const modifierMessages = modifierResult.messages;
-        const modifiedWeekPlan = modifierResult.week;
-
-        const phaseFocus = currentWeekPlan.focus;
-        const isFresh = readinessScore > 60;
-        const isTired = readinessScore < 40;
-        const isOverloaded = fatigueScore > 80;
-
-        if (isOverloaded) {
-            readinessText = ReadinessState.RECOVERY_NEEDED;
-            advice = "Critical fatigue detected. Regardless of the planned phase, prioritize recovery. Reduce volume by 50% or take a complete rest day to avoid non-functional overreaching.";
-        } else if (isTired) {
-            readinessText = ReadinessState.MAINTAIN;
-            if (phaseFocus === 'Intensity' || phaseFocus === 'Density') {
-                advice = "Fatigue is high. You may struggle to hit peak power output. Focus on completing the intervals at 90% effort rather than failing at 100%. Do not add extra sets.";
-            } else if (phaseFocus === 'Volume') {
-                advice = "Accumulated fatigue is expected in this volume block. Keep intensity strictly in Zone 2/Low-Aerobic to allow recovery while maintaining duration.";
-            } else {
-                advice = "Recovery phase indicated. Respect the lower intensity caps. Your body is synthesizing recent gains.";
-            }
-        } else if (isFresh) {
-            readinessText = ReadinessState.PROGRESS;
-            if (phaseFocus === 'Intensity') {
-                advice = "You are prime for high output. Attack the work intervals aggressively. Aim to exceed target wattage by 5-10 watts if RPE remains stable.";
-            } else if (phaseFocus === 'Density') {
-                advice = "Excellent readiness. Focus on minimizing recovery time. Strictly adhere to the rest intervals, or even shorten them by 5 seconds if the session feels easy.";
-            } else if (phaseFocus === 'Volume') {
-                advice = "You are well-recovered. This is a good opportunity to extend the session duration by 5-10 minutes while keeping power steady.";
-            } else {
-                advice = "You are fresh, but this is a recovery week. Resist the urge to go hard. Save this energy for the next block.";
-            }
-        } else {
-            readinessText = ReadinessState.MAINTAIN;
-            advice = "Training stress is balanced. Execute the session exactly as prescribed. Focus on form and breathing.";
-        }
-
-        const fullAdvice = modifierMessages.length > 0
-            ? modifierMessages.join(' ')
-            : null;  // Only show Coach's Advice when the program template has specific messages
-
-        return {
-            fatigue: fatigueScore,
-            readiness: readinessScore,
-            status: readinessText,
-            tsb: Math.round(tsb),
-            advice: fullAdvice,
-            modifiedWeekPlan,
-            modifierMessages
-        };
-    }, [sessions, simulatedCurrentDate, settings.startDate, currentWeekPlan, activeProgram]);
+    const metrics = useMetrics({
+        sessions,
+        simulatedDate: simulatedCurrentDate,
+        startDate: settings.startDate,
+        basePower: settings.basePower,
+        currentWeekNum,
+        programLength,
+        currentWeekPlan,
+        activeProgram
+    });
 
     // Android back button handler
     useEffect(() => {
