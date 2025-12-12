@@ -21,7 +21,7 @@
 
 ## Download
 
-**[Download APK (v1.0.0)](https://github.com/TchelloSimis/CardioKinetic/releases/latest/download/CardioKinetic.apk)** — Install directly on your Android device.
+**[Download APK (v1.0.1)](https://github.com/TchelloSimis/CardioKinetic/releases/latest/download/CardioKinetic.apk)** — Install directly on your Android device.
 
 > To install, enable "Install from unknown sources" in your Android settings when prompted.
 
@@ -50,17 +50,21 @@ Track every session and visualize your progress with detailed analytics:
 
 ### Adaptive Fatigue System
 
-CardioKinetic uses an evidence-based **Fitness-Fatigue model** (Banister model) to track your training state:
+CardioKinetic uses an evidence-based **Fitness-Fatigue model** (Banister model) combined with advanced scoring algorithms:
 
 | Metric | Description |
 |--------|-------------|
 | **ATL** (Acute Training Load) | 7-day exponentially weighted average — represents short-term fatigue |
 | **CTL** (Chronic Training Load) | 42-day exponentially weighted average — represents long-term fitness |
+| **ACWR** (Acute:Chronic Ratio) | ATL / CTL — values >1.5 indicate elevated injury risk |
 | **TSB** (Training Stress Balance) | CTL minus ATL — positive means fresh, negative means fatigued |
 
-The system calculates daily training load using: `Load = RPE^1.5 × Duration^0.75 × PowerRatio^0.5`
+**Fatigue Score** uses the ACWR with a Logistic Sigmoid: `100 / (1 + e^(-4.5 × (ACWR - 1.15)))`
+- Sensitive to training load variations (ACWR > 1.15 = elevated load zone)
 
-This reflects the physiological reality that high-intensity sessions cause disproportionately more fatigue, and that working above your recent average is more stressful.
+**Readiness Score** uses TSB with a Gaussian distribution: `100 × e^(-(TSB - 20)² / 1250)`
+- Peaks at TSB +20 (optimal freshness)
+- Penalizes both deep fatigue AND excessive rest (detraining)
 
 **Fatigue Modifiers** can automatically adjust your training based on these scores — reducing intensity when you're tired or pushing harder when you're fresh.
 
