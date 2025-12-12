@@ -6,6 +6,7 @@ All notable changes to CardioKinetic will be documented in this file.
 
 ### Added
 - **Fatigue Modifier Priority** — Set priority on fatigue modifiers so only the highest-priority matching condition triggers, preventing conflicting adjustments
+- **Fatigue and Readiness projection** — Visualize how fatigue and readiness should behave in any program, on average (see developer tools)
 
 ### Changed
 - **Fatigue Score Sensitivity** — Adjusted formula parameters (midpoint: 1.15, steepness: 4.5) for more responsive fatigue tracking
