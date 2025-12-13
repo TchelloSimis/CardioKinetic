@@ -122,6 +122,38 @@ const FatigueModifiersStep: React.FC<FatigueModifiersStepProps> = ({ editorState
         }));
     };
 
+    const updatePhaseName = (index: number, phaseName: string | undefined) => {
+        setEditorState(prev => ({
+            ...prev,
+            fatigueModifiers: prev.fatigueModifiers.map((m, i) =>
+                i === index ? { ...m, phaseName: phaseName || undefined } : m
+            )
+        }));
+    };
+
+    // Get all available phase names from weeks and blocks
+    const getAvailablePhaseNames = (): string[] => {
+        const phaseNames = new Set<string>();
+
+        // From week definitions
+        editorState.weeks.forEach(week => {
+            if (week.phaseName) phaseNames.add(week.phaseName);
+        });
+
+        // From program blocks
+        editorState.programBlocks.forEach(block => {
+            if (block.phaseName) phaseNames.add(block.phaseName);
+        });
+
+        // From fixed first/last weeks
+        if (editorState.fixedFirstWeek?.phaseName) phaseNames.add(editorState.fixedFirstWeek.phaseName);
+        if (editorState.fixedLastWeek?.phaseName) phaseNames.add(editorState.fixedLastWeek.phaseName);
+
+        return Array.from(phaseNames).sort();
+    };
+
+    const availablePhaseNames = getAvailablePhaseNames();
+
     return (
         <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
@@ -270,6 +302,46 @@ const FatigueModifiersStep: React.FC<FatigueModifiersStepProps> = ({ editorState
                                                     {condition.readiness ? 'ON' : 'OFF'}
                                                 </button>
                                             </div>
+                                        </div>
+
+                                        {/* Phase Name Filter */}
+                                        <div className="pt-3 border-t border-neutral-200 dark:border-neutral-700">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className="text-xs font-bold uppercase text-neutral-400">Only in Phase:</span>
+                                                {availablePhaseNames.length > 0 ? (
+                                                    <select
+                                                        value={typeof modifier.phaseName === 'string' ? modifier.phaseName : ''}
+                                                        onChange={(e) => updatePhaseName(index, e.target.value || undefined)}
+                                                        className="flex-1 max-w-xs bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-accent"
+                                                    >
+                                                        <option value="">Any Phase</option>
+                                                        {availablePhaseNames.map(name => (
+                                                            <option key={name} value={name}>{name}</option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <input
+                                                        type="text"
+                                                        value={typeof modifier.phaseName === 'string' ? modifier.phaseName : ''}
+                                                        placeholder="Enter phase name (e.g., Build Phase)"
+                                                        onChange={(e) => updatePhaseName(index, e.target.value || undefined)}
+                                                        className="flex-1 max-w-xs bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-accent"
+                                                    />
+                                                )}
+                                                {modifier.phaseName && (
+                                                    <button
+                                                        onClick={() => updatePhaseName(index, undefined)}
+                                                        className="text-[10px] px-2 py-1 rounded bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200"
+                                                    >
+                                                        Clear
+                                                    </button>
+                                                )}
+                                            </div>
+                                            {modifier.phaseName && !availablePhaseNames.includes(typeof modifier.phaseName === 'string' ? modifier.phaseName : '') && availablePhaseNames.length > 0 && (
+                                                <p className="text-[10px] text-amber-500 mt-1">
+                                                    ⚠️ Phase name not found in current template
+                                                </p>
+                                            )}
                                         </div>
 
                                         {/* Adjustments Row */}

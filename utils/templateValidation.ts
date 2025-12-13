@@ -11,6 +11,8 @@ import {
     ValidationResult,
     ValidationError,
     WeekFocus,
+    ProgramBlock,
+    PowerReference,
 } from '../programTemplate';
 
 // ============================================================================
@@ -64,10 +66,24 @@ export function validateTemplate(json: unknown): ValidationResult {
         if (weekConfig.type === 'fixed' && typeof weekConfig.fixed !== 'number') {
             errors.push({ field: 'weekConfig.fixed', message: 'Required for fixed-length programs' });
         }
+        // For variable type, need either range OR customDurations
         if (weekConfig.type === 'variable') {
             const range = weekConfig.range as Record<string, unknown> | undefined;
-            if (!range || typeof range.min !== 'number' || typeof range.max !== 'number' || typeof range.step !== 'number') {
-                errors.push({ field: 'weekConfig.range', message: 'Required min, max, step for variable-length programs' });
+            const customDurations = weekConfig.customDurations as number[] | undefined;
+
+            if (customDurations && Array.isArray(customDurations)) {
+                // Validate customDurations
+                if (customDurations.length === 0) {
+                    errors.push({ field: 'weekConfig.customDurations', message: 'Must have at least one duration' });
+                } else {
+                    for (let i = 0; i < customDurations.length; i++) {
+                        if (typeof customDurations[i] !== 'number' || customDurations[i] <= 0 || !Number.isInteger(customDurations[i])) {
+                            errors.push({ field: `weekConfig.customDurations[${i}]`, message: 'Must be a positive integer' });
+                        }
+                    }
+                }
+            } else if (!range || typeof range.min !== 'number' || typeof range.max !== 'number' || typeof range.step !== 'number') {
+                errors.push({ field: 'weekConfig.range', message: 'Required min, max, step for variable-length programs (or use customDurations)' });
             } else if (range.min > range.max) {
                 errors.push({ field: 'weekConfig.range', message: 'min cannot be greater than max' });
             }
@@ -89,14 +105,39 @@ export function validateTemplate(json: unknown): ValidationResult {
         errors.push({ field: 'defaultSessionDurationMinutes', message: 'Must be a positive number' });
     }
 
-    // Weeks array
-    if (!Array.isArray(obj.weeks) || obj.weeks.length === 0) {
-        errors.push({ field: 'weeks', message: 'Must be a non-empty array' });
+    // Validate based on structure type
+    const isBlockBased = obj.structureType === 'block-based';
+
+    if (isBlockBased) {
+        // Block-based templates use programBlocks instead of weeks
+        if (!Array.isArray(obj.programBlocks) || obj.programBlocks.length === 0) {
+            errors.push({ field: 'programBlocks', message: 'Required non-empty array for block-based templates' });
+        } else {
+            (obj.programBlocks as unknown[]).forEach((block, index) => {
+                const blockErrors = validateProgramBlock(block, index, obj.programBlocks as unknown[]);
+                errors.push(...blockErrors);
+            });
+        }
+
+        // Validate fixedFirstWeek and fixedLastWeek if present
+        if (obj.fixedFirstWeek) {
+            const firstWeekErrors = validateWeekDefinition(obj.fixedFirstWeek, 0);
+            errors.push(...firstWeekErrors.map(e => ({ ...e, field: 'fixedFirstWeek.' + e.field.replace(/^weeks\[0\]\.?/, '') })));
+        }
+        if (obj.fixedLastWeek) {
+            const lastWeekErrors = validateWeekDefinition(obj.fixedLastWeek, 0);
+            errors.push(...lastWeekErrors.map(e => ({ ...e, field: 'fixedLastWeek.' + e.field.replace(/^weeks\[0\]\.?/, '') })));
+        }
     } else {
-        (obj.weeks as unknown[]).forEach((week, index) => {
-            const weekErrors = validateWeekDefinition(week, index);
-            errors.push(...weekErrors);
-        });
+        // Traditional week-based templates require weeks array
+        if (!Array.isArray(obj.weeks) || obj.weeks.length === 0) {
+            errors.push({ field: 'weeks', message: 'Must be a non-empty array' });
+        } else {
+            (obj.weeks as unknown[]).forEach((week, index) => {
+                const weekErrors = validateWeekDefinition(week, index);
+                errors.push(...weekErrors);
+            });
+        }
     }
 
     // Optional: fatigue modifiers
@@ -220,6 +261,103 @@ function validateTemplateBlock(block: unknown, weekIndex: number, blockIndex: nu
                 field: `${prefix}`,
                 message: 'Interval blocks require workRestRatio or explicit workDurationSeconds/restDurationSeconds'
             });
+        }
+    }
+
+    return errors;
+}
+
+/**
+ * Validates a ProgramBlock in a block-based template
+ */
+function validateProgramBlock(block: unknown, index: number, allBlocks: unknown[]): ValidationError[] {
+    const errors: ValidationError[] = [];
+    const prefix = `programBlocks[${index}]`;
+
+    if (!block || typeof block !== 'object') {
+        return [{ field: prefix, message: 'Must be an object' }];
+    }
+
+    const b = block as Record<string, unknown>;
+
+    // Required fields
+    if (!b.id || typeof b.id !== 'string') {
+        errors.push({ field: `${prefix}.id`, message: 'Required string field' });
+    }
+
+    if (!b.name || typeof b.name !== 'string') {
+        errors.push({ field: `${prefix}.name`, message: 'Required string field' });
+    }
+
+    if (typeof b.weekCount !== 'number' || b.weekCount <= 0 || !Number.isInteger(b.weekCount)) {
+        errors.push({ field: `${prefix}.weekCount`, message: 'Must be a positive integer' });
+    }
+
+    // Power reference validation
+    const validReferences: PowerReference[] = ['base', 'previous', 'block_start'];
+    if (!validReferences.includes(b.powerReference as PowerReference)) {
+        errors.push({ field: `${prefix}.powerReference`, message: 'Must be "base", "previous", or "block_start"' });
+    }
+
+    // Power progression validation
+    if (!Array.isArray(b.powerProgression)) {
+        errors.push({ field: `${prefix}.powerProgression`, message: 'Must be an array of numbers' });
+    } else {
+        if (typeof b.weekCount === 'number' && b.powerProgression.length !== b.weekCount) {
+            errors.push({ field: `${prefix}.powerProgression`, message: `Length must equal weekCount (${b.weekCount})` });
+        }
+        for (let i = 0; i < b.powerProgression.length; i++) {
+            if (typeof b.powerProgression[i] !== 'number' || b.powerProgression[i] <= 0) {
+                errors.push({ field: `${prefix}.powerProgression[${i}]`, message: 'Must be a positive number' });
+            }
+        }
+    }
+
+    // Focus validation
+    const validFocuses: WeekFocus[] = ['Density', 'Intensity', 'Volume', 'Recovery'];
+    if (!validFocuses.includes(b.focus as WeekFocus)) {
+        errors.push({ field: `${prefix}.focus`, message: 'Must be Density, Intensity, Volume, or Recovery' });
+    }
+
+    if (!b.phaseName || typeof b.phaseName !== 'string') {
+        errors.push({ field: `${prefix}.phaseName`, message: 'Required string field' });
+    }
+
+    if (!b.description || typeof b.description !== 'string') {
+        errors.push({ field: `${prefix}.description`, message: 'Required string field' });
+    }
+
+    if (!b.workRestRatio || typeof b.workRestRatio !== 'string') {
+        errors.push({ field: `${prefix}.workRestRatio`, message: 'Required string field (e.g., "1:2")' });
+    }
+
+    // RPE validation (can be number or array)
+    if (typeof b.targetRPE === 'number') {
+        if (b.targetRPE < 1 || b.targetRPE > 10) {
+            errors.push({ field: `${prefix}.targetRPE`, message: 'Must be between 1 and 10' });
+        }
+    } else if (Array.isArray(b.targetRPE)) {
+        for (let i = 0; i < b.targetRPE.length; i++) {
+            if (typeof b.targetRPE[i] !== 'number' || b.targetRPE[i] < 1 || b.targetRPE[i] > 10) {
+                errors.push({ field: `${prefix}.targetRPE[${i}]`, message: 'Must be a number between 1 and 10' });
+            }
+        }
+    } else {
+        errors.push({ field: `${prefix}.targetRPE`, message: 'Must be a number or array of numbers' });
+    }
+
+    // followedBy validation - must reference a valid block ID
+    if (b.followedBy !== undefined) {
+        if (typeof b.followedBy !== 'string') {
+            errors.push({ field: `${prefix}.followedBy`, message: 'Must be a string (block ID)' });
+        } else {
+            const validIds = (allBlocks as Record<string, unknown>[])
+                .filter(bl => bl && typeof bl === 'object')
+                .map(bl => bl.id)
+                .filter(id => typeof id === 'string');
+            if (!validIds.includes(b.followedBy)) {
+                errors.push({ field: `${prefix}.followedBy`, message: `Must reference a valid block ID. Valid IDs: ${validIds.join(', ')}` });
+            }
         }
     }
 

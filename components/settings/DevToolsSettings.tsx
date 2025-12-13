@@ -83,12 +83,48 @@ const DevToolsSettings: React.FC<DevToolsSettingsProps> = ({
 
     // Get week options for selected preset
     const weekOptions = useMemo(() => {
-        if (!selectedPreset) return { min: 4, max: 24, options: null };
-        if (selectedPreset.weekOptions) {
-            return { min: Math.min(...selectedPreset.weekOptions), max: Math.max(...selectedPreset.weekOptions), options: selectedPreset.weekOptions };
+        if (!selectedPreset) return { min: 4, max: 24, options: null, isFixed: false };
+
+        // Check for explicit weekOptions array
+        if (selectedPreset.weekOptions && selectedPreset.weekOptions.length > 0) {
+            const isFixed = selectedPreset.weekOptions.length === 1;
+            return {
+                min: Math.min(...selectedPreset.weekOptions),
+                max: Math.max(...selectedPreset.weekOptions),
+                options: selectedPreset.weekOptions,
+                isFixed
+            };
         }
-        return { min: selectedPreset.minWeeks || 4, max: selectedPreset.maxWeeks || 24, options: null };
+
+        // Check for fixed weekCount (no range specified)
+        if (selectedPreset.weekCount && !selectedPreset.minWeeks && !selectedPreset.maxWeeks) {
+            return {
+                min: selectedPreset.weekCount,
+                max: selectedPreset.weekCount,
+                options: [selectedPreset.weekCount],
+                isFixed: true
+            };
+        }
+
+        // Variable range
+        return {
+            min: selectedPreset.minWeeks || 4,
+            max: selectedPreset.maxWeeks || 24,
+            options: null,
+            isFixed: false
+        };
     }, [selectedPreset]);
+
+    // Sync simWeekCount when preset changes
+    useEffect(() => {
+        if (weekOptions.isFixed && weekOptions.options) {
+            setSimWeekCount(weekOptions.options[0]);
+        } else if (simWeekCount < weekOptions.min || simWeekCount > weekOptions.max) {
+            // Clamp to valid range
+            setSimWeekCount(Math.max(weekOptions.min, Math.min(weekOptions.max, simWeekCount)));
+        }
+        setSimulationResult(null);
+    }, [selectedPresetId, weekOptions]);
 
     // Run simulation handler
     const handleRunSimulation = useCallback(() => {
@@ -285,30 +321,41 @@ const DevToolsSettings: React.FC<DevToolsSettingsProps> = ({
                         {/* Week Count */}
                         <div>
                             <label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest mb-2 block">Weeks to Simulate</label>
-                            <div className="flex items-center gap-4">
-                                <input
-                                    type="range"
-                                    min={weekOptions.min}
-                                    max={weekOptions.max}
-                                    step={weekOptions.options ? 1 : 1}
-                                    value={simWeekCount}
-                                    onChange={(e) => {
-                                        let val = Number(e.target.value);
-                                        // Snap to valid options if weekOptions exist
-                                        if (weekOptions.options) {
-                                            val = weekOptions.options.reduce((prev, curr) =>
-                                                Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev
-                                            );
-                                        }
-                                        setSimWeekCount(val);
-                                        setSimulationResult(null);
-                                    }}
-                                    className="flex-1 h-2 bg-neutral-200 dark:bg-neutral-800 rounded-full appearance-none cursor-pointer accent-neutral-900 dark:accent-white"
-                                />
-                                <span className="font-mono font-bold text-lg w-8 text-right">{simWeekCount}</span>
-                            </div>
-                            {weekOptions.options && (
-                                <p className="text-[10px] text-neutral-400 mt-1">Available: {weekOptions.options.join(', ')} weeks</p>
+                            {weekOptions.isFixed ? (
+                                /* Fixed duration program - show static value */
+                                <div className="flex items-center gap-2">
+                                    <span className="font-mono font-bold text-lg">{simWeekCount}</span>
+                                    <span className="text-xs text-neutral-500">weeks (fixed)</span>
+                                </div>
+                            ) : (
+                                /* Variable duration - show slider */
+                                <>
+                                    <div className="flex items-center gap-4">
+                                        <input
+                                            type="range"
+                                            min={weekOptions.min}
+                                            max={weekOptions.max}
+                                            step={weekOptions.options ? 1 : 1}
+                                            value={simWeekCount}
+                                            onChange={(e) => {
+                                                let val = Number(e.target.value);
+                                                // Snap to valid options if weekOptions exist
+                                                if (weekOptions.options) {
+                                                    val = weekOptions.options.reduce((prev, curr) =>
+                                                        Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev
+                                                    );
+                                                }
+                                                setSimWeekCount(val);
+                                                setSimulationResult(null);
+                                            }}
+                                            className="flex-1 h-2 bg-neutral-200 dark:bg-neutral-800 rounded-full appearance-none cursor-pointer accent-neutral-900 dark:accent-white"
+                                        />
+                                        <span className="font-mono font-bold text-lg w-8 text-right">{simWeekCount}</span>
+                                    </div>
+                                    {weekOptions.options && (
+                                        <p className="text-[10px] text-neutral-400 mt-1">Available: {weekOptions.options.join(', ')} weeks</p>
+                                    )}
+                                </>
                             )}
                         </div>
 

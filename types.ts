@@ -88,6 +88,7 @@ export interface PlanWeek {
   targetDurationMinutes?: number;       // For steady-state or duration-based progression
   workDurationSeconds?: number;         // Explicit work interval duration (alternative to ratio)
   restDurationSeconds?: number;         // Explicit rest interval duration (alternative to ratio)
+  cycles?: number;                      // For interval sessions: number of work/rest cycles
 
   // For custom sessions (sessionStyle === 'custom')
   blocks?: SessionBlock[];              // Array of blocks for custom sessions

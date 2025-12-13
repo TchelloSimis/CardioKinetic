@@ -124,6 +124,221 @@ This allows 4, 5, or 6 week programs. The user selects their preferred length.
 | 6 | 6 | 1 | 6 (effectively fixed) |
 | 4 | 12 | 4 | 4, 8, 12 |
 
+### Custom Duration Lists
+
+For more control over which week counts are valid, use `customDurations`:
+
+```json
+{
+  "weekConfig": {
+    "type": "variable",
+    "customDurations": [8, 10, 12, 14]
+  }
+}
+```
+
+This overrides `range` and allows only 8, 10, 12, or 14 week programs. This is especially useful for block-based programs where only certain durations fit the block structure properly.
+
+---
+
+## Block-Based Programs
+
+Block-based programs offer an alternative to week-based definitions. Instead of defining individual weeks, you define reusable **blocks** that repeat to fill the program duration.
+
+### When to Use Blocks
+
+Use block-based structure when:
+- You want repeating training cycles (e.g., 4-week build + 2-week deload)
+- Power should accumulate relative to block boundaries (not just base power)
+- You need precise control over how blocks chain together
+
+### Structure Type
+
+Set `structureType: "block-based"` to enable block mode:
+
+```json
+{
+  "structureType": "block-based",
+  "programBlocks": [...],
+  "fixedFirstWeek": {...},
+  "fixedLastWeek": {...}
+}
+```
+
+### ProgramBlock Interface
+
+Each block in `programBlocks` has these fields:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | Yes | Unique identifier (e.g., `"builder"`) |
+| `name` | string | Yes | Display name (e.g., `"Builder"`) |
+| `weekCount` | number | Yes | Fixed weeks in this block |
+| `powerReference` | string | Yes | Power calculation mode (see below) |
+| `powerProgression` | number[] | Yes | Multiplier for each week (length = weekCount) |
+| `followedBy` | string | No | ID of the next block in chain |
+| `focus` | string | Yes | Training focus (`"Intensity"`, `"Volume"`, etc.) |
+| `phaseName` | string | Yes | Phase name shown in UI |
+| `description` | string | Yes | Week description (can use `{weekInBlock}` placeholder) |
+| `workRestRatio` | string | Yes | Work:rest ratio |
+| `targetRPE` | number \| number[] | Yes | RPE for all weeks or per-week array |
+| `sessionStyle` | string | No | Override session style for this block |
+| `blocks` | TemplateBlock[] | No | For custom sessions within the block |
+
+### Power Reference Modes
+
+The `powerReference` field determines what the `powerProgression` multipliers are relative to:
+
+| Mode | Description | Example |
+|------|-------------|---------|
+| `"base"` | Multiplier × basePower (absolute) | `1.2` = 120% of user's FTP |
+| `"previous"` | Multiplier × previous week's power | `1.1` = 10% more than last week |
+| `"block_start"` | Multiplier × power from week before block started | `1.2` = 20% above entering power |
+
+#### Power Calculation Example
+
+For a program with basePower = 100W:
+
+```
+Week 1 (Fixed First): 100W (powerMultiplier: 1.0 × basePower)
+Week 2-5 (Builder, powerReference: "block_start"):
+  - Week 2: 100W × 1.1 = 110W (block_start = Week 1 power)
+  - Week 3: 100W × 1.2 = 120W
+  - Week 4: 100W × 1.3 = 130W
+  - Week 5: 100W × 1.4 = 140W
+Week 6-7 (Deload, powerReference: "block_start"):
+  - Week 6: 140W × 0.8 = 112W (block_start = Week 5 power)
+  - Week 7: 140W × 0.8 = 112W
+Week 8 (Fixed Last): 100W
+```
+
+### Fixed First/Last Weeks
+
+You can define fixed weeks at the start and end that don't follow block logic:
+
+```json
+{
+  "fixedFirstWeek": {
+    "position": "first",
+    "phaseName": "Introduction",
+    "focus": "Volume",
+    "description": "Baseline week",
+    "powerMultiplier": 1.0,
+    "workRestRatio": "1:2",
+    "targetRPE": 5
+  },
+  "fixedLastWeek": {
+    "position": "last",
+    "phaseName": "Conclusion",
+    "focus": "Recovery",
+    "description": "Final adaptation week",
+    "powerMultiplier": 1.0,
+    "workRestRatio": "1:2",
+    "targetRPE": 5
+  }
+}
+```
+
+### Block Chaining
+
+Blocks use `followedBy` to create sequences:
+
+```json
+{
+  "programBlocks": [
+    {
+      "id": "builder",
+      "followedBy": "deload",
+      ...
+    },
+    {
+      "id": "deload",
+      "followedBy": "builder",
+      ...
+    }
+  ]
+}
+```
+
+This creates a cycle: Builder → Deload → Builder → Deload...
+
+### Complete Block-Based Example
+
+```json
+{
+  "templateVersion": "1.0",
+  "id": "builder-deload-blocks",
+  "name": "Builder/Deload Periodization",
+  "description": "4-week builder blocks followed by 2-week deloads",
+  
+  "structureType": "block-based",
+  
+  "weekConfig": {
+    "type": "variable",
+    "customDurations": [8, 14, 20, 26]
+  },
+  
+  "defaultSessionStyle": "interval",
+  "progressionMode": "power",
+  "defaultSessionDurationMinutes": 15,
+  
+  "fixedFirstWeek": {
+    "position": "first",
+    "phaseName": "Introduction",
+    "focus": "Volume",
+    "description": "Establish baseline",
+    "powerMultiplier": 1.0,
+    "workRestRatio": "1:2",
+    "targetRPE": 5
+  },
+  
+  "fixedLastWeek": {
+    "position": "last",
+    "phaseName": "Conclusion",
+    "focus": "Recovery",
+    "description": "Final adaptation",
+    "powerMultiplier": 1.0,
+    "workRestRatio": "1:2",
+    "targetRPE": 5
+  },
+  
+  "programBlocks": [
+    {
+      "id": "builder",
+      "name": "Builder",
+      "weekCount": 4,
+      "powerReference": "block_start",
+      "powerProgression": [1.1, 1.2, 1.3, 1.4],
+      "followedBy": "deload",
+      "focus": "Intensity",
+      "phaseName": "Build Phase",
+      "description": "Progressive overload week {weekInBlock}/4",
+      "workRestRatio": "2:1",
+      "targetRPE": [7, 7, 8, 8]
+    },
+    {
+      "id": "deload",
+      "name": "Deload",
+      "weekCount": 2,
+      "powerReference": "block_start",
+      "powerProgression": [0.8, 0.8],
+      "followedBy": "builder",
+      "focus": "Recovery",
+      "phaseName": "Deload Phase",
+      "description": "Recovery week {weekInBlock}/2",
+      "workRestRatio": "1:2",
+      "targetRPE": 5
+    }
+  ],
+  
+  "weeks": [],
+  "fatigueModifiers": []
+}
+```
+
+> [!NOTE]
+> Block-based templates require an empty `weeks: []` array. The weeks are generated dynamically from the block definitions.
+
 ---
 
 ## Week Definitions
@@ -213,8 +428,9 @@ The `focus` field categorizes the primary training emphasis for each week. This 
 |-------|------|-------------|
 | `sessionStyle` | `"interval"` \| `"steady-state"` \| `"custom"` | Override default session style |
 | `durationMinutes` | number \| string | Override default duration. Can be absolute (e.g., `30`) or a percentage of the default (e.g., `"110%"` for 10% longer). Range: 5-180 min or 10-500%. |
-| `workDurationSeconds` | number | Explicit work interval (overrides ratio) |
-| `restDurationSeconds` | number | Explicit rest interval (overrides ratio) |
+| `cycles` | number | For interval sessions: number of work/rest cycles. When specified with `workDurationSeconds` and `restDurationSeconds`, duration is calculated automatically. |
+| `workDurationSeconds` | number | For interval sessions: work duration per cycle in seconds |
+| `restDurationSeconds` | number | For interval sessions: rest duration per cycle in seconds |
 | `blocks` | array | For `"custom"` session style: array of training blocks (see below) |
 
 ### Custom Sessions (Blocks)
@@ -318,6 +534,209 @@ In this example:
 
 ---
 
+## Fatigue Modifiers
+
+Fatigue modifiers allow your program to **automatically adjust training** based on the athlete's daily fatigue and readiness scores. They create intelligent, responsive programs that adapt to the athlete's current state.
+
+### How Modifiers Work
+
+1. Each session, the app calculates **fatigue** and **readiness** scores
+2. Each modifier's **condition** is evaluated against these scores
+3. If multiple modifiers match, only the **highest priority** (lowest number) triggers
+4. The matching modifier's **adjustments** are applied to the session
+
+### Modifier Structure
+
+```json
+{
+  "fatigueModifiers": [
+    {
+      "condition": {
+        "fatigue": ">70",
+        "readiness": "<40",
+        "logic": "and"
+      },
+      "adjustments": {
+        "powerMultiplier": 0.85,
+        "rpeAdjust": -1,
+        "restMultiplier": 1.5,
+        "volumeMultiplier": 0.8,
+        "message": "High fatigue detected. Reducing intensity."
+      },
+      "priority": 1,
+      "phase": "Intensity",
+      "phaseName": "Build Phase",
+      "weekPosition": "late"
+    }
+  ]
+}
+```
+
+### Condition Fields
+
+The `condition` object determines **when** the modifier triggers:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `fatigue` | string | Fatigue threshold (e.g., `">70"`, `"<30"`, `">=50"`) |
+| `readiness` | string | Readiness threshold (e.g., `">65"`, `"<40"`) |
+| `logic` | `"and"` \| `"or"` | How to combine fatigue and readiness conditions |
+
+**Threshold Operators:**
+- `>` : greater than
+- `<` : less than
+- `>=` : greater than or equal
+- `<=` : less than or equal
+
+**Examples:**
+- `"fatigue": ">70"` – Triggers when fatigue is above 70%
+- `"readiness": "<40"` – Triggers when readiness is below 40%
+- `"logic": "and"` – Both conditions must be true
+- `"logic": "or"` – Either condition can be true
+
+### Adjustment Fields
+
+The `adjustments` object defines **what changes** when the modifier triggers:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `powerMultiplier` | number | Multiply target power (e.g., `0.9` = 90%) |
+| `rpeAdjust` | number | Add/subtract from target RPE (e.g., `-1` = reduce by 1) |
+| `restMultiplier` | number | Multiply rest duration (e.g., `1.5` = 50% longer) |
+| `volumeMultiplier` | number | Multiply session volume/duration (e.g., `0.8` = 80%) |
+| `message` | string | Coach's advice message shown to user |
+
+> [!NOTE]
+> For interval sessions, `volumeMultiplier` is applied to the **number of cycles** and rounded to the nearest integer. For steady-state sessions, it's applied to the duration without rounding.
+
+### Optional Filter Fields
+
+These fields restrict **when** the modifier can trigger:
+
+#### Priority
+
+```json
+{
+  "priority": 1
+}
+```
+
+Lower number = higher priority. Only **one modifier** triggers per session—the highest priority matching modifier wins.
+
+| Priority | Use Case |
+|----------|----------|
+| 0-10 | Critical overrides (injury prevention, forced rest) |
+| 11-30 | High fatigue responses |
+| 31-60 | Moderate adjustments |
+| 61-99 | Low-priority tweaks |
+
+#### Phase Filter (WeekFocus)
+
+```json
+{
+  "phase": "Intensity"
+}
+```
+
+Only trigger during specific training focus phases.
+
+| Value | Description |
+|-------|-------------|
+| `"Intensity"` | During intensity-focused weeks |
+| `"Volume"` | During volume-focused weeks |
+| `"Density"` | During density-focused weeks |
+| `"Recovery"` | During recovery weeks |
+
+Can also be an array: `["Intensity", "Density"]`
+
+#### Phase Name Filter
+
+```json
+{
+  "phaseName": "Build Phase"
+}
+```
+
+Only trigger during weeks with a specific `phaseName` string. This allows more granular control than `phase`.
+
+- Matches the `phaseName` field from week definitions or block definitions
+- Can be a single string or an array: `["Build Phase", "Peak Phase"]`
+- The UI shows a warning if the phase name doesn't match any defined in the template
+
+#### Week Position Filter
+
+```json
+{
+  "weekPosition": "late"
+}
+```
+
+Only trigger at specific positions in the program timeline.
+
+| Value | Description |
+|-------|-------------|
+| `"first"` | First week only |
+| `"last"` | Last week only |
+| `"early"` | First 33% of program |
+| `"mid"` | Middle 33% of program |
+| `"late"` | Last 33% of program |
+| `"50%"` | At 50% through (±1 week) |
+| `">50%"` | After 50% of program |
+| `"<33%"` | Before 33% of program |
+| `">5"` | After week 5 |
+| `"<10"` | Before week 10 |
+
+Can also be an array: `["first", "last"]`
+
+### Complete Examples
+
+#### High Fatigue Recovery
+
+```json
+{
+  "condition": { "fatigue": ">75", "logic": "and" },
+  "adjustments": {
+    "powerMultiplier": 0.8,
+    "rpeAdjust": -2,
+    "restMultiplier": 1.5,
+    "message": "High fatigue detected. Today's session is reduced."
+  },
+  "priority": 5
+}
+```
+
+#### Peak Week Intensity Boost
+
+```json
+{
+  "condition": { "readiness": ">70", "logic": "and" },
+  "adjustments": {
+    "powerMultiplier": 1.05,
+    "message": "You're fresh! Push a little harder today."
+  },
+  "priority": 50,
+  "phaseName": "Peak Phase",
+  "weekPosition": "late"
+}
+```
+
+#### Overreaching Prevention
+
+```json
+{
+  "condition": { "fatigue": ">80", "readiness": "<30", "logic": "and" },
+  "adjustments": {
+    "powerMultiplier": 0.7,
+    "volumeMultiplier": 0.6,
+    "rpeAdjust": -3,
+    "message": "⚠️ Critical fatigue! Mandatory reduced session."
+  },
+  "priority": 0
+}
+```
+
+---
+
 ## Understanding Fatigue & Readiness Scores
 
 CardioKinetic calculates fatigue and readiness scores using an **Exponentially Weighted Moving Average (EWMA)** model combined with advanced normalization functions based on sports science research.
@@ -372,6 +791,20 @@ The formula applied each day:
 ATL_today = ATL_yesterday × (1 - α_ATL) + Load_today × α_ATL
 CTL_today = CTL_yesterday × (1 - α_CTL) + Load_today × α_CTL
 ```
+
+### Initial State
+
+When starting a new program or without session history, the model uses neutral seed values:
+
+| Metric | Initial Value | Purpose |
+|--------|---------------|---------|
+| **ATL** | 9 | Represents baseline acute activity |
+| **CTL** | 10 | Prevents divide-by-zero and represents minimal fitness |
+| **TSB** | 1 (CTL - ATL) | Near-neutral training balance |
+| **Readiness** | ~75% | "Neutral" starting state, neither fresh nor fatigued |
+
+> [!TIP]
+> Starting at ~75% readiness (rather than near 100%) represents a realistic neutral state. Athletes typically begin programs with some baseline activity level rather than complete rest. As real training data accumulates, these seed values quickly wash out via the EWMA decay.
 
 ### Score Derivation
 
@@ -513,7 +946,7 @@ Quick presets for common scenarios:
 | `powerMultiplier` | Multiply target power (0.85 = -15%) |
 | `rpeAdjust` | Add/subtract target RPE (-1 = easier) |
 | `restMultiplier` | Multiply rest duration (1.5 = +50%) |
-| `volumeMultiplier` | Multiply session duration (0.75 = -25%) |
+| `volumeMultiplier` | Multiply session volume (0.75 = -25%). For interval sessions with `cycles`, cycles are rounded to nearest integer and duration is recalculated. For custom sessions: interval block cycles are rounded, steady-state durations keep decimal precision. |
 | `message` | Display in Coach's Advice |
 
 ### Modifier Priority

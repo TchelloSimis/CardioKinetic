@@ -95,9 +95,9 @@ const SimulationCharts: React.FC<SimulationChartsProps> = ({ result, isDarkMode 
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--accent-alt)' }}></div>
                     Fatigue Projection
                 </h4>
-                <div className="h-64 px-1">
+                <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart data={chartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+                        <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="fatigueMinMax" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stopColor="var(--accent-alt)" stopOpacity={0.1} />
@@ -124,6 +124,7 @@ const SimulationCharts: React.FC<SimulationChartsProps> = ({ result, isDarkMode 
                                 axisLine={false}
                                 tickLine={false}
                                 domain={['auto', 'auto']}
+                                width={35}
                             />
                             <YAxis
                                 yAxisId="score"
@@ -133,6 +134,7 @@ const SimulationCharts: React.FC<SimulationChartsProps> = ({ result, isDarkMode 
                                 axisLine={false}
                                 tickLine={false}
                                 domain={[0, 100]}
+                                width={30}
                             />
                             <Tooltip content={<SimulationTooltip metric="fatigue" />} />
 
@@ -225,9 +227,9 @@ const SimulationCharts: React.FC<SimulationChartsProps> = ({ result, isDarkMode 
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--accent)' }}></div>
                     Readiness Projection
                 </h4>
-                <div className="h-64 px-1">
+                <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart data={chartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+                        <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="readinessMinMax" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.1} />
@@ -254,6 +256,7 @@ const SimulationCharts: React.FC<SimulationChartsProps> = ({ result, isDarkMode 
                                 axisLine={false}
                                 tickLine={false}
                                 domain={['auto', 'auto']}
+                                width={35}
                             />
                             <YAxis
                                 yAxisId="score"
@@ -263,6 +266,7 @@ const SimulationCharts: React.FC<SimulationChartsProps> = ({ result, isDarkMode 
                                 axisLine={false}
                                 tickLine={false}
                                 domain={[0, 100]}
+                                width={30}
                             />
                             <Tooltip content={<SimulationTooltip metric="readiness" />} />
 

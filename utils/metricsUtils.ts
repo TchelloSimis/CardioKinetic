@@ -342,7 +342,8 @@ export function calculateDailyMetrics(
     const powerBaseline = calculatePowerBaseline(dailyData, endDate, basePower);
 
     // Initialize EWMA accumulators
-    let atl = 0;
+    // ATL=9, CTL=10 gives TSB≈1 → ~75% starting readiness (neutral state)
+    let atl = 9;
     let ctl = 10; // Seed with small baseline to prevent divide-by-zero
 
     // Iterate through each day

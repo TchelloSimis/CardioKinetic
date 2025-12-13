@@ -253,20 +253,24 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
 
     // Calculate Daily Loads
     const dailyLoads = new Float32Array(totalDays).fill(0);
+
+    // Track the last session day for fatigue/readiness display
     let lastSessionDayIndex = -1;
 
     // Get default basePower from first selected program (fallback for power ratio)
     const defaultBasePower = sortedPrograms[0]?.basePower || 150;
 
     filteredSessions.forEach(s => {
-      const d = new Date(s.date);
-      d.setHours(0, 0, 0, 0);
-      const dayIndex = Math.floor((d.getTime() - firstStart.getTime()) / oneDay);
+      // Session dates are stored as "YYYY-MM-DD" which parses as UTC midnight
+      // Don't use setHours() as it operates in local time and shifts the UTC date
+      const sessionDate = new Date(s.date);
+      const dayIndex = Math.floor((sessionDate.getTime() - firstStart.getTime()) / oneDay);
       if (dayIndex >= 0 && dayIndex < totalDays) {
         // Calculate recent average power up to this session's date for power ratio
-        const recentAvgPower = calculateRecentAveragePower(filteredSessions, d, defaultBasePower);
+        const recentAvgPower = calculateRecentAveragePower(filteredSessions, sessionDate, defaultBasePower);
         const powerRatio = s.power / recentAvgPower;
         dailyLoads[dayIndex] += calculateSessionLoad(s.rpe, s.duration, powerRatio);
+        // Track the last session day for fatigue/readiness display
         if (dayIndex > lastSessionDayIndex) lastSessionDayIndex = dayIndex;
       }
     });
@@ -276,9 +280,18 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
     // Generate Daily Data
     const daily = [];
     for (let i = 0; i < totalDays; i++) {
+      // Create date by adding milliseconds (UTC-safe)
       const currentDate = new Date(firstStart.getTime() + (i * oneDay));
+
+      // Session dates are stored using toISOString().split('T')[0] (UTC)
+      // So we must match using the same UTC format
       const dateStr = currentDate.toISOString().split('T')[0];
-      const dateDisplay = currentDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+      // For DISPLAY, parse the UTC dateStr to show the correct date label
+      // This ensures tooltip shows the same date as stored in session
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const dateDisplay = `${day}/${monthNames[month - 1].slice(0, 2)}`;
 
       // Find active program for this date
       const activeProgram = sortedPrograms.find(p => {
@@ -307,7 +320,8 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
 
       let fatigue = null;
       let readiness = null;
-      if (i <= lastSessionDayIndex) {
+      // Show fatigue/readiness up to the last session day (accounts for simulated dates)
+      if (i <= lastSessionDayIndex && i < dailyMetrics.length) {
         fatigue = dailyMetrics[i].fatigue;
         readiness = dailyMetrics[i].readiness;
       }
@@ -369,8 +383,8 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
 
       let fatigue = null;
       let readiness = null;
-      // Show fatigue/readiness if we have any data up to this week's start
-      if (weekStartIndex <= lastSessionDayIndex) {
+      // Show fatigue/readiness up to the last session day (accounts for simulated dates)
+      if (weekStartIndex <= lastSessionDayIndex && weekMetrics) {
         fatigue = weekMetrics.fatigue;
         readiness = weekMetrics.readiness;
       }

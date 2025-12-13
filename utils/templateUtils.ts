@@ -77,12 +77,17 @@ export function templateToPreset(template: ProgramTemplate): ProgramPreset {
         defaultSessionStyle: template.defaultSessionStyle,
         supportsCustomDuration: true,
         fatigueModifiers: template.fatigueModifiers,
-        // Additional template metadata for editor access (these aren't part of ProgramPreset interface but are used by editor)
+        // Additional template metadata for editor access
         weeks: template.weeks,
         weekConfig: template.weekConfig,
         author: template.author,
         tags: template.tags,
         defaultSessionDurationMinutes: template.defaultSessionDurationMinutes,
+        // Block-based template fields
+        structureType: template.structureType,
+        programBlocks: template.programBlocks,
+        fixedFirstWeek: template.fixedFirstWeek,
+        fixedLastWeek: template.fixedLastWeek,
     } as ProgramPreset;
 }
 
@@ -108,11 +113,19 @@ export function hydratePreset(preset: ProgramPreset): ProgramPreset {
         author?: string;
         tags?: string[];
         defaultSessionDurationMinutes?: number;
+        structureType?: 'week-based' | 'block-based';
+        programBlocks?: import('../programTemplate').ProgramBlock[];
+        fixedFirstWeek?: WeekDefinition;
+        fixedLastWeek?: WeekDefinition;
     };
 
     // Check if we have the necessary template data to reconstruct the generator
-    if (!extendedPreset.weeks || !extendedPreset.weekConfig) {
-        console.warn(`Cannot hydrate preset "${preset.id}" - missing weeks or weekConfig metadata`);
+    // Block-based templates may have empty weeks array, so also check for programBlocks
+    const hasWeeksData = extendedPreset.weeks && extendedPreset.weeks.length > 0;
+    const hasBlocksData = extendedPreset.structureType === 'block-based' && extendedPreset.programBlocks && extendedPreset.programBlocks.length > 0;
+
+    if (!extendedPreset.weekConfig || (!hasWeeksData && !hasBlocksData)) {
+        console.warn(`Cannot hydrate preset "${preset.id}" - missing weeks/blocks or weekConfig metadata`);
         // Return with a fallback generator that produces an empty plan
         return {
             ...preset,
@@ -132,8 +145,13 @@ export function hydratePreset(preset: ProgramPreset): ProgramPreset {
         defaultSessionStyle: preset.defaultSessionStyle || 'interval',
         progressionMode: preset.progressionMode || 'power',
         defaultSessionDurationMinutes: extendedPreset.defaultSessionDurationMinutes || 15,
-        weeks: extendedPreset.weeks,
+        weeks: extendedPreset.weeks || [],
         fatigueModifiers: preset.fatigueModifiers,
+        // Block-based template fields
+        structureType: extendedPreset.structureType,
+        programBlocks: extendedPreset.programBlocks,
+        fixedFirstWeek: extendedPreset.fixedFirstWeek,
+        fixedLastWeek: extendedPreset.fixedLastWeek,
     };
 
     // Use templateToPreset to create a fully functional preset with a working generator

@@ -128,11 +128,19 @@ export function applyFatigueModifiers(
             continue;
         }
 
-        // Check phase condition if specified
+        // Check phase condition if specified (WeekFocus type)
         if (modifier.phase !== undefined) {
             const phasesToMatch = Array.isArray(modifier.phase) ? modifier.phase : [modifier.phase];
             if (context.phase && !phasesToMatch.includes(context.phase)) {
                 continue; // Skip if current phase doesn't match
+            }
+        }
+
+        // Check phaseName condition if specified (string type for phase names like "Build Phase")
+        if (modifier.phaseName !== undefined) {
+            const phaseNamesToMatch = Array.isArray(modifier.phaseName) ? modifier.phaseName : [modifier.phaseName];
+            if (!context.phaseName || !phaseNamesToMatch.includes(context.phaseName)) {
+                continue; // Skip if current phaseName doesn't match
             }
         }
 
@@ -243,8 +251,43 @@ export function applyFatigueModifiers(
             modifiedWeek.restDurationSeconds = Math.round(modifiedWeek.restDurationSeconds * adj.restMultiplier);
         }
 
-        if (adj.volumeMultiplier !== undefined && modifiedWeek.targetDurationMinutes) {
-            modifiedWeek.targetDurationMinutes = Math.round(modifiedWeek.targetDurationMinutes * adj.volumeMultiplier);
+        if (adj.volumeMultiplier !== undefined) {
+            // Handle custom session blocks
+            if (modifiedWeek.blocks && modifiedWeek.blocks.length > 0) {
+                modifiedWeek.blocks = modifiedWeek.blocks.map(block => {
+                    const modifiedBlock = { ...block };
+
+                    if (block.type === 'interval' && block.cycles !== undefined) {
+                        // For interval blocks: round cycles to nearest integer
+                        modifiedBlock.cycles = Math.round(block.cycles * adj.volumeMultiplier!);
+                        // Recalculate durationMinutes based on new cycles
+                        const workSeconds = block.workDurationSeconds || 30;
+                        const restSeconds = block.restDurationSeconds || 30;
+                        modifiedBlock.durationMinutes = (modifiedBlock.cycles * (workSeconds + restSeconds)) / 60;
+                    } else {
+                        // For steady-state blocks: apply multiplier without rounding
+                        modifiedBlock.durationMinutes = block.durationMinutes * adj.volumeMultiplier!;
+                    }
+
+                    return modifiedBlock;
+                });
+
+                // Recalculate targetDurationMinutes based on modified blocks
+                modifiedWeek.targetDurationMinutes = modifiedWeek.blocks.reduce(
+                    (total, block) => total + block.durationMinutes, 0
+                );
+            } else if (modifiedWeek.sessionStyle === 'interval' && modifiedWeek.cycles !== undefined) {
+                // For interval sessions with explicit cycles: round cycles to nearest integer
+                const originalCycles = modifiedWeek.cycles;
+                modifiedWeek.cycles = Math.round(originalCycles * adj.volumeMultiplier);
+                // Recalculate duration from modified cycles
+                const workSeconds = modifiedWeek.workDurationSeconds || 30;
+                const restSeconds = modifiedWeek.restDurationSeconds || 30;
+                modifiedWeek.targetDurationMinutes = (modifiedWeek.cycles * (workSeconds + restSeconds)) / 60;
+            } else if (modifiedWeek.targetDurationMinutes) {
+                // Non-custom sessions without cycles: apply to targetDurationMinutes directly
+                modifiedWeek.targetDurationMinutes = Math.round(modifiedWeek.targetDurationMinutes * adj.volumeMultiplier);
+            }
         }
 
         if (adj.message) {

@@ -79,6 +79,13 @@ export interface WeekConfig {
         max: number;   // Maximum weeks (e.g., 6)
         step: number;  // Increment (e.g., 1 means 4,5,6 are valid)
     };
+
+    /**
+     * Specific allowed durations (overrides range if set).
+     * Template creators manually specify valid week counts.
+     * Example: [8, 10, 12, 14] means only these durations are selectable.
+     */
+    customDurations?: number[];
 }
 
 /**
@@ -132,6 +139,9 @@ export interface WeekDefinition {
     /** Explicit rest interval duration in seconds */
     restDurationSeconds?: number;
 
+    /** For interval sessions: number of work/rest cycles */
+    cycles?: number;
+
     /**
      * For custom sessions (sessionStyle === 'custom'): array of training blocks.
      * Each block can be steady-state or interval type with dynamic expressions.
@@ -170,6 +180,132 @@ export interface TemplateBlock {
 
     /** Optional explicit cycle count (for interval blocks) */
     cycles?: number;
+}
+
+// ============================================================================
+// BLOCK-BASED PROGRAM TYPES
+// ============================================================================
+
+/**
+ * Power reference mode for block-based programs.
+ * Determines what the power multiplier is relative to.
+ */
+export type PowerReference =
+    | 'base'        // multiplier × basePower (absolute reference)
+    | 'previous'    // multiplier × power from the immediately preceding week
+    | 'block_start'; // multiplier × power from the week before this block started
+
+/**
+ * Progression type for block-based programs.
+ * Determines what metrics progress over time.
+ */
+export type BlockProgressionType =
+    | 'power'    // power-based progression only
+    | 'duration' // time/duration-based progression only (cycles rounded for interval)
+    | 'double';  // both power and duration progress
+
+/**
+ * Session configuration for a single week within a block.
+ * Allows per-week customization of session style, duration, and training blocks.
+ */
+export interface BlockWeekSession {
+    /** Session style for this week */
+    sessionStyle: SessionStyle;
+
+    /** Duration in minutes (for steady-state) */
+    durationMinutes?: number;
+
+    /** Number of cycles (for interval) */
+    cycles?: number;
+
+    /** Work duration in seconds (for interval) */
+    workDurationSeconds?: number;
+
+    /** Rest duration in seconds (for interval) */
+    restDurationSeconds?: number;
+
+    /** Target RPE for this week (1-10) */
+    targetRPE?: number;
+
+    /** Training blocks (for custom sessions) */
+    blocks?: TemplateBlock[];
+}
+
+/**
+ * A training block definition for block-based programs.
+ * Blocks are fixed-length sequences of weeks that can repeat.
+ */
+export interface ProgramBlock {
+    /** Unique identifier for this block */
+    id: string;
+
+    /** Display name (e.g., "Builder", "Deload") */
+    name: string;
+
+    /** Fixed number of weeks in this block */
+    weekCount: number;
+
+    /** What the power multipliers are relative to */
+    powerReference: PowerReference;
+
+    /**
+     * Type of progression for this block.
+     * - 'power': only power progresses (default)
+     * - 'duration': only duration progresses (cycles rounded for interval)
+     * - 'double': both power and duration progress
+     */
+    progressionType?: BlockProgressionType;
+
+    /** What the duration multipliers are relative to (for duration/double progression) */
+    durationReference?: PowerReference;
+
+    /**
+     * Power multipliers for each week of the block.
+     * Length must equal weekCount.
+     * Example: [1.1, 1.2, 1.3, 1.4] for a 4-week block with progressive overload
+     */
+    powerProgression: number[];
+
+    /**
+     * Duration multipliers for each week of the block (for duration/double progression).
+     * Length must equal weekCount.
+     * For interval sessions: cycles are rounded to nearest integer.
+     * Example: [1.0, 1.1, 1.2, 1.25] for duration progression
+     */
+    durationProgression?: number[];
+
+    /** Block ID that should follow this block (for chaining) */
+    followedBy?: string;
+
+    /** Training focus for weeks in this block */
+    focus: WeekFocus;
+
+    /** Phase name for weeks in this block */
+    phaseName: string;
+
+    /** Description template (can use {weekInBlock} placeholder) */
+    description: string;
+
+    /** Work:rest ratio for weeks in this block (default for all weeks) */
+    workRestRatio: string;
+
+    /** Target RPE progression (array same length as weekCount, or single value for all) */
+    targetRPE: number | number[];
+
+    /**
+     * Per-week session configurations.
+     * Array length should equal weekCount.
+     * Each entry defines the session style and settings for that week.
+     */
+    weekSessions?: BlockWeekSession[];
+
+    // Legacy fields (deprecated, use weekSessions instead)
+    /** @deprecated Use weekSessions instead */
+    sessionStyle?: SessionStyle;
+    /** @deprecated Use weekSessions instead */
+    durationMinutes?: number | string;
+    /** @deprecated Use weekSessions instead */
+    blocks?: TemplateBlock[];
 }
 
 
@@ -226,6 +362,12 @@ export interface FatigueModifier {
      * - '>5' / '<10' = comparison operators for week numbers
      */
     weekPosition?: 'first' | 'last' | 'early' | 'mid' | 'late' | `${number}%` | `>${number}%` | `<${number}%` | `>${number}` | `<${number}` | ('first' | 'last' | 'early' | 'mid' | 'late' | `${number}%` | `>${number}%` | `<${number}%` | `>${number}` | `<${number}`)[];
+
+    /**
+     * Optional: Only apply to specific phase name(s) - e.g., "Build Phase", "Peak Phase".
+     * This matches the phaseName field from WeekDefinition or ProgramBlock.
+     */
+    phaseName?: string | string[];
 }
 
 /**
@@ -285,6 +427,33 @@ export interface ProgramTemplate {
      * Applied at session time based on current athlete state.
      */
     fatigueModifiers?: FatigueModifier[];
+
+    // ---- Block-Based Program Structure ----
+
+    /**
+     * Template structure type.
+     * - 'week-based' (default): Traditional week definitions with interpolation
+     * - 'block-based': Repeating block structures with relative power references
+     */
+    structureType?: 'week-based' | 'block-based';
+
+    /**
+     * Fixed first week (for block-based programs).
+     * This week is always placed at week 1, before any blocks.
+     */
+    fixedFirstWeek?: WeekDefinition;
+
+    /**
+     * Fixed last week (for block-based programs).
+     * This week is always placed at the final week, after all blocks.
+     */
+    fixedLastWeek?: WeekDefinition;
+
+    /**
+     * Block definitions for block-based programs.
+     * Blocks are sequenced using their followedBy chain to fill available weeks.
+     */
+    programBlocks?: ProgramBlock[];
 }
 
 // ============================================================================
@@ -316,6 +485,7 @@ export interface FatigueContext {
     weekNumber?: number;    // Current week in the program (1-indexed)
     totalWeeks?: number;    // Total weeks in the program (for relative position calculations)
     phase?: WeekFocus;      // Current phase focus (Density, Intensity, Volume, Recovery)
+    phaseName?: string;     // Current phase name (e.g., "Build Phase", "Peak Phase")
 }
 
 /**

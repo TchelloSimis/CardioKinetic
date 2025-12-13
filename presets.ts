@@ -663,11 +663,134 @@ const STANDARD_HIIT_TEMPLATE: ProgramTemplate = {
     ]
 };
 
+/**
+ * Template 4: Builder/Deload Block-Based Periodization
+ * - Block-based structure with repeating 4-week builder + 2-week deload cycles
+ * - Power accumulates through builder phases using block_start reference
+ * - Deload blocks reduce to 80% of previous power for recovery
+ * - Custom durations: 8, 14, 20, 26 weeks (fixed first/last + n×6 block weeks)
+ */
+const BUILDER_DELOAD_TEMPLATE: ProgramTemplate = {
+    templateVersion: '1.0',
+    id: 'builder-deload-blocks',
+    name: 'Builder/Deload Periodization',
+    description: 'A periodized program using 4-week builder blocks followed by 2-week deload blocks. Power accumulates through each builder phase and reduces during deloads for sustainable long-term progression.',
+    author: 'CardioKinetic',
+
+    structureType: 'block-based',
+
+    weekConfig: {
+        type: 'variable',
+        customDurations: [8, 14, 20, 26]  // 2 fixed + n×6 block weeks
+    },
+
+    defaultSessionStyle: 'interval',
+    progressionMode: 'power',
+    defaultSessionDurationMinutes: 15,
+
+    fixedFirstWeek: {
+        position: 'first',
+        phaseName: 'Introduction',
+        focus: 'Volume',
+        description: 'Establish baseline at comfortable intensity.',
+        powerMultiplier: 1.0,
+        workRestRatio: '1:2',
+        targetRPE: 5,
+        workDurationSeconds: 30,
+        restDurationSeconds: 60,
+        cycles: 10
+    },
+
+    fixedLastWeek: {
+        position: 'last',
+        phaseName: 'Conclusion',
+        focus: 'Recovery',
+        description: 'Final week at baseline power for adaptation consolidation.',
+        powerMultiplier: 1.0,
+        workRestRatio: '1:2',
+        targetRPE: 5,
+        workDurationSeconds: 30,
+        restDurationSeconds: 60,
+        cycles: 10
+    },
+
+    programBlocks: [
+        {
+            id: 'builder',
+            name: 'Builder',
+            weekCount: 4,
+            powerReference: 'block_start',
+            powerProgression: [1.1, 1.2, 1.3, 1.4],
+            followedBy: 'deload',
+            focus: 'Intensity',
+            phaseName: 'Build Phase',
+            description: 'Progressive overload week {weekInBlock}/4 of {blockName} block',
+            workRestRatio: '2:1',
+            targetRPE: [7, 7, 8, 8]
+        },
+        {
+            id: 'deload',
+            name: 'Deload',
+            weekCount: 2,
+            powerReference: 'block_start',
+            powerProgression: [0.8, 0.8],
+            followedBy: 'builder',
+            focus: 'Recovery',
+            phaseName: 'Deload Phase',
+            description: 'Active recovery week {weekInBlock}/2',
+            workRestRatio: '1:2',
+            targetRPE: 5
+        }
+    ],
+
+    weeks: [],  // Empty for block-based templates
+
+    fatigueModifiers: [
+        {
+            condition: 'overreached',
+            priority: 0,
+            adjustments: {
+                powerMultiplier: 0.70,
+                volumeMultiplier: 0.50,
+                message: 'STOP: You are overreached. Mandatory recovery session.'
+            }
+        },
+        {
+            condition: 'high_fatigue',
+            phase: 'Intensity',
+            priority: 10,
+            adjustments: {
+                powerMultiplier: 0.85,
+                message: 'High fatigue during build phase. Reducing intensity.'
+            }
+        },
+        {
+            condition: 'very_high_fatigue',
+            priority: 5,
+            adjustments: {
+                powerMultiplier: 0.75,
+                volumeMultiplier: 0.75,
+                message: 'Very high fatigue detected. Switching to recovery mode.'
+            }
+        },
+        {
+            condition: 'fresh',
+            phase: 'Intensity',
+            priority: 40,
+            adjustments: {
+                powerMultiplier: 1.05,
+                message: 'Feeling fresh! Small intensity boost.'
+            }
+        }
+    ]
+};
+
 // Convert templates to presets for backward compatibility
 export const DEFAULT_PRESETS: ProgramPreset[] = [
     templateToPreset(FIXED_TIME_POWER_TEMPLATE),
     templateToPreset(DOUBLE_INTERCALATED_TEMPLATE),
-    templateToPreset(STANDARD_HIIT_TEMPLATE)
+    templateToPreset(STANDARD_HIIT_TEMPLATE),
+    templateToPreset(BUILDER_DELOAD_TEMPLATE)
 ];
 
 

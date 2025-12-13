@@ -14,6 +14,7 @@ import {
 } from '../programTemplate';
 import { interpolateWeeks } from './weekInterpolation';
 import { calculateBlockMetricsFromSession } from './blockCalculations';
+import { expandBlocksToWeeks } from './blockExpansion';
 
 // ============================================================================
 // PLAN GENERATION
@@ -28,12 +29,81 @@ export function generatePlanFromTemplate(options: GeneratePlanOptions): PlanWeek
     // Validate week count against template config
     const validWeekCount = getValidWeekCount(template.weekConfig, weekCount);
 
+    // Handle block-based templates
+    if (template.structureType === 'block-based' && template.programBlocks?.length) {
+        return generateBlockBasedPlan(template, basePower, validWeekCount);
+    }
+
+    // Traditional week-based generation
+    return generateWeekBasedPlan(template, basePower, validWeekCount);
+}
+
+/**
+ * Generates a plan from a block-based template
+ */
+function generateBlockBasedPlan(
+    template: ProgramTemplate,
+    basePower: number,
+    weekCount: number
+): PlanWeek[] {
+    const expandedWeeks = expandBlocksToWeeks(template, weekCount, basePower);
+    const plan: PlanWeek[] = [];
+
+    for (const weekDef of expandedWeeks) {
+        const weekNum = typeof weekDef.position === 'number' ? weekDef.position : 1;
+
+        // Resolve duration (can be number or percentage string)
+        const resolvedDuration = resolveDuration(
+            weekDef.durationMinutes,
+            template.defaultSessionDurationMinutes
+        );
+
+        const planWeek: PlanWeek = {
+            week: weekNum,
+            phaseName: weekDef.phaseName,
+            focus: weekDef.focus,
+            description: weekDef.description,
+            plannedPower: Math.round(basePower * weekDef.powerMultiplier),
+            targetRPE: weekDef.targetRPE,
+            workRestRatio: weekDef.workRestRatio,
+            sessionStyle: weekDef.sessionStyle ?? template.defaultSessionStyle,
+            targetDurationMinutes: resolvedDuration,
+            workDurationSeconds: weekDef.workDurationSeconds,
+            restDurationSeconds: weekDef.restDurationSeconds,
+            cycles: weekDef.cycles,
+        };
+
+        // Add blocks for custom sessions
+        if (planWeek.sessionStyle === 'custom' && weekDef.blocks && weekDef.blocks.length > 0) {
+            planWeek.blocks = resolveTemplateBlocks(weekDef.blocks, basePower, resolvedDuration);
+
+            // Recalculate plannedPower as weighted average of block powers
+            const weekAdjustedPower = basePower * weekDef.powerMultiplier;
+            const metrics = calculateBlockMetricsFromSession(planWeek.blocks, weekAdjustedPower);
+            planWeek.plannedPower = metrics.averagePower;
+            planWeek.targetDurationMinutes = metrics.totalDuration;
+        }
+
+        plan.push(planWeek);
+    }
+
+    return plan;
+}
+
+/**
+ * Generates a plan from a traditional week-based template
+ */
+function generateWeekBasedPlan(
+    template: ProgramTemplate,
+    basePower: number,
+    weekCount: number
+): PlanWeek[] {
     // Interpolate weeks for the target length
-    const weekMap = interpolateWeeks(template.weeks, validWeekCount);
+    const weekMap = interpolateWeeks(template.weeks, weekCount);
 
     const plan: PlanWeek[] = [];
 
-    for (let week = 1; week <= validWeekCount; week++) {
+    for (let week = 1; week <= weekCount; week++) {
         const weekDef = weekMap.get(week);
         if (!weekDef) continue;
 
@@ -55,6 +125,7 @@ export function generatePlanFromTemplate(options: GeneratePlanOptions): PlanWeek
             targetDurationMinutes: resolvedDuration,
             workDurationSeconds: weekDef.workDurationSeconds,
             restDurationSeconds: weekDef.restDurationSeconds,
+            cycles: weekDef.cycles,
         };
 
         // Add blocks for custom sessions
@@ -170,6 +241,24 @@ function resolveDuration(duration: number | string | undefined, defaultMinutes: 
  * Gets a valid week count given the template configuration
  */
 export function getValidWeekCount(config: WeekConfig, requested: number): number {
+    // Check customDurations first (creator-specified valid durations)
+    if (config.customDurations && config.customDurations.length > 0) {
+        // Find the closest valid duration
+        const sorted = [...config.customDurations].sort((a, b) => a - b);
+        // Return exact match if exists, otherwise closest value
+        if (sorted.includes(requested)) {
+            return requested;
+        }
+        // Find closest
+        let closest = sorted[0];
+        for (const dur of sorted) {
+            if (Math.abs(dur - requested) < Math.abs(closest - requested)) {
+                closest = dur;
+            }
+        }
+        return closest;
+    }
+
     if (config.type === 'fixed') {
         return config.fixed ?? 12;
     }
@@ -189,6 +278,11 @@ export function getValidWeekCount(config: WeekConfig, requested: number): number
  * Gets all valid week options for a variable-length template
  */
 export function getWeekOptions(config: WeekConfig): number[] {
+    // Check customDurations first (creator-specified valid durations)
+    if (config.customDurations && config.customDurations.length > 0) {
+        return [...config.customDurations].sort((a, b) => a - b);
+    }
+
     if (config.type === 'fixed') {
         return [config.fixed ?? 12];
     }

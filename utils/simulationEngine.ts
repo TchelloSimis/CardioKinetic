@@ -153,7 +153,8 @@ function runSingleSimulation(
     basePower: number,
     weekCount: number
 ): { fatigueByWeek: number[], readinessByWeek: number[] } {
-    let atl = 0;
+    // ATL=9, CTL=10 gives TSB≈1 → ~75% starting readiness (neutral state)
+    let atl = 9;
     let ctl = 10.0; // Matches Python: initial=10.0
 
     const fatigueByWeek: number[] = [];

@@ -38,6 +38,7 @@ const WeekDefinitionsStep: React.FC<WeekDefinitionsStepProps> = ({ editorState, 
     const addWeek = () => {
         const isSteadyState = editorState.defaultSessionStyle === 'steady-state';
         const isCustom = editorState.defaultSessionStyle === 'custom';
+        const isInterval = editorState.defaultSessionStyle === 'interval';
         const newWeek: WeekDefinition = {
             position: editorState.weeks.length + 1,
             phaseName: 'New Phase',
@@ -47,6 +48,13 @@ const WeekDefinitionsStep: React.FC<WeekDefinitionsStepProps> = ({ editorState, 
             workRestRatio: isSteadyState ? 'steady' : '1:1',
             targetRPE: 6,
             sessionStyle: editorState.defaultSessionStyle,
+            // For interval sessions: initialize cycles/work/rest
+            ...(isInterval ? {
+                cycles: 10,
+                workDurationSeconds: 30,
+                restDurationSeconds: 30,
+                durationMinutes: 10 // 10 cycles × (30 + 30) / 60 = 10 min
+            } : {}),
             blocks: isCustom ? [{
                 type: 'steady-state',
                 durationExpression: 5,
@@ -71,7 +79,30 @@ const WeekDefinitionsStep: React.FC<WeekDefinitionsStepProps> = ({ editorState, 
                     };
                 }
 
-                return { ...w, [field]: value };
+                // When changing to interval, initialize cycles/work/rest if not set
+                if (field === 'sessionStyle' && value === 'interval' && !w.cycles) {
+                    return {
+                        ...w,
+                        [field]: value,
+                        cycles: 10,
+                        workDurationSeconds: 30,
+                        restDurationSeconds: 30,
+                        durationMinutes: 10
+                    };
+                }
+
+                const updated = { ...w, [field]: value };
+
+                // For interval sessions: recalculate duration when cycles/work/rest changes
+                if ((updated.sessionStyle === 'interval' || (!updated.sessionStyle && prev.defaultSessionStyle === 'interval')) &&
+                    (field === 'cycles' || field === 'workDurationSeconds' || field === 'restDurationSeconds')) {
+                    const cycles = updated.cycles ?? 10;
+                    const work = updated.workDurationSeconds ?? 30;
+                    const rest = updated.restDurationSeconds ?? 30;
+                    updated.durationMinutes = Math.round((cycles * (work + rest) / 60) * 100) / 100;
+                }
+
+                return updated;
             })
         }));
     };
@@ -219,7 +250,10 @@ const WeekDefinitionsStep: React.FC<WeekDefinitionsStepProps> = ({ editorState, 
             ) : (
                 <div className="space-y-4">
                     {editorState.weeks.map((week, index) => {
-                        const isCustom = week.sessionStyle === 'custom';
+                        const effectiveStyle = week.sessionStyle || editorState.defaultSessionStyle;
+                        const isCustom = effectiveStyle === 'custom';
+                        const isInterval = effectiveStyle === 'interval';
+                        const isSteadyState = effectiveStyle === 'steady-state';
                         const isExpanded = expandedWeeks.has(index);
 
                         return (
@@ -276,7 +310,8 @@ const WeekDefinitionsStep: React.FC<WeekDefinitionsStepProps> = ({ editorState, 
                                                 />
                                             </div>
 
-                                            {!isCustom && (
+                                            {/* Steady-state: show Work:Rest dropdown */}
+                                            {isSteadyState && (
                                                 <div>
                                                     <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-1.5 block">Work:Rest</label>
                                                     <SelectInput
@@ -286,6 +321,75 @@ const WeekDefinitionsStep: React.FC<WeekDefinitionsStepProps> = ({ editorState, 
                                                         className="w-full bg-neutral-50 dark:bg-neutral-800 border-none rounded-xl px-3 py-2 text-xs font-medium outline-none hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
                                                     />
                                                 </div>
+                                            )}
+
+                                            {/* Interval: show Cycles, Work, Rest controls */}
+                                            {isInterval && (
+                                                <>
+                                                    <div>
+                                                        <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-1.5 block">Cycles</label>
+                                                        <div className="flex items-center gap-1 bg-neutral-50 dark:bg-neutral-800 rounded-xl px-2 py-1">
+                                                            <button
+                                                                onClick={() => updateWeek(index, 'cycles', Math.max(1, (week.cycles || 10) - 1))}
+                                                                className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                                                            >
+                                                                <Minus size={12} />
+                                                            </button>
+                                                            <span className="flex-1 text-center font-mono text-sm font-bold">{week.cycles || 10}</span>
+                                                            <button
+                                                                onClick={() => updateWeek(index, 'cycles', (week.cycles || 10) + 1)}
+                                                                className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                                                            >
+                                                                <Plus size={12} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-1.5 block">Work (s)</label>
+                                                        <div className="flex items-center gap-1 bg-neutral-50 dark:bg-neutral-800 rounded-xl px-2 py-1">
+                                                            <button
+                                                                onClick={() => updateWeek(index, 'workDurationSeconds', Math.max(5, (week.workDurationSeconds || 30) - 5))}
+                                                                className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                                                            >
+                                                                <Minus size={12} />
+                                                            </button>
+                                                            <span className="flex-1 text-center font-mono text-sm font-bold">{week.workDurationSeconds || 30}</span>
+                                                            <button
+                                                                onClick={() => updateWeek(index, 'workDurationSeconds', (week.workDurationSeconds || 30) + 5)}
+                                                                className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                                                            >
+                                                                <Plus size={12} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-1.5 block">Rest (s)</label>
+                                                        <div className="flex items-center gap-1 bg-neutral-50 dark:bg-neutral-800 rounded-xl px-2 py-1">
+                                                            <button
+                                                                onClick={() => updateWeek(index, 'restDurationSeconds', Math.max(5, (week.restDurationSeconds || 30) - 5))}
+                                                                className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                                                            >
+                                                                <Minus size={12} />
+                                                            </button>
+                                                            <span className="flex-1 text-center font-mono text-sm font-bold">{week.restDurationSeconds || 30}</span>
+                                                            <button
+                                                                onClick={() => updateWeek(index, 'restDurationSeconds', (week.restDurationSeconds || 30) + 5)}
+                                                                className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                                                            >
+                                                                <Plus size={12} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-1.5 block">Duration</label>
+                                                        <div className="bg-neutral-100 dark:bg-neutral-700 rounded-xl px-3 py-2 text-center">
+                                                            <span className="font-mono text-sm font-bold">
+                                                                {Math.round(((week.cycles || 10) * ((week.workDurationSeconds || 30) + (week.restDurationSeconds || 30)) / 60) * 10) / 10}
+                                                            </span>
+                                                            <span className="text-[10px] text-neutral-500 ml-1">min</span>
+                                                        </div>
+                                                    </div>
+                                                </>
                                             )}
 
                                             {/* Progression fields - center when only one is shown */}

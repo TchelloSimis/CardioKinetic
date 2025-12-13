@@ -74,22 +74,42 @@ const ProgramTab: React.FC<ProgramTabProps> = ({
 
     const generateId = () => `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-    const editorStateToTemplate = (state: EditorState): ProgramTemplate => ({
-        templateVersion: TEMPLATE_VERSION,
-        id: state.id || generateId(),
-        name: state.name,
-        description: state.description,
-        author: state.author || undefined,
-        tags: state.tags.length > 0 ? state.tags : undefined,
-        weekConfig: state.weekConfigType === 'fixed'
-            ? { type: 'fixed', fixed: state.fixedWeeks }
-            : { type: 'variable', range: { min: state.rangeMin, max: state.rangeMax, step: state.rangeStep } },
-        defaultSessionStyle: state.defaultSessionStyle,
-        progressionMode: state.progressionMode,
-        defaultSessionDurationMinutes: state.defaultDurationMinutes,
-        weeks: state.weeks,
-        fatigueModifiers: state.fatigueModifiers.length > 0 ? state.fatigueModifiers : undefined
-    });
+    const editorStateToTemplate = (state: EditorState): ProgramTemplate => {
+        // Build weekConfig based on weekConfigType
+        let weekConfig: any;
+        if (state.weekConfigType === 'fixed') {
+            weekConfig = { type: 'fixed', fixed: state.fixedWeeks };
+        } else if (state.weekConfigType === 'custom' && state.customDurations.length > 0) {
+            weekConfig = { type: 'variable', customDurations: state.customDurations };
+        } else {
+            weekConfig = { type: 'variable', range: { min: state.rangeMin, max: state.rangeMax, step: state.rangeStep } };
+        }
+
+        const template: ProgramTemplate = {
+            templateVersion: TEMPLATE_VERSION,
+            id: state.id || generateId(),
+            name: state.name,
+            description: state.description,
+            author: state.author || undefined,
+            tags: state.tags.length > 0 ? state.tags : undefined,
+            weekConfig,
+            defaultSessionStyle: state.defaultSessionStyle,
+            progressionMode: state.progressionMode,
+            defaultSessionDurationMinutes: state.defaultDurationMinutes,
+            weeks: state.structureType === 'block-based' ? [] : state.weeks,
+            fatigueModifiers: state.fatigueModifiers.length > 0 ? state.fatigueModifiers : undefined
+        };
+
+        // Add block-based fields if applicable
+        if (state.structureType === 'block-based') {
+            template.structureType = 'block-based';
+            template.programBlocks = state.programBlocks;
+            if (state.fixedFirstWeek) template.fixedFirstWeek = state.fixedFirstWeek;
+            if (state.fixedLastWeek) template.fixedLastWeek = state.fixedLastWeek;
+        }
+
+        return template;
+    };
 
     const presetToEditorState = (preset: ProgramPreset, basePower: number = 150): EditorState => {
         // Check if this preset has a direct weeks array OR a generator function
@@ -124,7 +144,24 @@ const ProgramTab: React.FC<ProgramTabProps> = ({
 
         // Extract week config
         const weekConfig = (preset as any).weekConfig;
+        const hasCustomDurations = weekConfig?.customDurations && weekConfig.customDurations.length > 0;
         const isVariable = weekConfig?.type === 'variable' || (preset.weekOptions && preset.weekOptions.length > 1);
+
+        // Determine weekConfigType
+        let weekConfigType: 'fixed' | 'variable' | 'custom' = 'fixed';
+        if (hasCustomDurations) {
+            weekConfigType = 'custom';
+        } else if (isVariable) {
+            weekConfigType = 'variable';
+        }
+
+        // Extract block-based fields
+        const extendedPreset = preset as any;
+        const structureType = extendedPreset.structureType || 'week-based';
+        const programBlocks = extendedPreset.programBlocks || [];
+        const fixedFirstWeek = extendedPreset.fixedFirstWeek || null;
+        const fixedLastWeek = extendedPreset.fixedLastWeek || null;
+        const customDurations = weekConfig?.customDurations || [];
 
         return {
             id: preset.id,
@@ -132,15 +169,21 @@ const ProgramTab: React.FC<ProgramTabProps> = ({
             description: preset.description,
             author: (preset as any).author || '',
             tags: (preset as any).tags || [],
-            weekConfigType: isVariable ? 'variable' : 'fixed',
+            structureType,
+            weekConfigType,
             fixedWeeks: weekConfig?.fixed || preset.weekCount || 12,
             rangeMin: weekConfig?.range?.min || preset.minWeeks || Math.min(...(preset.weekOptions || [12])),
             rangeMax: weekConfig?.range?.max || preset.maxWeeks || Math.max(...(preset.weekOptions || [12])),
             rangeStep: weekConfig?.range?.step || 1,
+            customDurations,
+            customDurationsInput: customDurations.join(', '),
             defaultSessionStyle: preset.defaultSessionStyle || 'interval',
             progressionMode: preset.progressionMode || 'power',
             defaultDurationMinutes: (preset as any).defaultSessionDurationMinutes || 15,
             weeks,
+            programBlocks,
+            fixedFirstWeek,
+            fixedLastWeek,
             fatigueModifiers: preset.fatigueModifiers || []
         };
     };
@@ -330,7 +373,7 @@ const ProgramTab: React.FC<ProgramTabProps> = ({
                 <h2 className="text-2xl font-light text-neutral-900 dark:text-white tracking-tight">Edit Template</h2>
                 <p className="text-sm text-neutral-500 mb-4">Select a template to customize</p>
 
-                <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                <div className="space-y-2 pb-20">
                     {activePresets.map(preset => (
                         <button
                             key={preset.id}
@@ -341,9 +384,9 @@ const ProgramTab: React.FC<ProgramTabProps> = ({
                             className="w-full p-4 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600 transition-colors text-left group"
                         >
                             <div className="flex items-center justify-between">
-                                <div>
+                                <div className="flex-1 pr-2">
                                     <div className="font-medium text-neutral-900 dark:text-white">{preset.name}</div>
-                                    <div className="text-xs text-neutral-500 line-clamp-2 mt-1">{preset.description}</div>
+                                    <div className="text-xs text-neutral-500 line-clamp-3 mt-1">{preset.description}</div>
                                     <div className="text-[10px] text-neutral-400 mt-2">
                                         {preset.weekCount || 12} weeks • {isDefaultPreset(preset.id) ? 'Built-in' : 'Custom'}
                                     </div>
@@ -382,7 +425,7 @@ const ProgramTab: React.FC<ProgramTabProps> = ({
     // ========================================================================
 
     return (
-        <div className="h-full animate-in fade-in duration-500 pb-16 md:pb-4">
+        <div className="h-full overflow-y-auto animate-in fade-in duration-500 pb-16 md:pb-4">
             {activeCategory === 'main' && (
                 <>
                     <h2 className="text-3xl font-light text-neutral-900 dark:text-white tracking-tight mb-2">Program</h2>

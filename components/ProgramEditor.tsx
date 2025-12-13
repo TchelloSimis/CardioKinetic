@@ -1,17 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     ChevronRight, Save, Copy, Download,
-    FileText, Settings2, Layers, Activity, AlertCircle, Eye
+    FileText, Settings2, Layers, Activity, AlertCircle, Eye, Boxes
 } from 'lucide-react';
 import { SessionStyle, ProgressionMode } from '../types';
 import {
     WeekDefinition, FatigueModifier, FatigueCondition,
-    ValidationError, WeekFocus
+    ValidationError, WeekFocus, ProgramBlock
 } from '../programTemplate';
 import ProgramPreview from './ProgramPreview';
 import MetadataStep from './ProgramEditorSteps/MetadataStep';
 import ConfigurationStep from './ProgramEditorSteps/ConfigurationStep';
 import WeekDefinitionsStep from './ProgramEditorSteps/WeekDefinitionsStep';
+import BlocksDefinitionStep from './ProgramEditorSteps/BlocksDefinitionStep';
 import FatigueModifiersStep from './ProgramEditorSteps/FatigueModifiersStep';
 
 // ============================================================================
@@ -26,20 +27,30 @@ export interface EditorState {
     author: string;
     tags: string[];
 
+    // Structure type
+    structureType: 'week-based' | 'block-based';
+
     // Week config
-    weekConfigType: 'fixed' | 'variable';
+    weekConfigType: 'fixed' | 'variable' | 'custom';
     fixedWeeks: number;
     rangeMin: number;
     rangeMax: number;
     rangeStep: number;
+    customDurations: number[];
+    customDurationsInput: string; // Raw input string for validation
 
     // Defaults
     defaultSessionStyle: SessionStyle;
     progressionMode: ProgressionMode;
     defaultDurationMinutes: number;
 
-    // Weeks
+    // Week-based: weeks array
     weeks: WeekDefinition[];
+
+    // Block-based: program blocks and fixed weeks
+    programBlocks: ProgramBlock[];
+    fixedFirstWeek: WeekDefinition | null;
+    fixedLastWeek: WeekDefinition | null;
 
     // Modifiers
     fatigueModifiers: FatigueModifier[];
@@ -70,15 +81,21 @@ export const INITIAL_EDITOR_STATE: EditorState = {
     description: '',
     author: '',
     tags: [],
+    structureType: 'week-based',
     weekConfigType: 'fixed',
     fixedWeeks: 12,
     rangeMin: 4,
     rangeMax: 8,
     rangeStep: 1,
+    customDurations: [],
+    customDurationsInput: '',
     defaultSessionStyle: 'interval',
     progressionMode: 'power',
     defaultDurationMinutes: 15,
     weeks: [],
+    programBlocks: [],
+    fixedFirstWeek: null,
+    fixedLastWeek: null,
     fatigueModifiers: []
 };
 
@@ -125,12 +142,26 @@ const ProgramEditor: React.FC<ProgramEditorProps> = ({
     const [currentStep, setCurrentStep] = useState(1);
     // Save dialog state
     const [showSaveDialog, setShowSaveDialog] = useState(false);
-    const STEPS = [
-        { num: 1, label: 'Metadata', icon: FileText },
-        { num: 2, label: 'Configuration', icon: Settings2 },
-        { num: 3, label: 'Weeks', icon: Layers },
-        { num: 4, label: 'Modifiers', icon: Activity }
-    ];
+
+    // Dynamic steps based on structure type
+    const STEPS = useMemo(() => {
+        if (editorState.structureType === 'block-based') {
+            return [
+                { num: 1, label: 'Metadata', icon: FileText },
+                { num: 2, label: 'Configuration', icon: Settings2 },
+                { num: 3, label: 'Blocks', icon: Boxes },
+                { num: 4, label: 'Modifiers', icon: Activity }
+            ];
+        }
+        return [
+            { num: 1, label: 'Metadata', icon: FileText },
+            { num: 2, label: 'Configuration', icon: Settings2 },
+            { num: 3, label: 'Weeks', icon: Layers },
+            { num: 4, label: 'Modifiers', icon: Activity }
+        ];
+    }, [editorState.structureType]);
+
+    const totalSteps = STEPS.length;
 
     // ========================================================================
     // RENDER HELPERS
@@ -221,9 +252,11 @@ const ProgramEditor: React.FC<ProgramEditorProps> = ({
                         <ConfigurationStep editorState={editorState} setEditorState={setEditorState} />
                     )}
 
-                    {/* Step 3: Week Definitions */}
+                    {/* Step 3: Week Definitions (week-based) or Blocks (block-based) */}
                     {currentStep === 3 && (
-                        <WeekDefinitionsStep editorState={editorState} setEditorState={setEditorState} />
+                        editorState.structureType === 'block-based' 
+                            ? <BlocksDefinitionStep editorState={editorState} setEditorState={setEditorState} />
+                            : <WeekDefinitionsStep editorState={editorState} setEditorState={setEditorState} />
                     )}
 
                     {/* Step 4: Fatigue Modifiers */}
@@ -242,11 +275,11 @@ const ProgramEditor: React.FC<ProgramEditorProps> = ({
                             Back
                         </button>
                         <span className="text-xs text-neutral-400">
-                            Step {currentStep} of 4
+                            Step {currentStep} of {totalSteps}
                         </span>
-                        {currentStep < 4 ? (
+                        {currentStep < totalSteps ? (
                             <button
-                                onClick={() => setCurrentStep(prev => Math.min(4, prev + 1))}
+                                onClick={() => setCurrentStep(prev => Math.min(totalSteps, prev + 1))}
                                 className="px-4 py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 transition-opacity flex items-center gap-2 shadow-lg"
                                 style={{ backgroundColor: 'var(--accent)' }}
                             >

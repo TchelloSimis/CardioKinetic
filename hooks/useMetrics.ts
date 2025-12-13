@@ -110,7 +110,8 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
             tsbValue: tsb,
             weekNumber: currentWeekNum,
             totalWeeks: programLength,
-            phase: currentWeekPlan.focus
+            phase: currentWeekPlan.focus,
+            phaseName: currentWeekPlan.phaseName
         };
         const modifierResult = applyFatigueModifiers(currentWeekPlan, fatigueContext, programModifiers);
         const modifierMessages = modifierResult.messages;

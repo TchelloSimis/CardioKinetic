@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ProgramPreset } from '../types';
 import { ArrowRight, Check, ChevronRight, Info, Upload } from 'lucide-react';
+import { formatBlockCounts } from '../utils/blockExpansion';
 
 interface OnboardingProps {
     presets: ProgramPreset[];
@@ -67,6 +68,34 @@ const Onboarding: React.FC<OnboardingProps> = ({ presets, onComplete, onImportTe
 
     // Check if this is a variable-length program
     const isVariableLength = weekOptions.length > 1;
+
+    // Get block composition for block-based templates
+    const blockComposition = useMemo(() => {
+        if (!selectedPreset) return '';
+        // Access the extended preset with block-based fields
+        const extendedPreset = selectedPreset as ProgramPreset & {
+            structureType?: 'week-based' | 'block-based';
+            programBlocks?: import('../programTemplate').ProgramBlock[];
+            fixedFirstWeek?: import('../programTemplate').WeekDefinition;
+            fixedLastWeek?: import('../programTemplate').WeekDefinition;
+            weekConfig?: import('../programTemplate').WeekConfig;
+        };
+
+        if (extendedPreset.structureType !== 'block-based' || !extendedPreset.programBlocks?.length) {
+            return '';
+        }
+
+        // Build a minimal template for formatBlockCounts
+        const template = {
+            structureType: extendedPreset.structureType,
+            programBlocks: extendedPreset.programBlocks,
+            fixedFirstWeek: extendedPreset.fixedFirstWeek,
+            fixedLastWeek: extendedPreset.fixedLastWeek,
+        } as import('../programTemplate').ProgramTemplate;
+
+        const effectiveWeeks = selectedWeekCount ?? weekOptions[0];
+        return formatBlockCounts(template, effectiveWeeks);
+    }, [selectedPreset, selectedWeekCount, weekOptions]);
 
     const handleNext = () => {
         if (step === 0) setStep(1);
@@ -203,17 +232,26 @@ const Onboarding: React.FC<OnboardingProps> = ({ presets, onComplete, onImportTe
                                         </div>
                                         <input
                                             type="range"
-                                            min={Math.min(...weekOptions)}
-                                            max={Math.max(...weekOptions)}
-                                            step={weekOptions.length > 1 ? weekOptions[1] - weekOptions[0] : 1}
-                                            value={selectedWeekCount ?? weekOptions[0]}
-                                            onChange={(e) => setSelectedWeekCount(parseInt(e.target.value))}
+                                            min={0}
+                                            max={weekOptions.length - 1}
+                                            step={1}
+                                            value={weekOptions.indexOf(selectedWeekCount ?? weekOptions[0])}
+                                            onChange={(e) => setSelectedWeekCount(weekOptions[parseInt(e.target.value)])}
                                             className="w-full h-2 bg-neutral-200 dark:bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-neutral-900 dark:accent-white"
                                         />
                                         <div className="flex justify-between text-xs text-neutral-400 mt-2">
-                                            <span>{Math.min(...weekOptions)} weeks</span>
-                                            <span>{Math.max(...weekOptions)} weeks</span>
+                                            <span>{weekOptions[0]} weeks</span>
+                                            <span>{weekOptions[weekOptions.length - 1]} weeks</span>
                                         </div>
+                                        {/* Block composition display for block-based templates */}
+                                        {blockComposition && (
+                                            <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-700">
+                                                <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-2">Block Structure</div>
+                                                <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                                                    {blockComposition}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
