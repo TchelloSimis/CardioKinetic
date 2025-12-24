@@ -65,6 +65,9 @@ Copy-Item -Path "android\app\build\outputs\apk\debug\app-debug.apk" -Destination
 7. **Update README.md** (DO NOT FORGET):
    - Find the download link near the top: `**[Download APK (vX.Y.Z)](...)**`
    - Update the version number in the link text to match the new release
+   - If any substantial features are added and not present in the readme file, use your own thinking and judgement to add it to the readme if needed and useful. Match the new writing to the current writing style to make one cohesive, well written text that properly showcases the app. Do note that you should only add user-facing features to the readme. 
+   - If you believe the new features are big enough that they require new screenshots to showcase them, ask for me to take the screenshots. Do not take them yourself. 
+   
 
 8. Clear UNCOMMITTED_CHANGES.md:
    - Keep header and instructions

@@ -2,6 +2,61 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.2.2] - 2025-12-24
+
+### Added
+
+#### Vitest Testing Framework
+A comprehensive unit testing infrastructure has been established:
+
+- **Test Environment**: Vitest with jsdom environment, React Testing Library, and jest-dom matchers
+- **Coverage**: 249 unit tests across 16 test files with full pass status
+- **Scripts**: Added `test`, `test:run`, and `test:coverage` npm commands
+
+#### Design Token System
+A centralized design system providing consistent styling across the application:
+
+- **Color Tokens**: Accent colors via CSS variables, status palettes (success/error/warning/info with 50-700 shades), neutral scale (0-950)
+- **Spacing Scale**: Comprehensive scale from 0 to 24 (2px to 96px)
+- **Typography Tokens**: Font families, size/line-height pairs, weights, and letter spacing
+- **Component Presets**: Button, card, input, modal, and label tokens for consistent component styling
+
+#### Standardized Component Library
+A set of reusable, accessible components built on the design token system:
+
+- **Button**: Five variants (primary, secondary, ghost, danger, success), three sizes, loading states, and icon support
+- **Label**: Default, subtle, and strong variants with required indicators and helper text
+- **Card**: Four variants (default, elevated, outlined, filled), three sizes with consistent border radii
+- **Typography**: Heading levels 1-6 with consistent sizing hierarchy, Text component with body/small/caption/overline variants
+- **Skeleton Loaders**: Base skeleton with pulse/shimmer animation, plus specialized variants for text, cards, stats, list items, and charts
+- **Empty State**: Configurable component with icon, title, description, and action buttons
+- **Step Indicator**: Horizontal/vertical orientations with completed/active/pending states
+
+#### UI/UX Utilities
+Cross-cutting utilities for improved user experience:
+
+- **Form Validation**: Validators for power, RPE, duration, intervals, dates, and required fields with consistent error messaging
+- **Haptic Feedback Service**: Seven feedback types (light/medium/heavy/success/warning/error/selection) with session-specific patterns
+- **Scroll Position Preservation**: Per-key position storage with save/restore on mount/unmount
+- **Accessibility Helpers**: Touch target constants, ARIA prop generators, focus management, and screen reader announcements
+
+### Improved
+
+#### Modular Architecture Refactoring
+Major codebase reorganization splitting monolithic files into focused, testable modules:
+
+- **suggestModifiers**: Split from 1189 lines into types, algorithms, simulation, and generators modules
+- **useSessionTimer**: Split from 1048 lines into types, sessionState, and timerCore modules
+- **BlocksDefinitionStep**: Split from 996 lines into constants, FixedWeekEditor, BlockEditorCard, and WeekSessionEditor components
+- **App Handlers**: Extracted program and session handlers into dedicated modules
+- **WeekDefinitionsStep**: Extracted week utilities (createDefaultWeek, calculateIntervalDuration)
+- **DevToolsSettings**: Extracted notification, date, and color helpers
+- **LiveSessionGuide**: Extracted phase, time, and progress utilities
+
+### Documentation
+
+- **README.md**: Updated feature sections for Block-Based Programs, Daily Readiness Questionnaire, and Intelligent Modifier Suggestions; all screenshots recaptured with Lavender theme; download link now version-agnostic
+
 ## [1.2.1] - 2025-12-24
 
 ### Added

@@ -21,7 +21,7 @@
 
 ## Download
 
-**[Download APK (v1.2.1)](https://github.com/TchelloSimis/CardioKinetic/releases/latest/download/CardioKinetic.apk)** — Install directly on your Android device.
+**[Download APK (Latest)](https://github.com/TchelloSimis/CardioKinetic/releases/latest/download/CardioKinetic.apk)** — Install directly on your Android device.
 
 > To install, enable "Install from unknown sources" in your Android settings when prompted.
 
@@ -39,6 +39,33 @@ Build structured periodized training programs with intelligent progression. Card
 
 Programs can be **fixed-length** (e.g., exactly 8 weeks) or **variable-length** (e.g., 4-12 weeks), automatically interpolating training phases to fit your schedule.
 
+### Block-Based Programs
+
+For advanced periodization, CardioKinetic supports **block-based program structures** that enable sophisticated training cycles:
+
+- **Reusable Training Blocks** — Define blocks like "Builder", "Intensity", or "Deload" with specific week counts and power progressions
+- **Block Chaining** — Automatically sequence blocks (e.g., Builder → Deload → Builder) for optimal periodization
+- **Power Reference Modes** — Calculate power relative to base, previous week, or block start for compound progressions
+- **Fixed Intro/Outro Weeks** — Define specific first and last weeks that remain constant regardless of program length
+
+### Daily Readiness Questionnaire
+
+Fine-tune your training with a daily wellness check-in that adjusts fatigue and readiness scores based on your subjective state:
+
+- **8 Wellness Questions** — Covering sleep, nutrition, stress, physical state, and motivation
+- **Contradiction-Weighted Adjustments** — Responses that contradict predicted metrics receive larger score modifications
+- **Asymmetric Safety Bias** — Feeling worse than expected carries greater weight than feeling better, prioritizing injury prevention
+- **Optional and Editable** — Complete when you want, skip with no penalty, and edit previous responses anytime
+
+### Intelligent Modifier Suggestions
+
+Let CardioKinetic automatically generate fatigue modifiers for your program using advanced signal processing:
+
+- **Automatic Cycle Detection** — Uses Savitzky-Golay smoothing and CUSUM change-point detection to identify training phases
+- **Two-Tier Suggestions** — Standard tier for moderate deviations, Extreme tier for significant ones requiring stronger adjustments
+- **Session-Type Awareness** — Generates appropriate modifiers based on your program's session types (intervals, steady-state, custom)
+- **Monte Carlo Validation** — Test modifier effectiveness with simulation before committing to changes
+
 ### Comprehensive Analytics
 
 Track every session and visualize your progress with detailed analytics:
@@ -47,6 +74,7 @@ Track every session and visualize your progress with detailed analytics:
 - **Total Work** — Track cumulative training volume (kilojoules) per session
 - **Fatigue & Readiness Scores** — Real-time physiological state estimation based on training load
 - **Session History** — Complete log of all sessions with RPE, duration, and performance metrics
+- **Edit & Delete Sessions** — Full control over your training history
 
 ### Adaptive Fatigue System
 
@@ -93,7 +121,8 @@ Mix and match training blocks in a single session:
 
 - **Material You Theming** — On Android, automatically adapts accent colors from your wallpaper
 - **Light & Dark Mode** — System-aware or manual toggle
-- **Custom Accent Colors** — Choose your own accent with saturation/brightness controls
+- **Multiple Accent Colors** — Choose from Lavender, Rose, Sage, Ocean, Sunset, Monochrome, or create your own
+- **Custom Accent Controls** — Fine-tune saturation, brightness, and hue to match your style
 - **Monospace Numbers** — Clean, readable numeric displays with Inconsolata font
 
 ### Native Android Experience
@@ -103,6 +132,7 @@ Built with Capacitor for a true native feel:
 - **Persistent Notification** — Control playback (pause/resume/end) from the notification shade
 - **Hardware Back Button** — Proper handling with confirmation dialogs during sessions
 - **Reliable Audio Cues** — Interval transitions and countdowns work even when screen is off
+- **Haptic Feedback** — Tactile responses for key interactions
 
 ---
 
@@ -110,13 +140,13 @@ Built with Capacitor for a true native feel:
 
 <div align="center">
 
-| Home | Live Session | Analytics |
+| Dashboard | Live Session | Analytics |
 |:---:|:---:|:---:|
-| ![Home](assets/screenshots/home.png) | ![Session](assets/screenshots/session.png) | ![Analytics](assets/screenshots/analytics.png) |
+| ![Dashboard](assets/screenshots/home.png) | ![Session](assets/screenshots/session.png) | ![Analytics](assets/screenshots/analytics.png) |
 
-| Program Editor | Session Setup | Settings |
+| Program Editor | Session Setup | Daily Check-In |
 |:---:|:---:|:---:|
-| ![Editor](assets/screenshots/program-editor.png) | ![Setup](assets/screenshots/session-setup.png) | ![Settings](assets/screenshots/settings.png) |
+| ![Editor](assets/screenshots/program-editor.png) | ![Setup](assets/screenshots/session-setup.png) | ![Questionnaire](assets/screenshots/questionnaire.png) |
 
 </div>
 
@@ -130,8 +160,16 @@ Choose from built-in presets or create your own program with:
 - **Phase definitions** (Foundation, Build, Peak, Taper)
 - **Week-by-week configuration** with power multipliers and target RPE
 - **Training focus** per week (Volume, Density, Intensity, Recovery)
+- **Block-based structures** for advanced periodization
 
-### 2. Configure Your Session
+### 2. Complete Your Daily Check-In
+
+Each day, optionally complete a quick wellness questionnaire:
+- Answer questions about sleep, nutrition, stress, and how you feel
+- Your fatigue and readiness scores adjust based on your responses
+- Skip any day without penalty — the system adapts to available data
+
+### 3. Configure Your Session
 
 Before each workout, fine-tune:
 - **Session duration** 
@@ -139,15 +177,16 @@ Before each workout, fine-tune:
 - **Target power** (percentage of your base power)
 - **Session style** (interval, steady-state, or custom blocks)
 
-### 3. Train with Real-Time Guidance
+### 4. Train with Real-Time Guidance
 
 During your session:
 - Large, readable **power targets** and **elapsed time**
 - **Interval countdowns** with audio cues
 - **Live work-to-rest visualization**
+- **Harder/Easier adjustments** with ±5W fine-tuning
 - Pause/resume without losing progress
 
-### 4. Log and Track Progress
+### 5. Log and Track Progress
 
 After each session:
 - Rate your **perceived exertion (RPE)**
@@ -155,12 +194,13 @@ After each session:
 - **Fatigue and readiness scores update** based on your training load
 - View trends and plan recovery
 
-### 5. Adaptive Adjustments
+### 6. Adaptive Adjustments
 
 If you define fatigue modifiers in your program:
 - Training automatically adjusts when you're tired
 - Power targets reduce, rest periods extend
 - Coach's advice messages guide you through adjustments
+- Use **Suggest Modifiers** to automatically generate optimal adjustments for your program
 
 ---
 
@@ -211,8 +251,10 @@ CardioKinetic's template system lets you create sophisticated, shareable trainin
 | Feature | Description |
 |---------|-------------|
 | **Variable Length** | Programs that scale from 4 to 12+ weeks with automatic interpolation |
+| **Block-Based Structure** | Define reusable training blocks with power references and chaining |
 | **Percentage Positions** | Define weeks at "first", "50%", "last" for flexible scaling |
 | **Fatigue Modifiers** | Automatic adjustments based on ATL, CTL, and readiness thresholds |
+| **Intelligent Suggestions** | Auto-generate modifiers using signal processing and Monte Carlo simulation |
 | **Custom Blocks** | Mix steady-state and interval blocks in hybrid sessions |
 | **Expression Syntax** | Dynamic power/duration using expressions like `"power * 0.8"` |
 
@@ -254,6 +296,7 @@ CardioKinetic's template system lets you create sophisticated, shareable trainin
 | **Mobile** | Capacitor 6 (Android) |
 | **State** | React Hooks + LocalStorage |
 | **Fonts** | Inter (UI) + Inconsolata (numbers) |
+| **Testing** | Vitest + Testing Library |
 
 ---
 
