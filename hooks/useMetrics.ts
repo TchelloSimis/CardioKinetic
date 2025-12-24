@@ -6,7 +6,7 @@
  */
 
 import { useMemo } from 'react';
-import { Session, PlanWeek, ReadinessState, ProgramRecord } from '../types';
+import { Session, PlanWeek, ReadinessState, ProgramRecord, QuestionnaireResponse } from '../types';
 import {
     calculateSessionLoad,
     calculateRecentAveragePower,
@@ -14,6 +14,7 @@ import {
     calculateReadinessScore
 } from '../utils/metricsUtils';
 import { applyFatigueModifiers } from '../utils/templateUtils';
+import { applyQuestionnaireAdjustment } from '../utils/questionnaireConfig';
 
 export interface MetricsResult {
     fatigue: number;
@@ -23,6 +24,10 @@ export interface MetricsResult {
     advice: string | null;
     modifiedWeekPlan: PlanWeek | null;
     modifierMessages: string[];
+    questionnaireAdjustment?: {
+        readinessChange: number;
+        fatigueChange: number;
+    };
 }
 
 interface UseMetricsOptions {
@@ -34,6 +39,7 @@ interface UseMetricsOptions {
     programLength: number;
     currentWeekPlan: PlanWeek | undefined;
     activeProgram: ProgramRecord | null;
+    todayQuestionnaireResponse?: QuestionnaireResponse;
 }
 
 /**
@@ -48,7 +54,8 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
         currentWeekNum,
         programLength,
         currentWeekPlan,
-        activeProgram
+        activeProgram,
+        todayQuestionnaireResponse
     } = options;
 
     return useMemo(() => {
@@ -86,8 +93,20 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
         }
 
         const tsb = ctl - atl;
-        const fatigueScore = calculateFatigueScore(atl, ctl);
-        const readinessScore = calculateReadinessScore(tsb);
+        let fatigueScore = calculateFatigueScore(atl, ctl);
+        let readinessScore = calculateReadinessScore(tsb);
+
+        // Apply questionnaire adjustments if available
+        let questionnaireAdjustment: { readinessChange: number; fatigueChange: number } | undefined;
+        if (todayQuestionnaireResponse) {
+            const adjustment = applyQuestionnaireAdjustment(readinessScore, fatigueScore, todayQuestionnaireResponse);
+            questionnaireAdjustment = {
+                readinessChange: adjustment.readinessChange,
+                fatigueChange: adjustment.fatigueChange
+            };
+            readinessScore = adjustment.readiness;
+            fatigueScore = adjustment.fatigue;
+        }
 
         // Handle missing week plan
         if (!currentWeekPlan) {
@@ -98,7 +117,8 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
                 tsb: Math.round(tsb),
                 advice: null,
                 modifiedWeekPlan: null,
-                modifierMessages: []
+                modifierMessages: [],
+                questionnaireAdjustment
             };
         }
 
@@ -167,7 +187,8 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
             tsb: Math.round(tsb),
             advice: fullAdvice,
             modifiedWeekPlan,
-            modifierMessages
+            modifierMessages,
+            questionnaireAdjustment
         };
-    }, [sessions, simulatedDate, startDate, basePower, currentWeekNum, programLength, currentWeekPlan, activeProgram]);
+    }, [sessions, simulatedDate, startDate, basePower, currentWeekNum, programLength, currentWeekPlan, activeProgram, todayQuestionnaireResponse]);
 };

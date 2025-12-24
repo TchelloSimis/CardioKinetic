@@ -1,6 +1,6 @@
 import React from 'react';
-import { Activity, Battery, Zap, Info } from 'lucide-react';
-import { PlanWeek, ReadinessState, Session, ProgramRecord } from '../types';
+import { Activity, Battery, Zap, Info, ClipboardCheck, ChevronRight } from 'lucide-react';
+import { PlanWeek, ReadinessState, Session, ProgramRecord, QuestionnaireResponse } from '../types';
 import { AccentColorConfig } from '../presets';
 import ProgramHistory from './ProgramHistory';
 
@@ -10,6 +10,10 @@ interface DashboardMetrics {
     tsb: number;
     status: ReadinessState;
     advice: string | null;
+    questionnaireAdjustment?: {
+        readinessChange: number;
+        fatigueChange: number;
+    };
 }
 
 interface DashboardTabProps {
@@ -25,6 +29,8 @@ interface DashboardTabProps {
     onRenameProgram: (programId: string, newName: string) => void;
     onDeleteProgram: (programId: string) => void;
     onStartSession?: () => void;
+    todayQuestionnaireResponse?: QuestionnaireResponse;
+    onOpenQuestionnaire: () => void;
 }
 
 const DashboardTab: React.FC<DashboardTabProps> = ({
@@ -39,8 +45,17 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
     onDeleteSession,
     onRenameProgram,
     onDeleteProgram,
-    onStartSession
+    onStartSession,
+    todayQuestionnaireResponse,
+    onOpenQuestionnaire
 }) => {
+    const hasCompletedToday = !!todayQuestionnaireResponse;
+    const completionTime = hasCompletedToday
+        ? new Date(todayQuestionnaireResponse.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+        : null;
+
+    const accentColor = isDarkMode ? currentAccent.dark : currentAccent.light;
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             <div className="mb-8">
@@ -59,6 +74,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Next Target Card */}
                 <div className="bg-neutral-900 dark:bg-white p-8 rounded-3xl shadow-lg text-white dark:text-neutral-900 flex flex-col justify-between min-h-[200px] md:col-span-2 lg:col-span-1">
                     <div className="flex justify-between items-start">
                         <div className="text-xs font-bold uppercase tracking-widest opacity-70">Next Target</div>
@@ -84,10 +100,13 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                         <div className="text-sm opacity-80">{currentWeekPlan.description}</div>
                     </div>
                 </div>
+
+                {/* Right column: Metrics grid */}
                 <div className="grid grid-cols-2 gap-4 md:gap-6 lg:col-span-1">
+                    {/* Readiness Tile */}
                     <div className="bg-white/60 dark:bg-neutral-900/60 backdrop-blur-md p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm flex flex-col justify-between">
                         <div className="flex justify-between items-start mb-2">
-                            <Activity size={20} style={{ color: isDarkMode ? currentAccent.dark : currentAccent.light }} />
+                            <Activity size={20} style={{ color: accentColor }} />
                             <span className={`text-xs font-bold px-2 py-1 rounded-full ${metrics.readiness > 65 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : metrics.readiness < 35 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}`}>TSB {metrics.tsb > 0 ? '+' : ''}{metrics.tsb}</span>
                         </div>
                         <div>
@@ -95,13 +114,77 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                             <div className="text-[10px] uppercase tracking-widest text-neutral-500">Readiness</div>
                         </div>
                     </div>
+
+                    {/* Fatigue Tile */}
                     <div className="bg-white/60 dark:bg-neutral-900/60 backdrop-blur-md p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm flex flex-col justify-between">
-                        <div className="flex justify-between items-start mb-2"><Battery size={20} style={{ color: isDarkMode ? currentAccent.darkAlt : currentAccent.lightAlt }} /></div>
+                        <div className="flex justify-between items-start mb-2">
+                            <Battery size={20} style={{ color: isDarkMode ? currentAccent.darkAlt : currentAccent.lightAlt }} />
+                        </div>
                         <div>
                             <div className="text-3xl font-medium text-neutral-900 dark:text-white mb-1">{metrics.fatigue}%</div>
                             <div className="text-[10px] uppercase tracking-widest text-neutral-500">Fatigue</div>
                         </div>
                     </div>
+
+                    {/* Daily Check-In Tile - Styled like readiness/fatigue tiles */}
+                    <div
+                        onClick={onOpenQuestionnaire}
+                        className="col-span-2 bg-white/60 dark:bg-neutral-900/60 backdrop-blur-md p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm flex flex-col justify-between cursor-pointer hover:bg-white/80 dark:hover:bg-neutral-900/80 transition-colors"
+                    >
+                        <div className="flex justify-between items-start mb-2">
+                            <ClipboardCheck
+                                size={20}
+                                style={{
+                                    color: hasCompletedToday
+                                        ? (isDarkMode ? currentAccent.dark : currentAccent.light)  // Readiness color when completed
+                                        : (isDarkMode ? currentAccent.darkAlt : currentAccent.lightAlt)  // Fatigue color when not completed
+                                }}
+                            />
+                            <ChevronRight size={18} className="text-neutral-400" />
+                        </div>
+                        <div className="flex items-end justify-between">
+                            <div>
+                                <div className="text-xs font-bold uppercase tracking-widest text-neutral-400 mb-1">
+                                    Readiness Questionnaire
+                                </div>
+                                {hasCompletedToday ? (
+                                    <>
+                                        <div className="text-lg font-medium text-neutral-900 dark:text-white mb-1">
+                                            Completed
+                                        </div>
+                                        <div className="text-[10px] uppercase tracking-widest text-neutral-500">
+                                            at {completionTime}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="text-lg font-medium text-neutral-900 dark:text-white mb-1">
+                                        Not completed
+                                    </div>
+                                )}
+                            </div>
+                            {/* Show both adjustments */}
+                            {hasCompletedToday && metrics.questionnaireAdjustment && (
+                                <div className="flex gap-2">
+                                    <span className={`text-xs px-2 py-1 rounded-full ${metrics.questionnaireAdjustment.readinessChange >= 0
+                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                        }`}>
+                                        {metrics.questionnaireAdjustment.readinessChange >= 0 ? '+' : ''}
+                                        {metrics.questionnaireAdjustment.readinessChange} R
+                                    </span>
+                                    <span className={`text-xs px-2 py-1 rounded-full ${metrics.questionnaireAdjustment.fatigueChange <= 0
+                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                        }`}>
+                                        {metrics.questionnaireAdjustment.fatigueChange >= 0 ? '+' : ''}
+                                        {metrics.questionnaireAdjustment.fatigueChange} F
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Program Status Tile */}
                     <div className="col-span-2 bg-white/60 dark:bg-neutral-900/60 backdrop-blur-md p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm flex items-center justify-between">
                         <div>
                             <div className="text-xs font-bold uppercase tracking-widest text-neutral-400 mb-1">Program Status</div>

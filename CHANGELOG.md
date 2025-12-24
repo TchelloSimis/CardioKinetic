@@ -2,6 +2,26 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.2.1] - 2025-12-24
+
+### Added
+
+#### Daily Readiness Questionnaire
+An optional daily check-in system that refines fatigue and readiness scores based on subjective wellness data:
+
+- **Wellness Categories**: Eight questions across five domains (Sleep, Nutrition, Stress, Physical State, Motivation) capture daily physiological and psychological status
+- **Discrete Response System**: Five-point scales with descriptive tooltips for each answer, displayed as styled range inputs with tick marks
+- **Contradiction-Weighted Adjustments**: Responses that contradict predicted metrics receive larger score modifications than confirmatory responses
+- **Asymmetric Safety Bias**: Negative subjective reports (feeling worse than expected) carry greater weight than positive reports, prioritizing injury prevention
+- **Dashboard Integration**: Check-in card displays completion status with readiness (+X R) and fatigue (+Y F) adjustment badges
+- **Persistent and Editable**: Responses stored in localStorage with full edit capability; skipping has zero effect on metrics
+
+New types: `QuestionnaireResponse`, `QuestionnaireQuestion` (with `optional` field for rest-day flexibility).
+
+New files: `utils/questionnaireConfig.ts` (question definitions, adjustment algorithm), `components/modals/ReadinessQuestionnaireModal.tsx` (modal UI).
+
+Modified: `types.ts`, `hooks/useAppState.ts`, `hooks/useMetrics.ts`, `components/DashboardTab.tsx`, `App.tsx`.
+
 ## [1.2.0] - 2025-12-24
 
 ### Added

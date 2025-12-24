@@ -207,3 +207,28 @@ export interface SessionResult {
   blocks?: SessionBlock[];              // Original block definitions
   blockResults?: BlockResult[];         // Results per block
 }
+
+// ============================================================================
+// READINESS QUESTIONNAIRE TYPES
+// ============================================================================
+
+/**
+ * A single day's questionnaire response
+ */
+export interface QuestionnaireResponse {
+  date: string;                       // YYYY-MM-DD
+  responses: Record<string, number>;  // questionId -> 1-5 value
+  timestamp: string;                  // ISO timestamp of submission
+}
+
+/**
+ * Definition of a questionnaire question
+ */
+export interface QuestionnaireQuestion {
+  id: string;
+  category: 'sleep' | 'nutrition' | 'stress' | 'physical' | 'motivation';
+  question: string;
+  tooltips: { 1: string; 2: string; 3: string; 4: string; 5: string };
+  weight: number;                     // Influence on adjustment (default: 1)
+  optional?: boolean;                 // If true, user can skip this question
+}

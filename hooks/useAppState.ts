@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Session, ProgramRecord, ProgramPreset } from '../types';
+import { Session, ProgramRecord, ProgramPreset, QuestionnaireResponse } from '../types';
 import { DEFAULT_PRESETS, AccentColor, AccentModifierState } from '../presets';
 import { hydratePreset } from '../utils/templateUtils';
 
@@ -39,6 +39,11 @@ export interface AppStateReturn {
     accentModifiers: AccentModifierState;
     setAccentModifiers: React.Dispatch<React.SetStateAction<AccentModifierState>>;
 
+    // Questionnaire
+    questionnaireResponses: QuestionnaireResponse[];
+    setQuestionnaireResponses: React.Dispatch<React.SetStateAction<QuestionnaireResponse[]>>;
+    getTodayQuestionnaireResponse: () => QuestionnaireResponse | undefined;
+
     // Computed values
     activePresets: ProgramPreset[];
     activeProgram: ProgramRecord | undefined;
@@ -73,6 +78,14 @@ export function useAppState(): AppStateReturn {
     const [accentColor, setAccentColor] = useState<AccentColor>('mono');
     // Accent modifiers
     const [accentModifiers, setAccentModifiers] = useState<AccentModifierState>({});
+    // Questionnaire responses
+    const [questionnaireResponses, setQuestionnaireResponses] = useState<QuestionnaireResponse[]>([]);
+
+    // Get today's questionnaire response
+    const getTodayQuestionnaireResponse = () => {
+        const today = new Date().toISOString().split('T')[0];
+        return questionnaireResponses.find(r => r.date === today);
+    };
 
     // Check if a preset is a default (built-in) preset
     const isDefaultPreset = (id: string) => DEFAULT_PRESETS.some(p => p.id === id);
@@ -233,6 +246,16 @@ export function useAppState(): AppStateReturn {
                     }
                 }
 
+                // Load questionnaire responses
+                const savedQuestionnaire = localStorage.getItem('ck_questionnaire_responses');
+                if (savedQuestionnaire) {
+                    try {
+                        setQuestionnaireResponses(JSON.parse(savedQuestionnaire));
+                    } catch (e) {
+                        console.error('Failed to load questionnaire responses', e);
+                    }
+                }
+
                 setLoadingStatus("Ready.");
                 setIsLoading(false);
 
@@ -296,6 +319,13 @@ export function useAppState(): AppStateReturn {
         }
     }, [templateOrder, isLoading]);
 
+    // Save questionnaire responses
+    useEffect(() => {
+        if (!isLoading) {
+            localStorage.setItem('ck_questionnaire_responses', JSON.stringify(questionnaireResponses));
+        }
+    }, [questionnaireResponses, isLoading]);
+
     const activeProgram = programs.find(p => p.status === 'active');
 
     return {
@@ -324,6 +354,9 @@ export function useAppState(): AppStateReturn {
         setAccentColor,
         accentModifiers,
         setAccentModifiers,
+        questionnaireResponses,
+        setQuestionnaireResponses,
+        getTodayQuestionnaireResponse,
         activePresets,
         activeProgram,
         isDefaultPreset,

@@ -11,8 +11,9 @@ import SettingsTab, { SettingsCategory } from './components/SettingsTab';
 import DashboardTab from './components/DashboardTab';
 import DeleteConfirmModal from './components/modals/DeleteConfirmModal';
 import SessionSetupModal from './components/modals/SessionSetupModal';
+import ReadinessQuestionnaireModal from './components/modals/ReadinessQuestionnaireModal';
 import LiveSessionGuide from './components/LiveSessionGuide';
-import { Session, PlanWeek, ReadinessState, ProgramPreset, ProgramRecord, SessionSetupParams, SessionResult } from './types';
+import { Session, PlanWeek, ReadinessState, ProgramPreset, ProgramRecord, SessionSetupParams, SessionResult, QuestionnaireResponse } from './types';
 import { DEFAULT_PRESETS, ACCENT_COLORS, Tab } from './presets';
 import { useAppState, PRESETS } from './hooks/useAppState';
 import { useTheme } from './hooks/useTheme';
@@ -48,6 +49,7 @@ const App: React.FC = () => {
         activePresets, activeProgram,
         isDefaultPreset, isDefaultModified, moveTemplate,
         accentModifiers, setAccentModifiers,
+        questionnaireResponses, setQuestionnaireResponses, getTodayQuestionnaireResponse,
     } = appState;
 
     const theme = useTheme(accentColor, accentModifiers);
@@ -74,6 +76,7 @@ const App: React.FC = () => {
     const [sessionParams, setSessionParams] = useState<SessionSetupParams | null>(null);
     const [sessionResult, setSessionResult] = useState<SessionResult | null>(null);
     const [liveSessionBackPress, setLiveSessionBackPress] = useState(0); // Counter to trigger back in LiveSessionGuide
+    const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
 
     // Tab subcategory state (lifted from child components for back button handling)
     const [settingsCategory, setSettingsCategory] = useState<SettingsCategory>('main');
@@ -146,7 +149,8 @@ const App: React.FC = () => {
         currentWeekNum,
         programLength,
         currentWeekPlan,
-        activeProgram
+        activeProgram,
+        todayQuestionnaireResponse: getTodayQuestionnaireResponse()
     });
 
     // Android back button handler
@@ -685,6 +689,23 @@ const App: React.FC = () => {
                 backButtonPressed={liveSessionBackPress}
             />
 
+            {/* Readiness Questionnaire Modal */}
+            <ReadinessQuestionnaireModal
+                isOpen={showQuestionnaireModal}
+                onClose={() => setShowQuestionnaireModal(false)}
+                onSubmit={(response: QuestionnaireResponse) => {
+                    // Update or add today's response
+                    const today = new Date().toISOString().split('T')[0];
+                    setQuestionnaireResponses(prev => {
+                        const filtered = prev.filter(r => r.date !== today);
+                        return [...filtered, response];
+                    });
+                }}
+                existingResponse={getTodayQuestionnaireResponse()}
+                isDarkMode={isDarkMode}
+                currentAccent={currentAccent}
+            />
+
             {/* Main Content */}
             <main className="flex-1 relative overflow-hidden flex flex-col">
                 <div className="flex-1 overflow-y-auto scroll-smooth" onScroll={handleScroll}>
@@ -706,6 +727,8 @@ const App: React.FC = () => {
                                     onRenameProgram={handleRenameProgram}
                                     onDeleteProgram={handleDeleteProgram}
                                     onStartSession={handleStartSessionClick}
+                                    todayQuestionnaireResponse={getTodayQuestionnaireResponse()}
+                                    onOpenQuestionnaire={() => setShowQuestionnaireModal(true)}
                                 />
                             </div>
 
