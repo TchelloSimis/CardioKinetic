@@ -136,6 +136,29 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
         }
     }, [isOpen]);
 
+    // Update initialPowerRef when block changes in custom sessions
+    // This ensures interval blocks display correct work/rest power after block transitions
+    useEffect(() => {
+        if (params?.sessionStyle === 'custom' && params.blocks && state.currentBlockIndex !== undefined) {
+            const currentBlock = params.blocks[state.currentBlockIndex];
+            if (currentBlock) {
+                const blockTargetPower = Math.round(params.targetPower * currentBlock.powerMultiplier);
+                if (currentBlock.type === 'steady-state') {
+                    initialPowerRef.current = { workPower: blockTargetPower, restPower: blockTargetPower };
+                } else {
+                    // Interval block - use interval formula
+                    const workSeconds = currentBlock.workDurationSeconds || 30;
+                    const restSeconds = currentBlock.restDurationSeconds || 30;
+                    const totalCycle = workSeconds + restSeconds;
+                    const recoveryRatio = 0.5;
+                    const workPower = Math.round((blockTargetPower * totalCycle) / (workSeconds + recoveryRatio * restSeconds));
+                    const restPower = Math.round(workPower * recoveryRatio);
+                    initialPowerRef.current = { workPower, restPower };
+                }
+            }
+        }
+    }, [params, state.currentBlockIndex]);
+
     // Note: Foreground notification updates and button listeners are handled by useSessionTimer
 
     // Handle close (X button or back button) - go back to setup after confirmation
@@ -533,13 +556,43 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
                         powerLabel = 'Target Power';
                     } else {
                         // During active session
-                        displayPower = state.targetPower;
-                        powerLabel = 'Target Power';
+                        // For custom sessions, calculate block-specific power
+                        if (isCustomSession && params && state.currentBlockIndex !== undefined && params.blocks) {
+                            const currentBlock = params.blocks[state.currentBlockIndex];
+                            if (currentBlock) {
+                                // Calculate original block power + raw adjustment delta
+                                // This ensures Harder/Easier adds exactly 5W, not 5W × multiplier
+                                const originalBlockPower = Math.round(params.targetPower * currentBlock.powerMultiplier);
+                                const powerDelta = state.targetPower - params.targetPower;
+                                const blockPower = originalBlockPower + powerDelta;
 
-                        // For interval sessions OR interval blocks in custom sessions, show work/rest power
-                        const isIntervalDisplay = !isSteadyState && !isCustomSteadyBlock && initialPowerRef.current;
+                                if (currentBlock.type === 'steady-state') {
+                                    // Steady-state block: show block power directly
+                                    displayPower = blockPower;
+                                    powerLabel = 'Target Power';
 
-                        if (isIntervalDisplay) {
+
+                                } else {
+                                    // Interval block: show work/rest power from initialPowerRef
+                                    if (initialPowerRef.current) {
+                                        if (currentPhase === 'work') {
+                                            displayPower = initialPowerRef.current.workPower;
+                                            powerLabel = 'Work Power';
+                                        } else {
+                                            displayPower = initialPowerRef.current.restPower;
+                                            powerLabel = 'Rest Power';
+                                        }
+                                    } else {
+                                        displayPower = blockPower;
+                                        powerLabel = 'Target Power';
+                                    }
+                                }
+                            } else {
+                                displayPower = state.targetPower;
+                                powerLabel = 'Target Power';
+                            }
+                        } else if (!isSteadyState && initialPowerRef.current) {
+                            // Standard interval session: show work/rest power
                             if (currentPhase === 'work') {
                                 displayPower = initialPowerRef.current.workPower;
                                 powerLabel = 'Work Power';
@@ -547,6 +600,10 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
                                 displayPower = initialPowerRef.current.restPower;
                                 powerLabel = 'Rest Power';
                             }
+                        } else {
+                            // Standard steady-state session
+                            displayPower = state.targetPower;
+                            powerLabel = 'Target Power';
                         }
                     }
 

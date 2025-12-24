@@ -131,9 +131,9 @@ export const generateSessionChartData = (
             }
 
             if (block.type === 'steady-state') {
+                // Only add start point - end point will be added by next block or final point
                 planned.push({ time: Math.round(currentTime / 60 * 10) / 10, plannedPower: blockPower });
                 currentTime += blockDurationSeconds;
-                planned.push({ time: Math.round(currentTime / 60 * 10) / 10, plannedPower: blockPower });
             } else {
                 const workSecs = block.workDurationSeconds || 30;
                 const restSecs = block.restDurationSeconds || 30;
@@ -159,10 +159,17 @@ export const generateSessionChartData = (
             }
         });
 
+        // Add final end point to extend line to session end
         if (planned.length > 0) {
             const lastPower = planned[planned.length - 1]?.plannedPower || origWorkPower;
-            planned.push({ time: Math.round(sessionDuration / 60 * 10) / 10, plannedPower: lastPower });
+            const endTime = Math.round(sessionDuration / 60 * 10) / 10;
+            const lastTime = planned[planned.length - 1]?.time || 0;
+            // Only add if not already at end time
+            if (lastTime < endTime) {
+                planned.push({ time: endTime, plannedPower: lastPower });
+            }
         }
+
     } else if (params?.sessionStyle === 'interval' && origCycle > 0) {
         let t = 0;
         while (t < sessionDuration) {

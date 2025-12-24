@@ -678,6 +678,7 @@ const App: React.FC = () => {
                 onBackToSetup={() => {
                     setShowLiveSession(false);
                     setShowSessionSetup(true);
+                    setSessionParams(null);
                 }}
                 onComplete={handleSessionComplete}
                 accentColor={accentValue}

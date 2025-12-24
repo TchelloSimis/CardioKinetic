@@ -1,6 +1,8 @@
-import React from 'react';
-import { Activity, Plus, Trash2 } from 'lucide-react';
-import { FatigueModifier, FatigueAdjustments, FlexibleCondition, ThresholdCondition } from '../../programTemplate';
+import React, { useState, useCallback } from 'react';
+import { Activity, Plus, Trash2, Sparkles, Loader2 } from 'lucide-react';
+import { FatigueModifier, FatigueAdjustments, FlexibleCondition, ThresholdCondition, ProgramTemplate } from '../../programTemplate';
+import { suggestModifiersAsync } from '../../utils/suggestModifiers';
+import { expandBlocksToWeeks } from '../../utils/blockExpansion';
 import { EditorState } from '../ProgramEditor';
 import { SelectInput } from '../ProgramInputs';
 
@@ -66,6 +68,71 @@ const normalizeCondition = (condition: any): FlexibleCondition => {
 };
 
 const FatigueModifiersStep: React.FC<FatigueModifiersStepProps> = ({ editorState, setEditorState }) => {
+    // State for loading indicator during simulation
+    const [isSimulating, setIsSimulating] = useState(false);
+    const [simulationProgress, setSimulationProgress] = useState(0);
+
+    // Handle suggest modifiers button click
+    const handleSuggestModifiers = useCallback(async () => {
+        setIsSimulating(true);
+        setSimulationProgress(0);
+
+        try {
+            // Determine expanded weeks based on structure type
+            let expandedWeeks = editorState.weeks;
+            const basePower = 200; // Default base power for simulation
+
+            if (editorState.structureType === 'block-based') {
+                // Build a temporary template for block expansion
+                const tempTemplate: ProgramTemplate = {
+                    templateVersion: '1.0',
+                    id: 'temp',
+                    name: 'temp',
+                    description: '',
+                    weekConfig: { type: 'fixed', fixed: editorState.fixedWeeks },
+                    defaultSessionStyle: editorState.defaultSessionStyle,
+                    progressionMode: editorState.progressionMode,
+                    defaultSessionDurationMinutes: editorState.defaultDurationMinutes,
+                    weeks: [],
+                    structureType: 'block-based',
+                    programBlocks: editorState.programBlocks,
+                    fixedFirstWeek: editorState.fixedFirstWeek || undefined,
+                    fixedLastWeek: editorState.fixedLastWeek || undefined,
+                };
+                expandedWeeks = expandBlocksToWeeks(tempTemplate, editorState.fixedWeeks, basePower);
+            }
+
+            if (expandedWeeks.length === 0) {
+                alert('Please add week definitions or blocks before suggesting modifiers.');
+                setIsSimulating(false);
+                return;
+            }
+
+            // Run async simulation with progress callback
+            const suggestedModifiers = await suggestModifiersAsync(
+                expandedWeeks,
+                basePower,
+                100000, // 100k simulations
+                (progress) => setSimulationProgress(Math.round(progress * 100))
+            );
+
+            if (suggestedModifiers.length === 0) {
+                alert('No anomalies detected - your program appears well balanced!');
+            } else {
+                // Append suggested modifiers to existing ones
+                setEditorState(prev => ({
+                    ...prev,
+                    fatigueModifiers: [...prev.fatigueModifiers, ...suggestedModifiers]
+                }));
+            }
+        } catch (error) {
+            console.error('Error during simulation:', error);
+            alert('An error occurred during simulation. Please try again.');
+        } finally {
+            setIsSimulating(false);
+            setSimulationProgress(0);
+        }
+    }, [editorState, setEditorState]);
 
     const addModifier = () => {
         const newModifier: FatigueModifier = {
@@ -156,19 +223,44 @@ const FatigueModifiersStep: React.FC<FatigueModifiersStepProps> = ({ editorState
 
     return (
         <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                 <h3 className="text-sm font-bold uppercase tracking-widest text-neutral-400 flex items-center gap-2">
                     <Activity size={14} style={{ color: 'var(--accent)' }} />
                     Fatigue Modifiers ({editorState.fatigueModifiers.length})
                 </h3>
-                <button
-                    onClick={addModifier}
-                    className="px-4 py-2 rounded-xl text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-opacity flex items-center gap-2 shadow-lg shadow-accent/20"
-                    style={{ backgroundColor: 'var(--accent)' }}
-                >
-                    <Plus size={14} />
-                    Add Modifier
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                    <button
+                        onClick={handleSuggestModifiers}
+                        disabled={isSimulating}
+                        className="px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border-2 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                        style={{
+                            borderColor: 'var(--accent)',
+                            color: isSimulating ? 'var(--accent)' : 'var(--accent)',
+                            backgroundColor: 'transparent'
+                        }}
+                        title="Run Monte Carlo simulation to suggest optimal modifiers"
+                    >
+                        {isSimulating ? (
+                            <>
+                                <Loader2 size={14} className="animate-spin" />
+                                {simulationProgress}%
+                            </>
+                        ) : (
+                            <>
+                                <Sparkles size={14} />
+                                Suggest
+                            </>
+                        )}
+                    </button>
+                    <button
+                        onClick={addModifier}
+                        className="px-3 py-2 rounded-xl text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-opacity flex items-center gap-2 shadow-lg shadow-accent/20 whitespace-nowrap"
+                        style={{ backgroundColor: 'var(--accent)' }}
+                    >
+                        <Plus size={14} />
+                        Add
+                    </button>
+                </div>
             </div>
 
             {editorState.fatigueModifiers.length === 0 ? (
@@ -343,6 +435,28 @@ const FatigueModifiersStep: React.FC<FatigueModifiersStepProps> = ({ editorState
                                                 </p>
                                             )}
                                         </div>
+
+                                        {/* Cycle Phase Filter (read-only, set by suggest modifiers) */}
+                                        {modifier.cyclePhase && (
+                                            <div className="flex flex-wrap items-center gap-2 pt-2">
+                                                <span className="text-xs font-bold uppercase text-neutral-400">Cycle Phase:</span>
+                                                <div className="flex gap-1">
+                                                    {(Array.isArray(modifier.cyclePhase) ? modifier.cyclePhase : [modifier.cyclePhase]).map((phase, i) => (
+                                                        <span
+                                                            key={i}
+                                                            className={`text-[10px] px-2 py-1 rounded font-medium ${phase === 'ascending' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
+                                                                phase === 'peak' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
+                                                                    phase === 'descending' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
+                                                                        'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
+                                                                }`}
+                                                        >
+                                                            {phase}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                                <span className="text-[10px] text-neutral-400 italic">(auto-detected)</span>
+                                            </div>
+                                        )}
 
                                         {/* Adjustments Row */}
                                         <div className="pt-3 border-t border-neutral-200 dark:border-neutral-700">

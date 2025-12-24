@@ -140,16 +140,11 @@ export function generateBlockSequence(
         blockMap.set(block.id, block);
     }
 
-    // Find the starting block (first block that isn't "followed by" another)
-    // Or just use the first block in the array
-    let startBlockId = blocks[0].id;
-    const followedBySet = new Set(blocks.map(b => b.followedBy).filter(Boolean));
-    for (const block of blocks) {
-        if (!followedBySet.has(block.id)) {
-            startBlockId = block.id;
-            break;
-        }
-    }
+    // Use the first block in the array as the starting point.
+    // Users control block order in the editor, so the first block is always the start.
+    // (Previous logic tried to find "blocks not followed by others" but this breaks
+    // in cyclic chains like Build → Consolidate → Deload → Build)
+    const startBlockId = blocks[0].id;
 
     let currentBlockId: string | undefined = startBlockId;
 
@@ -213,6 +208,35 @@ export function calculateBlockPower(
     }
 }
 
+/**
+ * Calculates duration for a week within a block based on its duration reference mode.
+ * 
+ * @param reference - The duration reference mode
+ * @param multiplier - The multiplier from durationProgression
+ * @param baseDuration - The program's base duration (in minutes)
+ * @param previousWeekDuration - Duration from the immediately preceding week (in minutes)
+ * @param blockStartDuration - Duration from the week before this block started (in minutes)
+ * @returns The calculated duration in minutes (not rounded to preserve precision)
+ */
+export function calculateBlockDuration(
+    reference: PowerReference,
+    multiplier: number,
+    baseDuration: number,
+    previousWeekDuration: number,
+    blockStartDuration: number
+): number {
+    switch (reference) {
+        case 'base':
+            return baseDuration * multiplier;
+        case 'previous':
+            return previousWeekDuration * multiplier;
+        case 'block_start':
+            return blockStartDuration * multiplier;
+        default:
+            return baseDuration * multiplier;
+    }
+}
+
 // ============================================================================
 // BLOCK EXPANSION
 // ============================================================================
@@ -243,10 +267,16 @@ export function expandBlocksToWeeks(
     const weeks: WeekDefinition[] = [];
     const hasFirstWeek = !!template.fixedFirstWeek;
     const hasLastWeek = !!template.fixedLastWeek;
+    const baseDuration = template.defaultSessionDurationMinutes || 15;
 
     // Track power for relative calculations
     let previousWeekPower = basePower;
     let blockStartPower = basePower;
+
+    // Track duration for relative calculations
+    let previousWeekDuration = baseDuration;
+    let blockStartDuration = baseDuration;
+
     let blockInstanceCounts = new Map<string, number>();
 
     // Week 1: Fixed first week (if defined)
@@ -257,6 +287,13 @@ export function expandBlocksToWeeks(
         };
         const calculatedPower = Math.round(basePower * (template.fixedFirstWeek.powerMultiplier || 1.0));
         previousWeekPower = calculatedPower;
+
+        // Track duration from fixed first week
+        const firstWeekDuration = typeof template.fixedFirstWeek.durationMinutes === 'number'
+            ? template.fixedFirstWeek.durationMinutes
+            : baseDuration;
+        previousWeekDuration = firstWeekDuration;
+
         weeks.push(firstWeek);
     }
 
@@ -283,10 +320,12 @@ export function expandBlocksToWeeks(
         if (!block) continue;
 
         const weekNum = blockStartWeek + assignment.startWeek - 1;
+        const weekIndex = assignment.weekInBlock - 1;
 
-        // Update block_start reference when entering a new block
+        // Update block_start references when entering a new block
         if (currentBlockId !== assignment.blockId && assignment.weekInBlock === 1) {
             blockStartPower = previousWeekPower;
+            blockStartDuration = previousWeekDuration;
             currentBlockId = assignment.blockId;
 
             // Track instance count
@@ -294,9 +333,18 @@ export function expandBlocksToWeeks(
             blockInstanceCounts.set(block.id, instanceCount);
         }
 
+        // Get per-week session configuration (if available)
+        const weekSession = block.weekSessions?.[weekIndex];
+
+        // Determine progression type
+        const progressionType = block.progressionType || 'power';
+        const hasPowerProgression = progressionType === 'power' || progressionType === 'double';
+        const hasDurationProgression = progressionType === 'duration' || progressionType === 'double';
+
         // Get power multiplier for this week in the block
-        const weekIndex = assignment.weekInBlock - 1;
-        const powerMultiplier = block.powerProgression[weekIndex] ?? 1.0;
+        const powerMultiplier = hasPowerProgression
+            ? (block.powerProgression[weekIndex] ?? 1.0)
+            : 1.0;
 
         // Calculate power based on reference mode
         const calculatedPower = calculateBlockPower(
@@ -307,17 +355,42 @@ export function expandBlocksToWeeks(
             blockStartPower
         );
 
-        // Get RPE for this week
-        const targetRPE = Array.isArray(block.targetRPE)
-            ? (block.targetRPE[weekIndex] ?? block.targetRPE[0] ?? 7)
-            : block.targetRPE;
+        // Get duration multiplier for this week in the block
+        const durationMultiplier = hasDurationProgression
+            ? (block.durationProgression?.[weekIndex] ?? 1.0)
+            : 1.0;
+
+        // Get base duration for this week from weekSession or block or template default
+        const weekBaseDuration = weekSession?.durationMinutes
+            ?? (typeof block.durationMinutes === 'number' ? block.durationMinutes : baseDuration);
+
+        // Calculate duration based on reference mode
+        const durationReference = block.durationReference || 'block_start';
+        const calculatedDuration = hasDurationProgression
+            ? calculateBlockDuration(
+                durationReference,
+                durationMultiplier,
+                baseDuration,
+                previousWeekDuration,
+                blockStartDuration
+            )
+            : weekBaseDuration;
+
+        // Get RPE for this week (from weekSession or block)
+        const targetRPE = weekSession?.targetRPE
+            ?? (Array.isArray(block.targetRPE)
+                ? (block.targetRPE[weekIndex] ?? block.targetRPE[0] ?? 7)
+                : block.targetRPE);
 
         // Build description with placeholder replacement
         const description = block.description
             .replace('{weekInBlock}', String(assignment.weekInBlock))
             .replace('{blockName}', block.name);
 
-        // Create week definition
+        // Determine session style (from weekSession or block or template default)
+        const sessionStyle = weekSession?.sessionStyle ?? block.sessionStyle;
+
+        // Create week definition with all session configuration
         const weekDef: WeekDefinition = {
             position: weekNum,
             phaseName: block.phaseName,
@@ -326,13 +399,19 @@ export function expandBlocksToWeeks(
             powerMultiplier: calculatedPower / basePower, // Store as multiplier for compatibility
             workRestRatio: block.workRestRatio,
             targetRPE,
-            sessionStyle: block.sessionStyle,
-            durationMinutes: block.durationMinutes,
-            blocks: block.blocks,
+            sessionStyle,
+            durationMinutes: Math.round(calculatedDuration * 100) / 100, // Keep 2 decimal precision
+            // Propagate interval-specific fields from weekSession
+            workDurationSeconds: weekSession?.workDurationSeconds,
+            restDurationSeconds: weekSession?.restDurationSeconds,
+            cycles: weekSession?.cycles,
+            // Propagate custom session blocks
+            blocks: weekSession?.blocks ?? block.blocks,
         };
 
         weeks.push(weekDef);
         previousWeekPower = calculatedPower;
+        previousWeekDuration = calculatedDuration;
     }
 
     // Last week: Fixed last week (if defined)

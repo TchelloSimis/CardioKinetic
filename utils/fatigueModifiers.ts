@@ -6,7 +6,7 @@
  */
 
 import { PlanWeek } from '../types';
-import { FatigueModifier, FatigueCondition, FatigueContext } from '../programTemplate';
+import { FatigueModifier, FatigueCondition, FatigueContext, CyclePhase } from '../programTemplate';
 
 // ============================================================================
 // CONSTANTS
@@ -27,6 +27,117 @@ export const READINESS_THRESHOLDS = {
     tired: { min: 35, max: 50 },
     overreached: { max: 35 },
 } as const;
+
+// ============================================================================
+// CYCLE PHASE DETECTION
+// ============================================================================
+
+const MIN_HISTORY_POINTS = 5;       // Minimum data points for reliable detection (increased from 3)
+const VELOCITY_HYSTERESIS = 1.5;    // Minimum velocity change to switch phases (prevents thrashing)
+
+/**
+ * Result of cycle phase detection with confidence scoring.
+ */
+export interface CyclePhaseResult {
+    phase: CyclePhase | undefined;
+    confidence: number;  // 0-1, higher = more certain
+}
+
+/**
+ * Detect current cycle phase from recent fatigue history.
+ * 
+ * Analyzes fatigue velocity (rate of change) and recent pattern.
+ * Returns undefined if insufficient data (<5 points).
+ * 
+ * Improvements over previous version:
+ * - Requires minimum 5 data points (was 3) for reliable detection
+ * - Uses hysteresis to prevent phase "thrashing" on noisy data
+ * - Returns confidence score (0-1) for UI/decision making
+ * 
+ * @param fatigueHistory - Array of recent fatigue scores
+ * @param recentReadiness - Optional current readiness score
+ * @param previousPhase - Optional previous detected phase (for hysteresis)
+ * @returns Object with phase and confidence score
+ */
+export function detectCyclePhase(
+    fatigueHistory: number[],
+    recentReadiness?: number,
+    previousPhase?: CyclePhase
+): CyclePhaseResult {
+    // Need at least MIN_HISTORY_POINTS for reliable detection
+    if (fatigueHistory.length < MIN_HISTORY_POINTS) {
+        return { phase: undefined, confidence: 0 };
+    }
+
+    // Get recent values (last 5-7 points)
+    const recent = fatigueHistory.slice(-Math.min(7, fatigueHistory.length));
+    const n = recent.length;
+
+    // Calculate velocity (average rate of change)
+    let velocity = 0;
+    for (let i = 1; i < n; i++) {
+        velocity += recent[i] - recent[i - 1];
+    }
+    velocity /= (n - 1);
+
+    // Calculate acceleration (rate of change of velocity)
+    const velocities: number[] = [];
+    for (let i = 1; i < n; i++) {
+        velocities.push(recent[i] - recent[i - 1]);
+    }
+    let acceleration = 0;
+    if (velocities.length >= 2) {
+        for (let i = 1; i < velocities.length; i++) {
+            acceleration += velocities[i] - velocities[i - 1];
+        }
+        acceleration /= (velocities.length - 1);
+    }
+
+    const currentFatigue = recent[n - 1];
+    let detectedPhase: CyclePhase;
+    let confidence: number;
+
+    // Determine phase based on velocity and position
+    // PEAK: High fatigue AND velocity turning negative (about to drop)
+    if (currentFatigue > 60 && velocity > -2 && velocity < 3 && acceleration < -1) {
+        detectedPhase = 'peak';
+        confidence = Math.min(1, (currentFatigue - 60) / 30 + Math.abs(acceleration) / 3);
+    }
+    // ASCENDING: Fatigue is clearly rising (with hysteresis)
+    else if (velocity > (2 + (previousPhase === 'ascending' ? 0 : VELOCITY_HYSTERESIS))) {
+        detectedPhase = 'ascending';
+        confidence = Math.min(1, velocity / 5);
+    }
+    // TROUGH: Low fatigue AND velocity turning positive (about to rise)
+    else if (currentFatigue < 40 && velocity < 2 && velocity > -3 && acceleration > 1) {
+        detectedPhase = 'trough';
+        confidence = Math.min(1, (40 - currentFatigue) / 30 + acceleration / 3);
+    }
+    // DESCENDING: Fatigue is clearly falling (with hysteresis)
+    else if (velocity < -(2 + (previousPhase === 'descending' ? 0 : VELOCITY_HYSTERESIS))) {
+        detectedPhase = 'descending';
+        confidence = Math.min(1, Math.abs(velocity) / 5);
+    }
+    // Use position as tiebreaker for stable periods
+    else if (currentFatigue > 55) {
+        detectedPhase = velocity >= 0 ? 'peak' : 'descending';
+        confidence = 0.5;  // Lower confidence for position-based detection
+    } else if (currentFatigue < 35) {
+        detectedPhase = velocity <= 0 ? 'trough' : 'ascending';
+        confidence = 0.5;
+    } else {
+        // Default based on velocity direction
+        detectedPhase = velocity >= 0 ? 'ascending' : 'descending';
+        confidence = 0.3;  // Lowest confidence for default case
+    }
+
+    // Apply hysteresis: stick with previous phase if change is marginal
+    if (previousPhase && previousPhase !== detectedPhase && confidence < 0.6) {
+        return { phase: previousPhase, confidence: confidence * 0.7 };
+    }
+
+    return { phase: detectedPhase, confidence };
+}
 
 // ============================================================================
 // FATIGUE CONDITION CHECKING
@@ -144,6 +255,17 @@ export function applyFatigueModifiers(
             }
         }
 
+        // Check cyclePhase condition if specified (auto-detected from fatigue trajectory)
+        if (modifier.cyclePhase !== undefined && context.fatigueHistory && context.fatigueHistory.length >= 5) {
+            const result = detectCyclePhase(context.fatigueHistory, context.readiness);
+            if (result.phase) {
+                const phasesToMatch = Array.isArray(modifier.cyclePhase) ? modifier.cyclePhase : [modifier.cyclePhase];
+                if (!phasesToMatch.includes(result.phase)) {
+                    continue; // Skip if current cycle phase doesn't match
+                }
+            }
+        }
+
         // Check week position condition if specified (supports relative positioning for variable-length programs)
         if (modifier.weekPosition !== undefined && context.weekNumber !== undefined && context.totalWeeks !== undefined) {
             const positions = Array.isArray(modifier.weekPosition) ? modifier.weekPosition : [modifier.weekPosition];
@@ -227,6 +349,14 @@ export function applyFatigueModifiers(
             }
         }
 
+        // Check sessionType condition if specified (allows different strategies per session type)
+        if (modifier.sessionType !== undefined && week.sessionStyle) {
+            const sessionTypesToMatch = Array.isArray(modifier.sessionType) ? modifier.sessionType : [modifier.sessionType];
+            if (!sessionTypesToMatch.includes(week.sessionStyle)) {
+                continue; // Skip if session type doesn't match
+            }
+        }
+
         // All conditions passed - add to matching modifiers
         const priority = modifier.priority ?? 0;
         matchingModifiers.push({ modifier, priority });
@@ -247,10 +377,50 @@ export function applyFatigueModifiers(
             modifiedWeek.targetRPE = Math.max(1, Math.min(10, modifiedWeek.targetRPE + adj.rpeAdjust));
         }
 
-        if (adj.restMultiplier !== undefined && modifiedWeek.restDurationSeconds) {
-            modifiedWeek.restDurationSeconds = Math.round(modifiedWeek.restDurationSeconds * adj.restMultiplier);
+        // REST MULTIPLIER: Only for interval-based sessions (which have rest periods)
+        if (adj.restMultiplier !== undefined) {
+            // For interval sessions at the week level
+            if (modifiedWeek.restDurationSeconds) {
+                modifiedWeek.restDurationSeconds = Math.round(modifiedWeek.restDurationSeconds * adj.restMultiplier);
+            }
+            // For custom sessions with interval blocks
+            if (modifiedWeek.blocks && modifiedWeek.blocks.length > 0) {
+                modifiedWeek.blocks = modifiedWeek.blocks.map(block => {
+                    if (block.type === 'interval' && block.restDurationSeconds) {
+                        return {
+                            ...block,
+                            restDurationSeconds: Math.round(block.restDurationSeconds * adj.restMultiplier!)
+                        };
+                    }
+                    return block;
+                });
+            }
         }
 
+        // DURATION MULTIPLIER: For steady-state sessions/blocks (no rest periods)
+        if (adj.durationMultiplier !== undefined) {
+            if (modifiedWeek.sessionStyle === 'steady-state' && modifiedWeek.targetDurationMinutes) {
+                modifiedWeek.targetDurationMinutes = modifiedWeek.targetDurationMinutes * adj.durationMultiplier;
+            }
+            // For custom sessions with steady-state blocks
+            if (modifiedWeek.blocks && modifiedWeek.blocks.length > 0) {
+                modifiedWeek.blocks = modifiedWeek.blocks.map(block => {
+                    if (block.type === 'steady-state') {
+                        return {
+                            ...block,
+                            durationMinutes: block.durationMinutes * adj.durationMultiplier!
+                        };
+                    }
+                    return block;
+                });
+                // Recalculate total duration from blocks
+                modifiedWeek.targetDurationMinutes = modifiedWeek.blocks.reduce(
+                    (total, block) => total + block.durationMinutes, 0
+                );
+            }
+        }
+
+        // VOLUME MULTIPLIER: Affects cycle count for intervals, duration for steady-state
         if (adj.volumeMultiplier !== undefined) {
             // Handle custom session blocks
             if (modifiedWeek.blocks && modifiedWeek.blocks.length > 0) {

@@ -1,0 +1,79 @@
+{
+    "templateVersion": "1.0",
+    "id": "test-block-based",
+    "name": "Block-Based Builder/Deload",
+    "description": "Test cyclePhase detection on block-based program. Should detect cycles from block boundaries AND signal analysis.",
+    "structureType": "block-based",
+    "weekConfig": {
+        "type": "variable",
+        "customDurations": [
+            8,
+            14,
+            20
+        ]
+    },
+    "defaultSessionStyle": "interval",
+    "progressionMode": "power",
+    "defaultSessionDurationMinutes": 15,
+    "fixedFirstWeek": {
+        "position": "first",
+        "phaseName": "Introduction",
+        "focus": "Volume",
+        "description": "Baseline week",
+        "powerMultiplier": 1.0,
+        "workRestRatio": "1:2",
+        "targetRPE": 5
+    },
+    "fixedLastWeek": {
+        "position": "last",
+        "phaseName": "Conclusion",
+        "focus": "Recovery",
+        "description": "Final adaptation",
+        "powerMultiplier": 0.9,
+        "workRestRatio": "1:2",
+        "targetRPE": 5
+    },
+    "programBlocks": [
+        {
+            "id": "builder",
+            "name": "Builder",
+            "weekCount": 4,
+            "powerReference": "block_start",
+            "powerProgression": [
+                1.1,
+                1.2,
+                1.3,
+                1.4
+            ],
+            "followedBy": "deload",
+            "focus": "Intensity",
+            "phaseName": "Build Phase",
+            "description": "Progressive overload week {weekInBlock}/4",
+            "workRestRatio": "2:1",
+            "targetRPE": [
+                7,
+                7,
+                8,
+                8
+            ]
+        },
+        {
+            "id": "deload",
+            "name": "Deload",
+            "weekCount": 2,
+            "powerReference": "block_start",
+            "powerProgression": [
+                0.7,
+                0.7
+            ],
+            "followedBy": "builder",
+            "focus": "Recovery",
+            "phaseName": "Deload Phase",
+            "description": "Recovery week {weekInBlock}/2",
+            "workRestRatio": "1:2",
+            "targetRPE": 5
+        }
+    ],
+    "weeks": [],
+    "fatigueModifiers": []
+}

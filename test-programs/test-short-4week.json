@@ -1,0 +1,52 @@
+{
+    "templateVersion": "1.0",
+    "id": "test-short-4week",
+    "name": "Short 4-Week Test",
+    "description": "Test adaptive windows on a short 4-week program. Windows should be minimal (local=2, meso=3).",
+    "weekConfig": {
+        "type": "fixed",
+        "fixed": 4
+    },
+    "defaultSessionStyle": "interval",
+    "progressionMode": "power",
+    "defaultSessionDurationMinutes": 15,
+    "weeks": [
+        {
+            "position": 1,
+            "phaseName": "Base",
+            "focus": "Volume",
+            "description": "Foundation week",
+            "powerMultiplier": 1.0,
+            "workRestRatio": "1:2",
+            "targetRPE": 6
+        },
+        {
+            "position": 2,
+            "phaseName": "Build",
+            "focus": "Density",
+            "description": "Increasing density",
+            "powerMultiplier": 1.1,
+            "workRestRatio": "1:1",
+            "targetRPE": 7
+        },
+        {
+            "position": 3,
+            "phaseName": "Peak",
+            "focus": "Intensity",
+            "description": "Peak week",
+            "powerMultiplier": 1.2,
+            "workRestRatio": "2:1",
+            "targetRPE": 8
+        },
+        {
+            "position": 4,
+            "phaseName": "Recovery",
+            "focus": "Recovery",
+            "description": "Deload week",
+            "powerMultiplier": 0.7,
+            "workRestRatio": "1:2",
+            "targetRPE": 5
+        }
+    ],
+    "fatigueModifiers": []
+}

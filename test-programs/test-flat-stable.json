@@ -1,0 +1,70 @@
+{
+    "templateVersion": "1.0",
+    "id": "test-flat-stable",
+    "name": "Flat/Stable Program",
+    "description": "Test cycle detection on a flat program with minimal variation. Should classify mostly as 'stable' or single-phase.",
+    "weekConfig": {
+        "type": "fixed",
+        "fixed": 6
+    },
+    "defaultSessionStyle": "steady-state",
+    "progressionMode": "power",
+    "defaultSessionDurationMinutes": 30,
+    "weeks": [
+        {
+            "position": 1,
+            "phaseName": "Week 1",
+            "focus": "Volume",
+            "description": "Steady state",
+            "powerMultiplier": 1.0,
+            "workRestRatio": "1:0",
+            "targetRPE": 6
+        },
+        {
+            "position": 2,
+            "phaseName": "Week 2",
+            "focus": "Volume",
+            "description": "Steady state",
+            "powerMultiplier": 1.02,
+            "workRestRatio": "1:0",
+            "targetRPE": 6
+        },
+        {
+            "position": 3,
+            "phaseName": "Week 3",
+            "focus": "Volume",
+            "description": "Steady state",
+            "powerMultiplier": 1.04,
+            "workRestRatio": "1:0",
+            "targetRPE": 6
+        },
+        {
+            "position": 4,
+            "phaseName": "Week 4",
+            "focus": "Volume",
+            "description": "Steady state",
+            "powerMultiplier": 1.06,
+            "workRestRatio": "1:0",
+            "targetRPE": 6
+        },
+        {
+            "position": 5,
+            "phaseName": "Week 5",
+            "focus": "Volume",
+            "description": "Steady state",
+            "powerMultiplier": 1.08,
+            "workRestRatio": "1:0",
+            "targetRPE": 6
+        },
+        {
+            "position": 6,
+            "phaseName": "Week 6",
+            "focus": "Volume",
+            "description": "Steady state",
+            "powerMultiplier": 1.10,
+            "workRestRatio": "1:0",
+            "targetRPE": 6
+        }
+    ],
+    "fatigueModifiers": []
+}

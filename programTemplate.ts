@@ -58,6 +58,12 @@ export type FatigueCondition =
     // Flexible condition object
     | FlexibleCondition;
 
+/**
+ * Cycle phases detected automatically from fatigue/power trajectory.
+ * Used for intelligent modifier filtering based on where athlete is in a training cycle.
+ */
+export type CyclePhase = 'ascending' | 'peak' | 'descending' | 'trough';
+
 
 // ============================================================================
 // TEMPLATE STRUCTURE
@@ -319,11 +325,14 @@ export interface FatigueAdjustments {
     /** Add/subtract from target RPE (e.g., -1 to make easier) */
     rpeAdjust?: number;
 
-    /** Multiply rest duration (e.g., 1.5 = 50% more rest) */
+    /** Multiply rest duration between intervals (for interval/custom sessions with intervals) */
     restMultiplier?: number;
 
     /** Multiply volume/duration (e.g., 0.5 = half the session) */
     volumeMultiplier?: number;
+
+    /** Multiply session duration directly (for steady-state sessions/blocks). Intervals use restMultiplier instead. */
+    durationMultiplier?: number;
 
     /** Message to display in Coach's Advice */
     message?: string;
@@ -368,6 +377,30 @@ export interface FatigueModifier {
      * This matches the phaseName field from WeekDefinition or ProgramBlock.
      */
     phaseName?: string | string[];
+
+    /**
+     * Optional: Only apply during specific auto-detected cycle phases.
+     * Cycle phases are determined from fatigue/power trajectory analysis:
+     * - 'ascending': During build-up phases when fatigue is rising
+     * - 'peak': At local fatigue maxima (typically week before recovery)
+     * - 'descending': During taper/recovery when fatigue is falling
+     * - 'trough': At local fatigue minima (recovery complete, ready to build again)
+     * 
+     * Can be combined with phaseName for block-based programs, e.g.:
+     * { phaseName: 'Builder', cyclePhase: 'ascending' }
+     */
+    cyclePhase?: CyclePhase | CyclePhase[];
+
+    /**
+     * Optional: Only apply to specific session types.
+     * - 'interval': High-intensity interval sessions
+     * - 'steady-state': Continuous aerobic sessions  
+     * - 'custom': Multi-block custom sessions
+     * 
+     * Allows different recovery strategies for different session types.
+     * Example: reduce intervals more aggressively than steady-state when fatigued.
+     */
+    sessionType?: SessionStyle | SessionStyle[];
 }
 
 /**
@@ -486,6 +519,16 @@ export interface FatigueContext {
     totalWeeks?: number;    // Total weeks in the program (for relative position calculations)
     phase?: WeekFocus;      // Current phase focus (Density, Intensity, Volume, Recovery)
     phaseName?: string;     // Current phase name (e.g., "Build Phase", "Peak Phase")
+
+    /**
+     * Recent fatigue history for cycle phase detection.
+     * Array of fatigue scores from recent sessions/days (most recent last).
+     * Needed for cyclePhase modifier filtering.
+     */
+    fatigueHistory?: number[];
+
+    /** Alias for readinessScore for convenience */
+    readiness?: number;
 }
 
 /**

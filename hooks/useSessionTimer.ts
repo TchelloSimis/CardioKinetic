@@ -628,6 +628,10 @@ export const useSessionTimer = (
                             ? nextBlockDurationSeconds
                             : nextBlockDurations.workSeconds;
 
+                        // Reset targetPower to original so harder/easier adjustments don't carry over
+                        newState.targetPower = params.targetPower;
+
+
                         // Reset countdown tracking for new block
                         lastCountdownSecondRef.current = -1;
                         lastSteadyReminderRef.current = 0;
@@ -1001,14 +1005,30 @@ export const useSessionTimer = (
             const newPower = Math.max(10, prev.targetPower + deltaWatts);
             wasAdjustedRef.current = true;
             powerHistoryRef.current.push({ value: newPower, startTime: Date.now() });
+
+            // For custom sessions, log the block-adjusted power (what user sees)
+            // For non-custom sessions, log the raw targetPower
+            let logPower = newPower;
+            const params = setupParamsRef.current;
+            if (params?.sessionStyle === 'custom' && params.blocks && prev.currentBlockIndex !== undefined) {
+                const currentBlock = params.blocks[prev.currentBlockIndex];
+                if (currentBlock) {
+                    // Calculate display power: originalBlockPower + adjustment delta
+                    const originalBlockPower = Math.round(params.targetPower * currentBlock.powerMultiplier);
+                    const powerDelta = newPower - params.targetPower;
+                    logPower = originalBlockPower + powerDelta;
+                }
+            }
+
             phaseLogRef.current.push({
                 timeSeconds: prev.sessionTimeElapsed,
-                power: newPower,
+                power: logPower,
                 phase: prev.currentPhase as 'work' | 'rest'
             });
             return { ...prev, targetPower: newPower };
         });
     }, []);
+
 
     return {
         state,

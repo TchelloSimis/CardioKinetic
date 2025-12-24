@@ -1,0 +1,124 @@
+{
+    "templateVersion": "1.0",
+    "id": "test-long-12week",
+    "name": "Long 12-Week Progressive",
+    "description": "Test adaptive windows on a longer program. Should detect multiple cycles with clear ascending/peak/descending/trough patterns.",
+    "weekConfig": {
+        "type": "fixed",
+        "fixed": 12
+    },
+    "defaultSessionStyle": "interval",
+    "progressionMode": "power",
+    "defaultSessionDurationMinutes": 15,
+    "weeks": [
+        {
+            "position": 1,
+            "phaseName": "Intro",
+            "focus": "Volume",
+            "description": "Introduction",
+            "powerMultiplier": 0.9,
+            "workRestRatio": "1:2",
+            "targetRPE": 5
+        },
+        {
+            "position": 2,
+            "phaseName": "Build 1",
+            "focus": "Volume",
+            "description": "Building base",
+            "powerMultiplier": 1.0,
+            "workRestRatio": "1:2",
+            "targetRPE": 6
+        },
+        {
+            "position": 3,
+            "phaseName": "Build 2",
+            "focus": "Density",
+            "description": "Increasing",
+            "powerMultiplier": 1.1,
+            "workRestRatio": "1:1",
+            "targetRPE": 7
+        },
+        {
+            "position": 4,
+            "phaseName": "Peak 1",
+            "focus": "Intensity",
+            "description": "First peak",
+            "powerMultiplier": 1.2,
+            "workRestRatio": "2:1",
+            "targetRPE": 8
+        },
+        {
+            "position": 5,
+            "phaseName": "Deload 1",
+            "focus": "Recovery",
+            "description": "Recovery",
+            "powerMultiplier": 0.75,
+            "workRestRatio": "1:2",
+            "targetRPE": 5
+        },
+        {
+            "position": 6,
+            "phaseName": "Rebuild",
+            "focus": "Volume",
+            "description": "Rebuild base",
+            "powerMultiplier": 1.0,
+            "workRestRatio": "1:2",
+            "targetRPE": 6
+        },
+        {
+            "position": 7,
+            "phaseName": "Build 3",
+            "focus": "Density",
+            "description": "Second build",
+            "powerMultiplier": 1.15,
+            "workRestRatio": "1:1",
+            "targetRPE": 7
+        },
+        {
+            "position": 8,
+            "phaseName": "Build 4",
+            "focus": "Intensity",
+            "description": "Intensify",
+            "powerMultiplier": 1.25,
+            "workRestRatio": "2:1",
+            "targetRPE": 8
+        },
+        {
+            "position": 9,
+            "phaseName": "Peak 2",
+            "focus": "Intensity",
+            "description": "Second peak",
+            "powerMultiplier": 1.35,
+            "workRestRatio": "2:1",
+            "targetRPE": 9
+        },
+        {
+            "position": 10,
+            "phaseName": "Deload 2",
+            "focus": "Recovery",
+            "description": "Recovery",
+            "powerMultiplier": 0.7,
+            "workRestRatio": "1:2",
+            "targetRPE": 4
+        },
+        {
+            "position": 11,
+            "phaseName": "Taper",
+            "focus": "Recovery",
+            "description": "Final taper",
+            "powerMultiplier": 0.8,
+            "workRestRatio": "1:2",
+            "targetRPE": 5
+        },
+        {
+            "position": 12,
+            "phaseName": "Race Week",
+            "focus": "Intensity",
+            "description": "Peak performance",
+            "powerMultiplier": 0.9,
+            "workRestRatio": "2:1",
+            "targetRPE": 6
+        }
+    ],
+    "fatigueModifiers": []
+}

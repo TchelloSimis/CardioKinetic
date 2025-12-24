@@ -1,0 +1,65 @@
+{
+    "templateVersion": "1.0",
+    "id": "test-variable-length",
+    "name": "Variable 4-12 Week",
+    "description": "Test adaptive windows across different lengths. Import and test at 4, 8, and 12 weeks to see window sizing change.",
+    "weekConfig": {
+        "type": "variable",
+        "range": {
+            "min": 4,
+            "max": 12,
+            "step": 2
+        }
+    },
+    "defaultSessionStyle": "interval",
+    "progressionMode": "power",
+    "defaultSessionDurationMinutes": 15,
+    "weeks": [
+        {
+            "position": "first",
+            "phaseName": "Foundation",
+            "focus": "Volume",
+            "description": "Build base",
+            "powerMultiplier": 1.0,
+            "workRestRatio": "1:2",
+            "targetRPE": 6
+        },
+        {
+            "position": "25%",
+            "phaseName": "Build Low",
+            "focus": "Density",
+            "description": "Early build",
+            "powerMultiplier": 1.1,
+            "workRestRatio": "1:1",
+            "targetRPE": 7
+        },
+        {
+            "position": "50%",
+            "phaseName": "Build High",
+            "focus": "Intensity",
+            "description": "Peak build",
+            "powerMultiplier": 1.2,
+            "workRestRatio": "2:1",
+            "targetRPE": 8
+        },
+        {
+            "position": "75%",
+            "phaseName": "Consolidate",
+            "focus": "Intensity",
+            "description": "Hold gains",
+            "powerMultiplier": 1.15,
+            "workRestRatio": "1:1",
+            "targetRPE": 7
+        },
+        {
+            "position": "last",
+            "phaseName": "Peak",
+            "focus": "Intensity",
+            "description": "Final peak",
+            "powerMultiplier": 1.25,
+            "workRestRatio": "2:1",
+            "targetRPE": 9
+        }
+    ],
+    "fatigueModifiers": []
+}

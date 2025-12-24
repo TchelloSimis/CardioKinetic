@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Database, Trash2, Calendar, CheckSquare, Bell, Info, Smartphone, LineChart, Play } from 'lucide-react';
+import { Database, Trash2, Calendar, CheckSquare, Bell, Info, Smartphone, LineChart, Play, Zap } from 'lucide-react';
 import { ProgramPreset } from '../../types';
 import { runMonteCarloSimulation, SimulationResult } from '../../utils/simulationEngine';
 import SimulationCharts from './SimulationCharts';
 import { AccentColor, AccentColorConfig, AccentModifierState, ColorRole, ThemeVariant } from '../../presets';
 import { getMaterialYouAccentColors, hexToHsl, hslToHex } from '../../utils/colorUtils';
+import { ModifierTestingPanel } from '../devtools/ModifierTestingPanel';
 import {
     isNativePlatform,
     getPlatformName,
@@ -378,6 +379,18 @@ const DevToolsSettings: React.FC<DevToolsSettingsProps> = ({
                         )}
                     </div>
                 )}
+            </div>
+
+            {/* Modifier Testing Lab */}
+            <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden">
+                <div className="p-4 border-b border-neutral-200 dark:border-neutral-800">
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-neutral-400 flex items-center gap-2">
+                        <Zap size={14} style={{ color: 'var(--accent)' }} />
+                        Modifier Testing Lab
+                    </h3>
+                    <p className="text-xs text-neutral-500 mt-1">Compare baseline vs adaptive simulation to validate suggested modifiers</p>
+                </div>
+                <ModifierTestingPanel preset={selectedPreset || null} />
             </div>
 
             {/* Accent Color Modifiers */}

@@ -48,10 +48,12 @@ const CTL_ALPHA = 2 / (CTL_DAYS + 1);   // ~0.047
 // Fatigue score parameters (Logistic Sigmoid)
 const FATIGUE_MIDPOINT = 1.15;          // ACWR at 50% fatigue
 const FATIGUE_STEEPNESS = 4.5;          // Sigmoid steepness
+const CTL_MINIMUM = 15;                 // Minimum CTL baseline for new users
 
-// Readiness score parameters (Gaussian)
+// Readiness score parameters (Asymmetric Gaussian)
 const READINESS_OPTIMAL_TSB = 20;       // TSB for peak readiness (100)
-const READINESS_WIDTH = 1250;           // Gaussian variance (σ²)
+const READINESS_WIDTH_UNDERTRAIN = 2000; // Gentler penalty for detraining (TSB > optimal)
+const READINESS_WIDTH_OVERTRAIN = 1000;  // Steeper penalty for overtraining (TSB < optimal)
 
 // ============================================================================
 // LEGACY FUNCTION (kept for backward compatibility during transition)
@@ -267,7 +269,10 @@ export function calculateDailyLoad(
 /**
  * Calculate Fatigue Score using ACWR with Logistic Sigmoid normalization.
  * 
- * Formula: Score = 100 / (1 + e^(-4 × (ACWR - 1.3)))
+ * Formula: Score = 100 / (1 + e^(-4.5 × (ACWR - 1.15)))
+ * 
+ * Uses CTL_MINIMUM (15) as baseline for new users to prevent ACWR explosion
+ * when chronic load history is insufficient.
  * 
  * Interpretation:
  * - < 20: Fully Recovered
@@ -280,32 +285,36 @@ export function calculateDailyLoad(
  * @returns Fatigue score 0-100
  */
 export function calculateFatigueScore(atl: number, ctl: number): number {
-    // Prevent division by zero; if no chronic load, fatigue depends purely on acute
-    if (ctl <= 0) {
-        // If athlete has no history but has acute load, they're potentially overloading
-        return atl > 0 ? Math.min(100, Math.round(atl * 2)) : 0;
-    }
+    // Use minimum CTL baseline for new users to avoid ACWR explosion
+    // This prevents misleading high fatigue scores when history is insufficient
+    const effectiveCTL = Math.max(CTL_MINIMUM, ctl);
 
-    const acwr = atl / ctl;
+    const acwr = atl / effectiveCTL;
     const score = 100 / (1 + Math.exp(-FATIGUE_STEEPNESS * (acwr - FATIGUE_MIDPOINT)));
 
     return Math.round(Math.max(0, Math.min(100, score)));
 }
 
 /**
- * Calculate Readiness Score using TSB with Gaussian distribution.
+ * Calculate Readiness Score using TSB with Asymmetric Gaussian distribution.
  * 
- * Formula: Score = 100 × e^(-(TSB - 20)² / 1250)
+ * Uses different decay rates for overtraining vs detraining:
+ * - Overtraining (TSB < 20): Steeper penalty (width=1000) - injury risk
+ * - Undertraining (TSB > 20): Gentler penalty (width=2000) - fitness loss
  * 
- * The Gaussian peaks at TSB = +20, penalizing both:
- * - Deep fatigue (negative TSB)
- * - Detraining (excessively positive TSB)
+ * The Gaussian peaks at TSB = +20, which aligns with research on optimal
+ * TSB for peak performance (Friel, TrainingPeaks recommendations).
  * 
  * @param tsb - Training Stress Balance (CTL - ATL)
  * @returns Readiness score 0-100
  */
 export function calculateReadinessScore(tsb: number): number {
-    const exponent = -Math.pow(tsb - READINESS_OPTIMAL_TSB, 2) / READINESS_WIDTH;
+    // Asymmetric Gaussian: stricter for overtraining, gentler for detraining
+    const width = tsb >= READINESS_OPTIMAL_TSB
+        ? READINESS_WIDTH_UNDERTRAIN  // Detraining side (gentler)
+        : READINESS_WIDTH_OVERTRAIN;  // Overtraining side (steeper)
+
+    const exponent = -Math.pow(tsb - READINESS_OPTIMAL_TSB, 2) / width;
     const score = 100 * Math.exp(exponent);
 
     return Math.round(Math.max(0, Math.min(100, score)));

@@ -2,6 +2,202 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.2.0] - 2025-12-24
+
+### Added
+
+#### Intelligent Modifier Suggestions (Major Feature)
+A new "Suggest Modifiers" button leverages advanced multi-scale adaptive trend detection to automatically generate fatigue modifiers tailored to your program:
+
+- **Automatic Cycle Phase Detection**: Uses signal processing (Savitzky-Golay smoothing) and CUSUM change-point detection to identify training phases (`ascending`, `peak`, `descending`, `trough`) from fatigue trajectory
+- **Two-Tier Suggestion System**: Standard tier (P30/P70 thresholds) for moderate deviations, Extreme tier (P15/P85) for significant deviations requiring stronger adjustments
+- **Session-Type Awareness**: Analyzes your program structure and generates appropriate modifiers—`restMultiplier` for interval sessions, `durationMultiplier` for steady-state, block-level adjustments for custom sessions
+- **Combined Condition Modifiers**: Triggers on both fatigue AND readiness simultaneously for aggressive interventions when needed
+- **Overload Protection**: Priority 1 modifiers force mandatory deloads when fatigue exceeds 85% or readiness drops below 25%
+- **Actionable Messages**: Human-readable suggestions like "Target power at 92%" instead of technical notation
+
+New supporting types: `CyclePhase`, `cyclePhase`/`sessionType` filter fields, `durationMultiplier` adjustment, and `detectCyclePhase()` runtime function.
+
+#### Modifier Testing Panel (Developer Tools)
+A new Monte Carlo simulation panel for validating modifier effectiveness:
+
+- Run 10-1000 iterations comparing baseline vs. adaptive (modifier-applied) execution
+- Week-by-week fatigue/readiness projections with P30-P70 statistical variance
+- Power multiplier progression overlay and modifier trigger frequency tracking
+- Click any week for detailed breakdown of triggered modifiers
+
+### Fixed
+
+- **Fatigue Modifiers Step Header**: Fixed cramped header layout that caused overflow on smaller screens. Buttons now wrap properly with shortened labels ("Suggest", "Add")
+- **Block-Based Program Preview**: Chart and week definitions table now correctly display for block-based programs using `expandBlocksToWeeks()`. Added support for `customDurations` and empty state message
+- **Block-Based Duration Progression**: `expandBlocksToWeeks()` now correctly applies `durationProgression` and `durationReference` fields. Added `calculateBlockDuration()` function paralleling power calculations
+- **Block Sequence Starting Point**: Fixed block-based programs sometimes starting with wrong block (e.g., Deload instead of Build) by always using first block in array order
+- **Custom Session Target Power Display**: Live session guide now shows block-specific power (e.g., 70W at 70% multiplier) instead of base session power. Harder/easier adjustments properly reset on block transitions
+- **Session Editor State After Cancel**: Fixed stale values appearing when reopening session setup after cancelling a live session
+
+### Improved
+
+#### Algorithm Enhancements
+- **Zero-History Edge Case**: Added `CTL_MINIMUM = 15` constant to prevent ACWR explosion for new users
+- **Asymmetric Readiness Penalties**: Steeper penalty for overtraining (injury risk) vs. gentler penalty for detraining (gradual fitness loss)
+- **Training Monotony Utilities**: New `calculateMonotony()`, `calculateStrain()`, and risk classification functions based on Foster et al. research
+- **Cycle Phase Detection**: Increased minimum data points (3→5), added hysteresis to prevent phase thrashing, confidence-based phase stickiness
+
+### Documentation
+- **Complete rewrite of `TEMPLATE_DOCUMENTATION.md`**: Streamlined from ~1050 to ~560 lines with Quick Start guide, Suggested Modifiers section, session-type adjustments, and consolidated filter field documentation
+- **Enhanced Fatigue & Readiness Science Section**: Added algorithm explanations with research citations (Gabbett 2016, Friel 2009, Banister 1991, Foster 1998)
+
+## [1.1.0] - 2025-12-12
+
+### Added
+
+#### Block-Based Program Templates (Major Feature)
+- **New `structureType` field**: Templates can now be `'week-based'` (traditional) or `'block-based'` (new)
+- **`ProgramBlock` type**: Define reusable training blocks with:
+  - `id`, `name`, `weekCount`: Block identification and length
+  - `powerReference`: Power calculation mode (`'base'`, `'previous'`, or `'block_start'`)
+  - `powerProgression`: Array of power multipliers for each week in the block
+  - `followedBy`: Chain blocks together (e.g., Builder → Deload → Builder)
+  - Full `WeekDefinition` properties: `focus`, `phaseName`, `description`, `workRestRatio`, `targetRPE`, etc.
+- **`PowerReference` type**: Three modes for relative power calculations:
+  - `'base'`: Multiplier × basePower (absolute reference)
+  - `'previous'`: Multiplier × previous week's power
+  - `'block_start'`: Multiplier × power from the week before the block started
+- **`fixedFirstWeek` and `fixedLastWeek`**: Define fixed introductory/conclusion weeks
+- **`customDurations` in WeekConfig**: Specify exact valid durations instead of min/max/step range
+
+#### New Files
+- **`utils/blockExpansion.ts`**: Core algorithm for block-based program generation
+  - `expandBlocksToWeeks()`: Converts block definitions to week arrays
+  - `calculateBlockPower()`: Handles relative power reference calculations
+  - `generateBlockSequence()`: Sequences blocks using followedBy chains
+  - `countBlockOccurrences()`: Counts block instances for a given duration
+  - `formatBlockCounts()`: Returns UI-friendly string (e.g., "Builder ×2, Deload ×1")
+
+#### UI Enhancements
+- **Onboarding duration slider**: Now displays block composition for block-based templates
+  - Shows "Builder ×2, Deload ×1" format below the week selector
+  - Updates dynamically as user changes duration
+
+- **Program Editor: Block-Based Program Support**
+  - Configuration Step now has "Program Structure" toggle (Week-Based / Block-Based)
+  - New "Custom" duration option: enter comma-separated week counts with validation
+  - New types in `programTemplate.ts`:
+    - `BlockProgressionType`: 'power' | 'duration' | 'double'
+    - `BlockWeekSession`: per-week session configuration with targetRPE
+  - `ProgramBlock` interface now includes:
+    - `progressionType`: power-only, duration-only, or double progression
+    - `durationProgression`: per-week duration multipliers (cycles rounded for interval)
+  - New `BlocksDefinitionStep.tsx` component with **per-week session customization**:
+    - Block list with add/remove/reorder functionality
+    - **Progression selector** (Power Only / Duration Only / Power + Duration)
+    - **Per-week expandable editors (W1, W2, W3...)** with:
+      - Session Style selector (Interval / Steady-State / Custom)
+      - Interval mode: Cycles, Work (s), Rest (s), auto-calculated duration
+      - Steady-State mode: Duration (min) only (removed Work:Rest - not applicable)
+      - Custom mode: Full Training Blocks UI
+      - **Power × multiplier** (shown for power/double progression)
+      - **Duration × multiplier** (shown for duration/double progression)
+      - **Target RPE** per week
+    - followedBy selector for block chaining
+    - Fixed First Week and Fixed Last Week sections
+  - Step 3 dynamically shows "Blocks" or "Weeks" based on structure type
+
+#### Example Template
+
+
+
+- **Builder/Deload Periodization**: New preset demonstrating block-based structure
+  - 4-week Builder blocks (power 1.1× → 1.4× relative to block start)
+  - 2-week Deload blocks (power 0.8× relative to block start)
+  - Custom durations: 8, 14, 20, 26 weeks
+  - Fixed intro/outro weeks at base power
+
+#### Features for week-based programs
+- **Interval sessions now support cycles/work/rest configuration in Program Editor**
+  - When `sessionStyle === 'interval'`, you can now define sessions using:
+    - `cycles`: Number of work/rest cycles
+    - `workDurationSeconds`: Work duration per cycle
+    - `restDurationSeconds`: Rest duration per cycle
+  - Duration is automatically calculated: `cycles × (work + rest) / 60`
+  - Fatigue modifier `volumeMultiplier` rounds cycles to nearest integer (same as interval blocks in custom sessions)
+
+#### Fatigue Modifier Enhancements
+- **Phase Name condition**: Fatigue modifiers can now trigger only in specific phases
+  - New `phaseName` field in `FatigueModifier` interface
+  - Added to `FatigueContext` for condition checking
+  - **UI**: Phase Name dropdown selector in Fatigue Modifiers step
+    - Shows available phase names from weeks/blocks when defined
+    - Falls back to text input when no phases are defined
+    - Validation warning when phase name doesn't match template
+  - Runtime check in `applyFatigueModifiers()` filters modifiers by phase name
+
+
+### Changed
+- **`planGeneration.ts`**: Extended to detect `structureType` and route to appropriate generation path
+- **`templateValidation.ts`**: Added validation for:
+  - `customDurations` (must be positive integers)
+  - `ProgramBlock` structure (id, name, weekCount, powerReference, powerProgression, etc.)
+  - `followedBy` chain references (must point to valid block IDs)
+- **`templateUtils.ts`**: `templateToPreset()` and `hydratePreset()` now preserve block-based fields
+- **`getWeekOptions()`**: Now returns `customDurations` when specified (overrides range)
+- **`getValidWeekCount()`**: Validates against `customDurations` when present
+
+### Documentation
+- **`TEMPLATE_DOCUMENTATION.md`**: Added comprehensive "Block-Based Programs" section
+  - Custom Duration Lists documentation
+  - ProgramBlock interface reference
+  - Power reference modes with calculation examples
+  - Fixed first/last weeks documentation
+  - Block chaining explanation
+  - Complete JSON example template
+
+### Fixed
+- **Duration fatigue modifiers now work correctly with custom sessions**
+  - For interval blocks: `volumeMultiplier` is applied to cycles and rounded to the nearest integer (e.g., 6 cycles × 0.8 = 5 cycles)
+  - For steady-state blocks: `volumeMultiplier` is applied to duration without rounding (e.g., 8 min × 0.8 = 6.4 min)
+  - `targetDurationMinutes` is recalculated from modified blocks for consistency
+- **Analytics chart dates now match session history dates**
+  - Fixed timezone issue where chart dates could be off by one day in non-UTC timezones
+  - Date display now parses directly from ISO strings instead of using `toLocaleDateString()` on UTC-constructed dates
+- **Fatigue/Readiness curves now extend through the current day**
+  - Metrics continue to show the natural decay on rest days instead of stopping at the last session
+  - EWMA model correctly displays current readiness state even without recent training
+- **Simulation tile now properly handles fixed-duration programs**
+  - Programs with a single `weekCount` (no `minWeeks`/`maxWeeks`) now display a static week value instead of a slider
+  - Programs with `weekOptions` containing only one value are correctly detected as fixed-duration
+  - Week count automatically syncs when switching between programs with different duration configurations
+- **Simulation charts now fill full horizontal width**
+  - Removed unnecessary padding from chart containers
+  - Set explicit Y-axis widths (35px left, 30px right) to minimize reserved space
+  - Charts now extend edge-to-edge within the card
+
+### Changed
+- **Readiness model now starts at ~75% instead of ~93%**
+  - Initial ATL seed changed from 0 to 9 (CTL remains at 10)
+  - TSB = CTL - ATL = 1 → Readiness ≈ 75% (neutral starting state)
+  - Represents a more realistic baseline where athletes have some acute training load
+  - Updated `metricsUtils.ts` and `simulationEngine.ts` with new initial values
+  - Added "Initial State" section to `TEMPLATE_DOCUMENTATION.md` explaining seed values
+- **Duration selector now supports non-uniform custom durations**
+  - Changed from value-based slider (`step = weekOptions[1] - weekOptions[0]`) to index-based
+  - Slider now correctly handles asymmetric durations like `[8, 12, 14, 18, 20, 24, 26]`
+  - Uses `min=0, max=weekOptions.length-1, step=1` to index into options array
+
+### Documentation
+- **`TEMPLATE_DOCUMENTATION.md`**: Added comprehensive **Fatigue Modifiers** section (~200 lines)
+  - Condition fields (fatigue, readiness thresholds with operators)
+  - Adjustment fields (powerMultiplier, rpeAdjust, restMultiplier, volumeMultiplier, message)
+  - Priority system explanation with use case tiers
+  - Phase filter (WeekFocus types)
+  - Phase Name filter (string matching with validation)
+  - Week Position filter (first/last, early/mid/late, percentage positions)
+  - Three complete JSON examples (high fatigue recovery, peak week boost, overreaching prevention)
+
+### UI Fixes
+- **Edit Template program selector**: Description text now shows 3 lines instead of 2 (line-clamp-3)
+  - Added `flex-1 pr-2` for proper text wrapping
+
 ## [1.0.1] - 2025-12-12
 
 ### Added
