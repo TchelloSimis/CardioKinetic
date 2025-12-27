@@ -82,6 +82,7 @@ describe('calculateBlockMetricsFromTemplate', () => {
         const blocks: TemplateBlock[] = [{
             type: 'interval',
             powerExpression: 1.0,
+            durationExpression: 5, // 5 minutes total
             cycles: 5,
             workDurationSeconds: 30,
             restDurationSeconds: 30

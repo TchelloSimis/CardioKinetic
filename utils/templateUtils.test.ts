@@ -203,6 +203,7 @@ describe('hydratePreset', () => {
         const preset: ProgramPreset = {
             id: 'broken',
             name: 'Broken Preset',
+            description: 'A broken preset for testing fallback behavior',
             generator: null as any, // No generator
             weekCount: 8
         };

@@ -140,3 +140,117 @@ export function detectExtrema(data: number[]): { peaks: number[]; troughs: numbe
 
     return { peaks, troughs };
 }
+
+// ============================================================================
+// PHASE POSITION CALCULATION
+// ============================================================================
+
+import { CyclePhase, PhasePosition } from '../../programTemplate';
+import { WeekAnalysis } from './types';
+
+/**
+ * Calculate position ratio and phase position for each week.
+ * Groups consecutive weeks with the same cyclePhase and assigns
+ * a position ratio (0=start, 1=end) within each group.
+ * 
+ * @param weekAnalyses - Array of week analysis objects with cyclePhase
+ * @returns Array of position data for each week
+ */
+export function calculatePhasePositions(
+    weekAnalyses: WeekAnalysis[]
+): { positionRatio: number; phasePosition: PhasePosition }[] {
+    const result: { positionRatio: number; phasePosition: PhasePosition }[] =
+        new Array(weekAnalyses.length);
+
+    let groupStart = 0;
+    for (let i = 0; i < weekAnalyses.length; i++) {
+        // Check if this is the end of a phase group
+        const isEndOfGroup = i === weekAnalyses.length - 1 ||
+            weekAnalyses[i].cyclePhase !== weekAnalyses[i + 1].cyclePhase;
+
+        if (isEndOfGroup) {
+            const groupLength = i - groupStart + 1;
+            // Assign positions within this group
+            for (let j = groupStart; j <= i; j++) {
+                const ratio = groupLength === 1 ? 0.5 : (j - groupStart) / (groupLength - 1);
+                const position: PhasePosition =
+                    ratio < 0.33 ? 'early' :
+                        ratio < 0.67 ? 'mid' : 'late';
+                result[j] = { positionRatio: ratio, phasePosition: position };
+            }
+            groupStart = i + 1;
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Calculate cumulative fatigue estimate based on position within ascending phase.
+ * Early ascending = lower expected fatigue, late ascending = higher.
+ * 
+ * Models fatigue accumulation during ascending phases:
+ * - Early weeks: expect baseline fatigue
+ * - Late weeks: expect baseline + accumulated fatigue from training load
+ * 
+ * @param baselineFatigue - The base fatigue level for this phase
+ * @param positionRatio - Position within phase (0=start, 1=end)
+ * @param cyclePhase - The detected cycle phase
+ * @param fatigueVelocity - Rate of change of fatigue
+ * @returns Estimated cumulative fatigue at this position
+ */
+export function estimateCumulativeFatigue(
+    baselineFatigue: number,
+    positionRatio: number,
+    cyclePhase: CyclePhase,
+    fatigueVelocity: number
+): number {
+    if (cyclePhase !== 'ascending') return baselineFatigue;
+
+    // Model: fatigue accumulates roughly linearly during ascending
+    // Early (ratio ~0): expect ~baseline
+    // Late (ratio ~1): expect ~baseline + accumulation factor
+    // The accumulation factor is proportional to velocity (rate of fatigue buildup)
+    const accumulationFactor = Math.max(0, fatigueVelocity) * 3;
+    return baselineFatigue + (positionRatio * accumulationFactor);
+}
+
+/**
+ * Adjust thresholds based on position within ascending phase.
+ * 
+ * Problem: All ascending weeks currently use the same thresholds, but:
+ * - Early ascending weeks naturally have lower fatigue (just starting to build)
+ * - Late ascending weeks naturally have higher fatigue (accumulated load)
+ * 
+ * Solution: Shift thresholds based on position
+ * - Early: lower both thresholds (low fatigue is expected, don't trigger "push harder")
+ * - Late: raise both thresholds (high fatigue is expected, don't trigger "back off")
+ * 
+ * @param p30 - 30th percentile threshold (low fatigue trigger)
+ * @param p70 - 70th percentile threshold (high fatigue trigger)
+ * @param positionRatio - Position within phase (0=start, 1=end)
+ * @param cyclePhase - The detected cycle phase
+ * @returns Adjusted thresholds
+ */
+export function adjustThresholdsForPosition(
+    p30: number,
+    p70: number,
+    positionRatio: number,
+    cyclePhase: CyclePhase
+): { adjustedP30: number; adjustedP70: number } {
+    if (cyclePhase !== 'ascending') {
+        return { adjustedP30: p30, adjustedP70: p70 };
+    }
+
+    // Shift thresholds based on position
+    // At position 0 (early): shift = -7.5 (lower thresholds)
+    // At position 0.5 (mid): shift = 0 (no change)
+    // At position 1 (late): shift = +7.5 (higher thresholds)
+    const shiftFactor = (positionRatio - 0.5) * 15;
+
+    return {
+        adjustedP30: Math.max(5, Math.min(90, p30 + shiftFactor)),
+        adjustedP70: Math.min(95, Math.max(10, p70 + shiftFactor))
+    };
+}
+

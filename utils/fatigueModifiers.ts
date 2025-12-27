@@ -6,7 +6,7 @@
  */
 
 import { PlanWeek } from '../types';
-import { FatigueModifier, FatigueCondition, FatigueContext, CyclePhase } from '../programTemplate';
+import { FatigueModifier, FatigueCondition, FatigueContext, CyclePhase, PhasePosition } from '../programTemplate';
 
 // ============================================================================
 // CONSTANTS
@@ -139,6 +139,53 @@ export function detectCyclePhase(
     return { phase: detectedPhase, confidence };
 }
 
+/**
+ * Calculate phase position (early/mid/late) from fatigue history.
+ * 
+ * Estimates position within the current phase by looking at how long
+ * the current trend has been sustained. Uses velocity consistency to
+ * estimate how far into the phase we are.
+ * 
+ * @param fatigueHistory - Array of recent fatigue scores
+ * @param currentPhase - The detected cycle phase
+ * @returns PhasePosition or undefined if not enough data
+ */
+export function calculatePhasePositionFromHistory(
+    fatigueHistory: number[],
+    currentPhase: CyclePhase
+): PhasePosition | undefined {
+    if (fatigueHistory.length < MIN_HISTORY_POINTS) {
+        return undefined;
+    }
+
+    // Get recent values
+    const recent = fatigueHistory.slice(-Math.min(10, fatigueHistory.length));
+
+    // Count consecutive weeks matching current phase direction
+    let consecutiveCount = 0;
+    const isRising = currentPhase === 'ascending' || currentPhase === 'peak';
+
+    // Start from most recent and count back
+    for (let i = recent.length - 1; i > 0; i--) {
+        const diff = recent[i] - recent[i - 1];
+        const matchesDirection = isRising ? diff >= -1 : diff <= 1;
+
+        if (matchesDirection) {
+            consecutiveCount++;
+        } else {
+            break;
+        }
+    }
+
+    // Map consecutive count to position
+    // Typical phase length is 3-6 weeks
+    const positionRatio = Math.min(1, consecutiveCount / 5);
+
+    if (positionRatio < 0.33) return 'early';
+    if (positionRatio < 0.67) return 'mid';
+    return 'late';
+}
+
 // ============================================================================
 // FATIGUE CONDITION CHECKING
 // ============================================================================
@@ -262,6 +309,18 @@ export function applyFatigueModifiers(
                 const phasesToMatch = Array.isArray(modifier.cyclePhase) ? modifier.cyclePhase : [modifier.cyclePhase];
                 if (!phasesToMatch.includes(result.phase)) {
                     continue; // Skip if current cycle phase doesn't match
+                }
+
+                // Check phasePosition within the detected cycle phase
+                if (modifier.phasePosition !== undefined && context.fatigueHistory) {
+                    const phasePosition = calculatePhasePositionFromHistory(context.fatigueHistory, result.phase);
+                    if (phasePosition) {
+                        const positionsToMatch = Array.isArray(modifier.phasePosition)
+                            ? modifier.phasePosition : [modifier.phasePosition];
+                        if (!positionsToMatch.includes(phasePosition)) {
+                            continue; // Skip if phase position doesn't match
+                        }
+                    }
                 }
             }
         }

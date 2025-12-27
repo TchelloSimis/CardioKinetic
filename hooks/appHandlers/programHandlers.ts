@@ -4,8 +4,8 @@
  * Handlers for program-related actions (onboarding, finish, rename, delete, update, load preset)
  */
 
-import type { ProgramRecord, ProgramTemplate } from '../../programTemplate';
-import type { PlanWeek, Session } from '../../types';
+import type React from 'react';
+import type { ProgramRecord, ProgramPreset, PlanWeek, Session } from '../../types';
 import type { OnboardingData } from './types';
 import { getLocalDateString } from '../../utils/dateUtils';
 
@@ -13,7 +13,7 @@ import { getLocalDateString } from '../../utils/dateUtils';
  * Create handler for onboarding completion
  */
 export function createOnboardingCompleteHandler(
-    presets: ProgramTemplate[],
+    presets: ProgramPreset[],
     setPrograms: React.Dispatch<React.SetStateAction<ProgramRecord[]>>
 ) {
     return (data: OnboardingData) => {
@@ -121,7 +121,7 @@ export function createUpdatePlanHandler(
  */
 export function createLoadPresetHandler(
     activeProgram: ProgramRecord | undefined,
-    presets: ProgramTemplate[],
+    presets: ProgramPreset[],
     defaultBasePower: number,
     setPrograms: React.Dispatch<React.SetStateAction<ProgramRecord[]>>
 ) {

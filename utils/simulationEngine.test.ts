@@ -27,6 +27,7 @@ const createMockPreset = (): ProgramPreset => ({
             week: i + 1,
             phaseName: `Week ${i + 1}`,
             focus: 'Volume' as const,
+            description: `Test week ${i + 1}`,
             plannedPower: basePower * (1 + i * 0.02),
             targetRPE: 6 + Math.floor(i / 2),
             workRestRatio: '1:1',

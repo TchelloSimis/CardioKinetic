@@ -4,8 +4,8 @@
  * Type definitions for App.tsx event handlers
  */
 
-import type { Session, PlanWeek, SessionSetupParams, SessionResult } from '../types';
-import type { ProgramRecord } from '../programTemplate';
+import type React from 'react';
+import type { Session, PlanWeek, SessionSetupParams, SessionResult, ProgramRecord } from '../../types';
 
 // ============================================================================
 // HANDLER RETURN TYPES

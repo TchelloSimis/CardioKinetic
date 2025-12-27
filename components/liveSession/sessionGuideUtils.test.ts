@@ -113,9 +113,9 @@ describe('LiveSessionGuide Utilities', () => {
     describe('createSessionSummary', () => {
         it('should format steady-state summary', () => {
             const result = createSessionSummary({
-                totalSeconds: 900,
-                avgPower: 150,
-                completedIntervals: 0,
+                actualDurationMinutes: 15,
+                averagePower: 150,
+                intervalsCompleted: 0,
                 sessionStyle: 'steady-state',
             } as any);
             expect(result).toBe('15min @ 150W');
@@ -123,9 +123,9 @@ describe('LiveSessionGuide Utilities', () => {
 
         it('should format interval summary', () => {
             const result = createSessionSummary({
-                totalSeconds: 600,
-                avgPower: 180,
-                completedIntervals: 10,
+                actualDurationMinutes: 10,
+                averagePower: 180,
+                intervalsCompleted: 10,
                 sessionStyle: 'interval',
             } as any);
             expect(result).toBe('10 intervals, 10min total');
@@ -138,22 +138,22 @@ describe('LiveSessionGuide Utilities', () => {
         });
 
         it('should return false for missing sessionStyle', () => {
-            expect(validateSessionParams({ totalDuration: 10, basePower: 100 } as any)).toBe(false);
+            expect(validateSessionParams({ totalDurationMinutes: 10, targetPower: 100 } as any)).toBe(false);
         });
 
         it('should return false for zero duration', () => {
             expect(validateSessionParams({
                 sessionStyle: 'interval',
-                totalDuration: 0,
-                basePower: 100
+                totalDurationMinutes: 0,
+                targetPower: 100
             } as any)).toBe(false);
         });
 
         it('should return true for valid params', () => {
             expect(validateSessionParams({
                 sessionStyle: 'interval',
-                totalDuration: 10,
-                basePower: 150
+                totalDurationMinutes: 10,
+                targetPower: 150
             } as any)).toBe(true);
         });
     });

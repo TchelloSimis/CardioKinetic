@@ -15,6 +15,7 @@ import SessionSetupModal from './components/modals/SessionSetupModal';
 import ReadinessQuestionnaireModal from './components/modals/ReadinessQuestionnaireModal';
 import LiveSessionGuide from './components/LiveSessionGuide';
 import { Session, PlanWeek, ReadinessState, ProgramPreset, ProgramRecord, SessionSetupParams, SessionResult, QuestionnaireResponse } from './types';
+import { FatigueModifier } from './programTemplate';
 import { DEFAULT_PRESETS, ACCENT_COLORS, Tab } from './presets';
 import { useAppState, PRESETS } from './hooks/useAppState';
 import { useTheme } from './hooks/useTheme';
@@ -380,6 +381,25 @@ const App: React.FC = () => {
                 return p;
             }));
         }
+    };
+
+    /**
+     * Apply a template plan directly to the active program.
+     * This preserves logged sessions while updating the plan.
+     * Used when editing a template and applying changes to current program.
+     */
+    const handleApplyPlanToProgram = (plan: PlanWeek[], fatigueModifiers?: FatigueModifier[]) => {
+        if (!activeProgram) return;
+        setPrograms(prev => prev.map(p => {
+            if (p.id === activeProgram.id) {
+                return {
+                    ...p,
+                    plan,
+                    fatigueModifiers: fatigueModifiers ?? p.fatigueModifiers
+                };
+            }
+            return p;
+        }));
     };
 
     const generateSampleData = () => {
@@ -783,6 +803,7 @@ const App: React.FC = () => {
                                         PRESETS={PRESETS}
                                         activeCategory={programCategory}
                                         setActiveCategory={setProgramCategory}
+                                        onApplyPlanToProgram={handleApplyPlanToProgram}
                                     />
                                 </div>
                             )}

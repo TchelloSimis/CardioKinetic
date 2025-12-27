@@ -31,8 +31,8 @@ const createMinimalTemplate = (overrides: Partial<ProgramTemplate> = {}): Progra
     progressionMode: 'power',
     defaultSessionDurationMinutes: 30,
     weeks: [
-        { position: 'first', phaseName: 'Week 1', focus: 'Volume', powerMultiplier: 0.8, targetRPE: 6 },
-        { position: 'last', phaseName: 'Week 4', focus: 'Peak', powerMultiplier: 1.0, targetRPE: 8 }
+        { position: 'first', phaseName: 'Week 1', description: 'Test week 1', focus: 'Volume', powerMultiplier: 0.8, workRestRatio: '1:1', targetRPE: 6 },
+        { position: 'last', phaseName: 'Week 4', description: 'Test week 4', focus: 'Intensity', powerMultiplier: 1.0, workRestRatio: '1:1', targetRPE: 8 }
     ],
     fatigueModifiers: [],
     ...overrides
@@ -151,8 +151,8 @@ describe('generatePlanFromTemplate', () => {
     it('should apply power multipliers correctly', () => {
         const template = createMinimalTemplate({
             weeks: [
-                { position: 'first', phaseName: 'Build', focus: 'Volume', powerMultiplier: 0.8, targetRPE: 6 },
-                { position: 'last', phaseName: 'Peak', focus: 'Intensity', powerMultiplier: 1.1, targetRPE: 8 }
+                { position: 'first', phaseName: 'Build', description: 'Test week', focus: 'Volume', powerMultiplier: 0.8, workRestRatio: '1:1', targetRPE: 6 },
+                { position: 'last', phaseName: 'Peak', description: 'Test week', focus: 'Intensity', powerMultiplier: 1.1, workRestRatio: '1:1', targetRPE: 8 }
             ]
         });
 
@@ -180,8 +180,8 @@ describe('generatePlanFromTemplate', () => {
     it('should use week-specific session style when provided', () => {
         const template = createMinimalTemplate({
             weeks: [
-                { position: 'first', phaseName: 'Build', focus: 'Volume', powerMultiplier: 0.8, targetRPE: 6, sessionStyle: 'interval' },
-                { position: 'last', phaseName: 'Peak', focus: 'Intensity', powerMultiplier: 1.0, targetRPE: 8, sessionStyle: 'steady-state' }
+                { position: 'first', phaseName: 'Build', description: 'Test week', focus: 'Volume', powerMultiplier: 0.8, workRestRatio: '1:1', targetRPE: 6, sessionStyle: 'interval' },
+                { position: 'last', phaseName: 'Peak', description: 'Test week', focus: 'Intensity', powerMultiplier: 1.0, workRestRatio: '1:1', targetRPE: 8, sessionStyle: 'steady-state' }
             ]
         });
 
@@ -210,7 +210,7 @@ describe('generatePlanFromTemplate', () => {
         const template = createMinimalTemplate({
             defaultSessionDurationMinutes: 30,
             weeks: [
-                { position: 'first', phaseName: 'Week 1', focus: 'Volume', powerMultiplier: 1.0, targetRPE: 7, durationMinutes: '150%' }
+                { position: 'first', phaseName: 'Week 1', description: 'Test week', focus: 'Volume', powerMultiplier: 1.0, workRestRatio: '1:1', targetRPE: 7, durationMinutes: '150%' }
             ]
         });
 
@@ -229,6 +229,7 @@ describe('generatePlanFromTemplate', () => {
                 {
                     position: 'first',
                     phaseName: 'Week 1',
+                    description: 'Test week',
                     focus: 'Volume',
                     powerMultiplier: 1.0,
                     targetRPE: 7,

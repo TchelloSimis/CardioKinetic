@@ -21,8 +21,10 @@ import { WeekDefinition } from '../../programTemplate';
 const createWeekDef = (overrides: Partial<WeekDefinition> = {}): WeekDefinition => ({
     position: 1,
     phaseName: 'Build',
+    description: 'Test week',
     focus: 'Volume',
     powerMultiplier: 1.0,
+    workRestRatio: '1:1',
     targetRPE: 7,
     durationMinutes: 30,
     ...overrides

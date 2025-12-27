@@ -4,8 +4,9 @@
  * Contains functions that generate FatigueModifier objects based on analysis.
  */
 
-import { WeekDefinition, FatigueModifier, FlexibleCondition, CyclePhase } from '../../programTemplate';
+import { WeekDefinition, FatigueModifier, FlexibleCondition, CyclePhase, PhasePosition } from '../../programTemplate';
 import { TrendAnalysis, WeekAnalysis } from './types';
+import { adjustThresholdsForPosition } from './algorithms';
 
 // ============================================================================
 // HELPERS
@@ -392,6 +393,81 @@ export function generateSmartModifiers(analysis: TrendAnalysis, weeks: WeekDefin
                 priority: priority++,
                 phaseName: phaseName
             });
+        }
+    }
+
+    // === POSITION-SPECIFIC MODIFIERS FOR ASCENDING PHASES ===
+    // Generate modifiers with position-adjusted thresholds for long ascending phases
+    const ascendingWeeks = weekAnalyses.filter(w => w.cyclePhase === 'ascending');
+    if (ascendingWeeks.length >= 3) {
+        // Group by consecutive runs
+        const earlyWeeks = ascendingWeeks.filter(w => w.phasePosition === 'early');
+        const lateWeeks = ascendingWeeks.filter(w => w.phasePosition === 'late');
+
+        // Early ascending: lower thresholds (low fatigue is expected, don't boost prematurely)
+        if (earlyWeeks.length > 0) {
+            const avgP30 = Math.round(earlyWeeks.reduce((s, w) => s + w.fatigueP30, 0) / earlyWeeks.length);
+            const avgP70 = Math.round(earlyWeeks.reduce((s, w) => s + w.fatigueP70, 0) / earlyWeeks.length);
+            const avgRatio = 0.15; // early position
+            const { adjustedP30, adjustedP70 } = adjustThresholdsForPosition(avgP30, avgP70, avgRatio, 'ascending');
+
+            modifiers.push({
+                condition: { fatigue: `<${Math.round(adjustedP30)}`, logic: 'and' } as FlexibleCondition,
+                adjustments: {
+                    message: `Early ascending phase - low fatigue is expected at this point. Maintain current load.`
+                },
+                priority: priority++,
+                cyclePhase: 'ascending',
+                phasePosition: 'early'
+            });
+
+            if (Math.round(adjustedP70) <= 95) {
+                modifiers.push({
+                    condition: { fatigue: `>${Math.round(adjustedP70)}`, logic: 'and' } as FlexibleCondition,
+                    adjustments: {
+                        powerMultiplier: 0.90,
+                        rpeAdjust: -1,
+                        message: `High fatigue for early ascending phase (>${Math.round(adjustedP70)}%). Unusual this early - reducing load to prevent overreach.`
+                    },
+                    priority: priority++,
+                    cyclePhase: 'ascending',
+                    phasePosition: 'early'
+                });
+            }
+        }
+
+        // Late ascending: higher thresholds (accumulated fatigue is expected, don't back off too easily)
+        if (lateWeeks.length > 0) {
+            const avgP30 = Math.round(lateWeeks.reduce((s, w) => s + w.fatigueP30, 0) / lateWeeks.length);
+            const avgP70 = Math.round(lateWeeks.reduce((s, w) => s + w.fatigueP70, 0) / lateWeeks.length);
+            const avgRatio = 0.85; // late position
+            const { adjustedP30, adjustedP70 } = adjustThresholdsForPosition(avgP30, avgP70, avgRatio, 'ascending');
+
+            modifiers.push({
+                condition: { fatigue: `<${Math.round(adjustedP30)}`, logic: 'and' } as FlexibleCondition,
+                adjustments: {
+                    powerMultiplier: 1.10,
+                    volumeMultiplier: 1.12,
+                    message: `Unusually low fatigue for late ascending phase (<${Math.round(adjustedP30)}%). Push harder - you're handling the load well!`
+                },
+                priority: priority++,
+                cyclePhase: 'ascending',
+                phasePosition: 'late'
+            });
+
+            if (Math.round(adjustedP70) <= 95) {
+                modifiers.push({
+                    condition: { fatigue: `>${Math.round(adjustedP70)}`, logic: 'and' } as FlexibleCondition,
+                    adjustments: {
+                        powerMultiplier: 0.92,
+                        restMultiplier: 1.2,
+                        message: `Elevated fatigue for late ascending phase (>${Math.round(adjustedP70)}%). Some accumulation expected - minor adjustment.`
+                    },
+                    priority: priority++,
+                    cyclePhase: 'ascending',
+                    phasePosition: 'late'
+                });
+            }
         }
     }
 

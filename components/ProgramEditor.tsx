@@ -67,6 +67,7 @@ export interface ProgramEditorProps {
     previewWeekCount: number;
     setPreviewWeekCount: React.Dispatch<React.SetStateAction<number>>;
     onSave: (asNew: boolean) => boolean;
+    onApplyToProgram?: () => boolean;  // Apply directly to active program
     onBack: () => void;
     onExport: () => void;
 }
@@ -135,6 +136,7 @@ const ProgramEditor: React.FC<ProgramEditorProps> = ({
     previewWeekCount,
     setPreviewWeekCount,
     onSave,
+    onApplyToProgram,
     onBack,
     onExport
 }) => {
@@ -254,7 +256,7 @@ const ProgramEditor: React.FC<ProgramEditorProps> = ({
 
                     {/* Step 3: Week Definitions (week-based) or Blocks (block-based) */}
                     {currentStep === 3 && (
-                        editorState.structureType === 'block-based' 
+                        editorState.structureType === 'block-based'
                             ? <BlocksDefinitionStep editorState={editorState} setEditorState={setEditorState} />
                             : <WeekDefinitionsStep editorState={editorState} setEditorState={setEditorState} />
                     )}
@@ -337,6 +339,18 @@ const ProgramEditor: React.FC<ProgramEditorProps> = ({
                                 <Copy size={16} />
                                 Save as New Template
                             </button>
+                            {onApplyToProgram && (
+                                <button
+                                    onClick={() => {
+                                        setShowSaveDialog(false);
+                                        onApplyToProgram();
+                                    }}
+                                    className="w-full px-4 py-3 rounded-xl text-sm font-medium bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-2 transition-colors"
+                                >
+                                    <Activity size={16} />
+                                    Apply to Current Program
+                                </button>
+                            )}
                             <button
                                 onClick={() => setShowSaveDialog(false)}
                                 className="w-full px-4 py-3 rounded-xl text-sm font-medium text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"

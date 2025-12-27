@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ChevronRight, Pencil, Eye, Plus } from 'lucide-react';
 import { PlanWeek, ProgramPreset, ProgramRecord, SessionStyle, ProgressionMode } from '../types';
 import {
-    ProgramTemplate, WeekDefinition, ValidationError, WeekPosition
+    ProgramTemplate, WeekDefinition, ValidationError, WeekPosition, FatigueModifier
 } from '../programTemplate';
 import {
     validateTemplate, templateToPreset, exportTemplateToJson, TEMPLATE_VERSION
@@ -29,6 +29,9 @@ interface ProgramTabProps {
     onLoadPreset: (presetId: string, basePower: number) => void;
     onFinishProgram: () => void;
 
+    // Apply changes to current program
+    onApplyPlanToProgram?: (plan: PlanWeek[], fatigueModifiers?: FatigueModifier[]) => void;
+
     // Templates
     activePresets: ProgramPreset[];
     customTemplates: ProgramPreset[];
@@ -51,6 +54,7 @@ interface ProgramTabProps {
 
 const ProgramTab: React.FC<ProgramTabProps> = ({
     activeProgram, plan, basePlan, settings, onUpdateSettings, onUpdatePlan, onLoadPreset, onFinishProgram,
+    onApplyPlanToProgram,
     activePresets, customTemplates, setCustomTemplates, modifiedDefaults, setModifiedDefaults,
     deletedDefaultIds, setDeletedDefaultIds, isDefaultPreset, PRESETS,
     activeCategory, setActiveCategory
@@ -242,6 +246,37 @@ const ProgramTab: React.FC<ProgramTabProps> = ({
         URL.revokeObjectURL(url);
     };
 
+    /**
+     * Validate template and apply directly to the active program.
+     * This generates a plan from the template using current settings
+     * and updates the active program while preserving logged sessions.
+     */
+    const validateAndApplyToProgram = (): boolean => {
+        if (!onApplyPlanToProgram || !activeProgram) {
+            return false;
+        }
+
+        const template = editorStateToTemplate(editorState);
+        const result = validateTemplate(template);
+        if (!result.valid) {
+            setValidationErrors(result.errors);
+            return false;
+        }
+
+        // Generate plan from template using current program settings
+        const newPreset = templateToPreset(template);
+        const weekCount = activeProgram.plan.length || 12;
+        const generatedPlan = newPreset.generator(settings.basePower, weekCount);
+
+        // Apply to active program (preserves sessions via App handler)
+        onApplyPlanToProgram(generatedPlan, newPreset.fatigueModifiers);
+
+        setValidationErrors([]);
+        setEditingTemplateId(null);
+        setActiveCategory('main');
+        return true;
+    };
+
     const handleBackFromEditor = () => {
         setActiveCategory('main');
         setEditorState(INITIAL_EDITOR_STATE);
@@ -361,6 +396,7 @@ const ProgramTab: React.FC<ProgramTabProps> = ({
                     previewWeekCount={previewWeekCount}
                     setPreviewWeekCount={setPreviewWeekCount}
                     onSave={validateAndSave}
+                    onApplyToProgram={onApplyPlanToProgram ? validateAndApplyToProgram : undefined}
                     onBack={handleBackFromEditor}
                     onExport={exportCurrentTemplate}
                 />
@@ -415,6 +451,7 @@ const ProgramTab: React.FC<ProgramTabProps> = ({
             previewWeekCount={previewWeekCount}
             setPreviewWeekCount={setPreviewWeekCount}
             onSave={validateAndSave}
+            onApplyToProgram={onApplyPlanToProgram ? validateAndApplyToProgram : undefined}
             onBack={handleBackFromEditor}
             onExport={exportCurrentTemplate}
         />

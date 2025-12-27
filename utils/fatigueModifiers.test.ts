@@ -12,7 +12,7 @@ import {
     FATIGUE_THRESHOLDS,
     READINESS_THRESHOLDS
 } from './fatigueModifiers';
-import { FatigueModifier, FatigueContext } from '../programTemplate';
+import { FatigueModifier, FatigueContext, FlexibleCondition, ThresholdCondition } from '../programTemplate';
 import { PlanWeek } from '../types';
 
 // ============================================================================
@@ -22,6 +22,7 @@ import { PlanWeek } from '../types';
 const createContext = (overrides: Partial<FatigueContext> = {}): FatigueContext => ({
     fatigueScore: 50,
     readinessScore: 70,
+    tsbValue: 20,
     ...overrides
 });
 
@@ -29,6 +30,7 @@ const createPlanWeek = (overrides: Partial<PlanWeek> = {}): PlanWeek => ({
     week: 4,
     phaseName: 'Build',
     focus: 'Volume',
+    description: 'Test week',
     plannedPower: 150,
     targetRPE: 7,
     workRestRatio: '1:1',
@@ -132,19 +134,19 @@ describe('checkFatigueCondition', () => {
     });
 
     it('should check flexible condition with fatigue threshold', () => {
-        const condition = { logic: 'and' as const, fatigue: '>70' };
+        const condition: FlexibleCondition = { logic: 'and', fatigue: '>70' as ThresholdCondition };
         expect(checkFatigueCondition(condition, createContext({ fatigueScore: 80 }))).toBe(true);
         expect(checkFatigueCondition(condition, createContext({ fatigueScore: 60 }))).toBe(false);
     });
 
     it('should check flexible condition with readiness threshold', () => {
-        const condition = { logic: 'and' as const, readiness: '<50' };
+        const condition: FlexibleCondition = { logic: 'and', readiness: '<50' as ThresholdCondition };
         expect(checkFatigueCondition(condition, createContext({ readinessScore: 40 }))).toBe(true);
         expect(checkFatigueCondition(condition, createContext({ readinessScore: 60 }))).toBe(false);
     });
 
     it('should use OR logic when specified', () => {
-        const condition = { logic: 'or' as const, fatigue: '>90', readiness: '<30' };
+        const condition: FlexibleCondition = { logic: 'or', fatigue: '>90' as ThresholdCondition, readiness: '<30' as ThresholdCondition };
         // At least one should match
         expect(checkFatigueCondition(condition, createContext({ fatigueScore: 95, readinessScore: 50 }))).toBe(true);
         expect(checkFatigueCondition(condition, createContext({ fatigueScore: 50, readinessScore: 20 }))).toBe(true);
@@ -153,7 +155,7 @@ describe('checkFatigueCondition', () => {
     });
 
     it('should use AND logic when specified', () => {
-        const condition = { logic: 'and' as const, fatigue: '>60', readiness: '<50' };
+        const condition: FlexibleCondition = { logic: 'and', fatigue: '>60' as ThresholdCondition, readiness: '<50' as ThresholdCondition };
         // Both must match
         expect(checkFatigueCondition(condition, createContext({ fatigueScore: 70, readinessScore: 40 }))).toBe(true);
         // Only fatigue matches

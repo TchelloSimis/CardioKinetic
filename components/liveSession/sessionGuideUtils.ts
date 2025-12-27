@@ -96,9 +96,9 @@ export function calculatePhaseProgress(
  * Create a session result summary string
  */
 export function createSessionSummary(result: SessionResult): string {
-    const duration = Math.round(result.totalSeconds / 60);
-    const intervals = result.completedIntervals ?? 0;
-    const avgPower = result.avgPower ?? 0;
+    const duration = Math.round(result.actualDurationMinutes);
+    const intervals = result.intervalsCompleted ?? 0;
+    const avgPower = result.averagePower ?? 0;
 
     if (result.sessionStyle === 'steady-state') {
         return `${duration}min @ ${avgPower}W`;
@@ -113,8 +113,8 @@ export function createSessionSummary(result: SessionResult): string {
 export function validateSessionParams(params: SessionSetupParams | null): boolean {
     if (!params) return false;
     if (!params.sessionStyle) return false;
-    if (params.totalDuration <= 0) return false;
-    if (params.basePower <= 0) return false;
+    if (params.totalDurationMinutes <= 0) return false;
+    if (params.targetPower <= 0) return false;
     return true;
 }
 

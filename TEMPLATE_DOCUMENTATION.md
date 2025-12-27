@@ -480,6 +480,7 @@ Restrict when modifiers apply:
 | `phaseName` | string \| string[] | Phase name (e.g., `"Build Phase"`) |
 | `weekPosition` | string \| string[] | Program position |
 | `cyclePhase` | string \| string[] | Auto-detected fatigue trajectory phase |
+| `phasePosition` | string \| string[] | Position within current phase (`"early"`, `"mid"`, `"late"`) |
 | `sessionType` | string \| string[] | Session type (`"interval"`, `"steady-state"`, `"custom"`) |
 
 > [!NOTE]
@@ -509,6 +510,35 @@ Cycle phases are auto-detected from fatigue trajectory:
 | `"peak"` | Fatigue at local maximum |
 | `"descending"` | Fatigue falling (recovery) |
 | `"trough"` | Fatigue at local minimum |
+
+#### Phase Position Values
+
+Phase position tracks where you are within a *continuous* training phase. It's useful for adjusting thresholds based on accumulated fatigue:
+
+| Value | Description |
+|-------|-------------|
+| `"early"` | First 33% of consecutive weeks in this phase (lower accumulated fatigue) |
+| `"mid"` | Middle 33% of consecutive weeks in this phase |
+| `"late"` | Last 33% of consecutive weeks in this phase (higher accumulated fatigue) |
+
+**Example:** A 4-week "Build" phase would have:
+- Week 1: `"early"` (position ratio: 0.125)
+- Week 2: `"mid"` (position ratio: 0.375)
+- Week 3: `"mid"` (position ratio: 0.625)
+- Week 4: `"late"` (position ratio: 0.875)
+
+> [!TIP]
+> Use `phasePosition` to apply stricter fatigue thresholds late in a phase when fatigue has accumulated, and looser thresholds early when the athlete is fresh.
+
+**Usage Example:**
+```json
+{
+  "condition": { "fatigue": ">65", "logic": "and" },
+  "phasePosition": "late",
+  "adjustments": { "powerMultiplier": 0.90, "message": "Late-phase fatigue management" },
+  "priority": 15
+}
+```
 
 ---
 

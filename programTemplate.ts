@@ -64,6 +64,15 @@ export type FatigueCondition =
  */
 export type CyclePhase = 'ascending' | 'peak' | 'descending' | 'trough';
 
+/**
+ * Position within a continuous cycle phase.
+ * Used for position-aware modifier filtering based on fatigue accumulation.
+ * - 'early': First 33% of consecutive weeks in this phase (lower expected fatigue)
+ * - 'mid': Middle 33% of consecutive weeks in this phase
+ * - 'late': Last 33% of consecutive weeks in this phase (higher accumulated fatigue)
+ */
+export type PhasePosition = 'early' | 'mid' | 'late';
+
 
 // ============================================================================
 // TEMPLATE STRUCTURE
@@ -390,6 +399,19 @@ export interface FatigueModifier {
      * { phaseName: 'Builder', cyclePhase: 'ascending' }
      */
     cyclePhase?: CyclePhase | CyclePhase[];
+
+    /**
+     * Optional: Position within the cycle phase.
+     * Used for position-aware modifier filtering based on fatigue accumulation.
+     * - 'early': First 33% of consecutive weeks in this phase (lower expected fatigue)
+     * - 'mid': Middle 33% of consecutive weeks in this phase
+     * - 'late': Last 33% of consecutive weeks in this phase (higher accumulated fatigue)
+     * 
+     * Must be used with cyclePhase. Example:
+     * { cyclePhase: 'ascending', phasePosition: 'late' }
+     * targets late ascending weeks where fatigue has accumulated.
+     */
+    phasePosition?: PhasePosition | PhasePosition[];
 
     /**
      * Optional: Only apply to specific session types.

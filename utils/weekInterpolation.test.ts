@@ -10,7 +10,7 @@ import {
     interpolateWeeks,
     interpolateWeekDefinition
 } from './weekInterpolation';
-import { WeekDefinition } from '../programTemplate';
+import { WeekDefinition, WeekPosition } from '../programTemplate';
 
 // ============================================================================
 // resolveWeekPosition TESTS
@@ -65,11 +65,13 @@ describe('resolveWeekPosition', () => {
 // ============================================================================
 
 describe('interpolateWeeks', () => {
-    const createWeekDef = (position: string | number, phaseName: string): WeekDefinition => ({
+    const createWeekDef = (position: WeekPosition, phaseName: string): WeekDefinition => ({
         position,
         phaseName,
+        description: `${phaseName} week`,
         focus: 'Volume',
         powerMultiplier: 1.0,
+        workRestRatio: '1:1',
         targetRPE: 7
     });
 
@@ -145,6 +147,7 @@ describe('interpolateWeekDefinition', () => {
     const prevWeek: WeekDefinition = {
         position: 1,
         phaseName: 'Build',
+        description: 'Build week',
         focus: 'Volume',
         powerMultiplier: 0.8,
         targetRPE: 6,
@@ -156,6 +159,7 @@ describe('interpolateWeekDefinition', () => {
     const nextWeek: WeekDefinition = {
         position: 4,
         phaseName: 'Peak',
+        description: 'Peak week',
         focus: 'Intensity',
         powerMultiplier: 1.2,
         targetRPE: 9,

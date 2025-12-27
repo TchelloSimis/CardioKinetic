@@ -23,6 +23,7 @@ import {
 import {
   getWeekNumber,
   getProgramEndDateStr,
+  getProgramEndDate,
   isDateInProgramRangeStr
 } from '../utils/chartUtils';
 import { getLocalDateString, getDayIndex, addDays, formatDateShort, parseLocalDate } from '../utils/dateUtils';

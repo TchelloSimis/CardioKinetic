@@ -16,6 +16,7 @@
     "@capacitor/app": "^7.1.0",
     "@capacitor/cli": "^7.4.4",
     "@capacitor/core": "^7.4.4",
+    "@capacitor/haptics": "^7.0.3",
     "@capacitor/local-notifications": "^7.0.3",
     "@capawesome-team/capacitor-android-foreground-service": "^7.0.1",
     "@fontsource/inconsolata": "^5.2.8",

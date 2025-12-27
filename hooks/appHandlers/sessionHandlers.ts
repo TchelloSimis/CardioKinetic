@@ -4,6 +4,7 @@
  * Handlers for session-related actions (save, edit, delete, live session)
  */
 
+import type React from 'react';
 import type { Session, SessionSetupParams, SessionResult } from '../../types';
 
 /**

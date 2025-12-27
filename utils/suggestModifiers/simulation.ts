@@ -26,6 +26,7 @@ import {
     calculatePercentile,
     detectChangePoints,
     detectExtrema,
+    calculatePhasePositions,
 } from './algorithms';
 
 // ============================================================================
@@ -254,6 +255,13 @@ export function runFullAnalysis(
             isLocalPeak,
             isLocalTrough
         });
+    }
+
+    // Enrich week analyses with phase position data
+    const positionData = calculatePhasePositions(weekAnalyses);
+    for (let w = 0; w < weekAnalyses.length; w++) {
+        weekAnalyses[w].phasePosition = positionData[w].phasePosition;
+        weekAnalyses[w].positionRatio = positionData[w].positionRatio;
     }
 
     // Build cycle info

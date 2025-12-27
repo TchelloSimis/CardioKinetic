@@ -35,6 +35,7 @@ const createSessionParams = (overrides: Partial<SessionSetupParams> = {}): Sessi
     sessionStyle: 'interval',
     workDurationSeconds: 30,
     restDurationSeconds: 30,
+    workRestRatio: '1:1',
     ...overrides
 });
 

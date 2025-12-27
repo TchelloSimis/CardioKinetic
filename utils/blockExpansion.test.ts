@@ -246,8 +246,10 @@ describe('expandBlocksToWeeks', () => {
             fixedFirstWeek: {
                 position: 1,
                 phaseName: 'Intro',
+                description: 'Intro week',
                 focus: 'Recovery',
                 powerMultiplier: 0.7,
+                workRestRatio: '1:2',
                 targetRPE: 5
             }
         });
@@ -263,8 +265,10 @@ describe('expandBlocksToWeeks', () => {
             fixedLastWeek: {
                 position: 'last',
                 phaseName: 'Taper',
+                description: 'Taper week',
                 focus: 'Recovery',
                 powerMultiplier: 0.6,
+                workRestRatio: '1:2',
                 targetRPE: 4
             }
         });

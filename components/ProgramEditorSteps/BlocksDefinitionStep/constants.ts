@@ -2,8 +2,8 @@
  * BlocksDefinitionStep - Shared Types and Constants
  */
 
-import { WeekFocus, PowerReference, BlockProgressionType } from '../../programTemplate';
-import { SessionStyle } from '../../types';
+import { WeekFocus, PowerReference, BlockProgressionType } from '../../../programTemplate';
+import { SessionStyle } from '../../../types';
 
 // PowerReference select options
 export const POWER_REFERENCE_OPTIONS: { value: PowerReference; label: string }[] = [

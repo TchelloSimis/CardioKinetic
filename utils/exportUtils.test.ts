@@ -54,7 +54,7 @@ const mockTemplate: ProgramPreset = {
 
 const mockSettings: BackupSettings = {
     accentColor: 'purple',
-    accentModifiers: { saturation: 10 },
+    accentModifiers: {},
     templateOrder: ['custom-template-1'],
     modifiedDefaults: {},
     deletedDefaultIds: []

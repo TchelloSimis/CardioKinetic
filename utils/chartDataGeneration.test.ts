@@ -67,6 +67,7 @@ function createMockSession(overrides: Partial<Session> = {}): Session {
         date: '2024-01-01',
         duration: 30,
         power: 150,
+        distance: 0,
         rpe: 7,
         ...overrides
     };

@@ -45,7 +45,7 @@ const ReadinessQuestionnaireModal: React.FC<ReadinessQuestionnaireModalProps> = 
     const handleSubmit = () => {
         // Filter out undefined values for submission
         const cleanedResponses: Record<string, number> = {};
-        for (const [key, value] of Object.entries(responses)) {
+        for (const [key, value] of Object.entries(responses) as [string, number | undefined][]) {
             if (value !== undefined) {
                 cleanedResponses[key] = value;
             }

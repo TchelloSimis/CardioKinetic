@@ -4,7 +4,7 @@
  * Contains all constants and TypeScript interfaces used across the modifier suggestion system.
  */
 
-import { CyclePhase } from '../../programTemplate';
+import { CyclePhase, PhasePosition } from '../../programTemplate';
 
 // ============================================================================
 // CONSTANTS
@@ -64,6 +64,10 @@ export interface WeekAnalysis {
     // Cycle context
     cyclePhase: CyclePhase;
     cycleIndex: number;
+
+    // Position within phase (for position-aware thresholds)
+    phasePosition?: PhasePosition;
+    positionRatio?: number;
 
     // Flags
     isLocalPeak: boolean;

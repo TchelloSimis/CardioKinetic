@@ -44,7 +44,7 @@ export const Heading: React.FC<HeadingProps> = ({
     children,
     ...props
 }) => {
-    const Tag = `h${level}` as keyof JSX.IntrinsicElements;
+    const Tag: React.ElementType = `h${level}`;
     const baseStyle = headingStyles[level];
     const sizeStyle = size ? sizeOverrides[size] : '';
 

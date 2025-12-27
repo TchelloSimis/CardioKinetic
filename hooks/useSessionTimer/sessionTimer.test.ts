@@ -14,7 +14,7 @@ import {
     createBlockResult,
     addPhaseLogEntry,
 } from './sessionState';
-import type { SessionSetupParams } from '../types';
+import type { SessionSetupParams } from '../../types';
 
 describe('useSessionTimer Types', () => {
     describe('INITIAL_STATE', () => {
@@ -196,6 +196,7 @@ describe('useSessionTimer Session State', () => {
                 sessionStyle: 'custom',
                 workDurationSeconds: 30,
                 restDurationSeconds: 30,
+                workRestRatio: '1:1',
                 blocks: [
                     { id: 'block-1', type: 'steady-state', durationMinutes: 10, powerMultiplier: 1.0 },
                     { id: 'block-2', type: 'interval', durationMinutes: 10, powerMultiplier: 1.1 },
@@ -225,6 +226,7 @@ describe('useSessionTimer Session State', () => {
                 sessionStyle: 'custom',
                 workDurationSeconds: 30,
                 restDurationSeconds: 30,
+                workRestRatio: '1:1',
                 blocks: [
                     {
                         id: 'block-1',

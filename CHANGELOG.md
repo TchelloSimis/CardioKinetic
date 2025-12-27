@@ -2,6 +2,38 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.4.0] - 2025-12-27
+
+### Added
+
+#### Apply to Current Program
+A new workflow for iterating on active programs without losing progress:
+
+- **Live Template Updates**: After editing a program template while a program is active, the save dialog now offers an "Apply to Current Program" option alongside the standard save
+- **Session Preservation**: All logged sessions remain intact when applying template changes, ensuring your training history is never lost
+- **Seamless Iteration**: Perfect for refining fatigue modifiers, adjusting power progressions, or fine-tuning week configurations mid-program
+
+#### Position-Aware Fatigue Modifiers
+Enhanced modifier system with phase position awareness for more nuanced training adjustments:
+
+- **Phase Position Filter**: New `phasePosition` field on fatigue modifiers accepts `'early'`, `'mid'`, or `'late'` values
+- **Fatigue Accumulation Patterns**: Modifiers can now trigger differently based on accumulated fatigue within continuous phase blocks
+- **Improved Phase Detection**: Enhanced cycle phase detection with better signal smoothing and adaptive window sizing
+
+### Improved
+
+#### Algorithm Enhancements
+- **Suggest Modifiers**: The automatic modifier suggestion algorithm now generates position-aware threshold adjustments that account for fatigue accumulation patterns within training phases
+- **Template Documentation**: Comprehensive updates to reflect phase position filtering and improved modifier suggestions
+
+### Fixed
+
+- **TypeScript Strict Mode Compliance**: Resolved 37 strict type-checking errors across 17 files, including proper typing for React components, test fixtures, and utility functions
+- **Haptics Integration**: Added missing `@capacitor/haptics@7` package dependency for improved tactile feedback on Android
+- **Chart Import**: Fixed `Chart.tsx` missing `getProgramEndDate` import that could cause runtime errors
+- **Session Guide Properties**: Fixed incorrect property names in `sessionGuideUtils.ts` to match the `SessionResult` type interface
+- **Test Infrastructure**: Fixed test fixtures using incorrect types for `WeekPosition`, `WeekFocus`, and `ThresholdCondition`, and added all missing required fields
+
 ## [1.3.2] - 2025-12-27
 
 ### Fixed

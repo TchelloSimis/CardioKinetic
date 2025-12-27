@@ -14,10 +14,9 @@ import { TrendAnalysis, WeekAnalysis } from './types';
 // ============================================================================
 
 const createWeekAnalysis = (overrides: Partial<WeekAnalysis> = {}): WeekAnalysis => ({
-    weekIndex: 1,
     weekNumber: 1,
     phaseName: 'Build',
-    cyclePhase: 'ascending' as CyclePhase,
+    powerMultiplier: 1.0,
     fatigueP15: 30,
     fatigueP30: 40,
     fatigueP50: 50,
@@ -28,21 +27,31 @@ const createWeekAnalysis = (overrides: Partial<WeekAnalysis> = {}): WeekAnalysis
     readinessP50: 75,
     readinessP70: 85,
     readinessP85: 90,
+    fatigueVelocity: 2,
+    fatigueAcceleration: 0,
+    cyclePhase: 'ascending' as CyclePhase,
+    cycleIndex: 0,
+    isLocalPeak: false,
+    isLocalTrough: false,
     ...overrides
 });
 
 const createAnalysis = (overrides: Partial<TrendAnalysis> = {}): TrendAnalysis => ({
     weekAnalyses: [createWeekAnalysis()],
+    detectedCycles: [],
     globalTrend: 'stable',
     adaptationScore: 0,
+    adaptiveWindows: { local: 2, meso: 4 },
     ...overrides
 });
 
 const createWeekDef = (overrides: Partial<WeekDefinition> = {}): WeekDefinition => ({
     position: 1,
     phaseName: 'Build',
+    description: 'Test week',
     focus: 'Volume',
     powerMultiplier: 1.0,
+    workRestRatio: '1:1',
     targetRPE: 7,
     ...overrides
 });

@@ -24,27 +24,25 @@ const createSessionParams = (overrides: Partial<SessionSetupParams> = {}): Sessi
     sessionStyle: 'interval',
     workDurationSeconds: 30,
     restDurationSeconds: 30,
+    workRestRatio: '1:1',
     ...overrides
 });
 
 const createSessionResult = (overrides: Partial<SessionResult> = {}): SessionResult => ({
-    date: '2024-01-15',
-    startTime: 1705305600000,
-    endTime: 1705307400000,
-    targetPower: 150,
-    averagePower: 155,
-    targetRPE: 7,
-    actualRPE: 7,
-    workRestRatioPlanned: '1:1',
-    workRestRatioActual: '1:1',
-    sessionStyle: 'interval',
-    plannedDurationMinutes: 30,
     actualDurationMinutes: 30,
-    totalWorkWh: 77.5,
+    intervalsCompleted: 10,
+    totalIntervals: 10,
+    targetPower: 150,
+    targetRPE: 7,
+    workRestRatio: '1:1',
+    sessionStyle: 'interval',
+    wasCompleted: true,
+    isGuidedSession: true,
+    averagePower: 155,
     powerHistory: [
-        { timeSeconds: 0, power: 150 },
-        { timeSeconds: 300, power: 160 },
-        { timeSeconds: 600, power: 155 }
+        { timeSeconds: 0, power: 150, phase: 'work' },
+        { timeSeconds: 300, power: 160, phase: 'work' },
+        { timeSeconds: 600, power: 155, phase: 'work' }
     ],
     ...overrides
 });
@@ -176,9 +174,9 @@ describe('generateSessionChartData', () => {
         const params = createSessionParams();
         const sessionResult = createSessionResult({
             powerHistory: [
-                { timeSeconds: 0, power: 150 },
-                { timeSeconds: 60, power: 160 },
-                { timeSeconds: 120, power: 155 }
+                { timeSeconds: 0, power: 150, phase: 'work' },
+                { timeSeconds: 60, power: 160, phase: 'work' },
+                { timeSeconds: 120, power: 155, phase: 'work' }
             ]
         });
 
