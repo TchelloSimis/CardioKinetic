@@ -67,10 +67,10 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
             </div>
 
             {metrics.advice && (
-                <div className="mb-6 bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 p-5 rounded-2xl flex gap-4 items-start">
-                    <div className="p-2 bg-neutral-200 dark:bg-neutral-800 rounded-lg text-neutral-600 dark:text-neutral-300 mt-1"><Info size={18} /></div>
+                <div className="mb-6 bg-white/60 dark:bg-neutral-900/60 backdrop-blur-md border border-neutral-200 dark:border-neutral-800 p-5 rounded-3xl shadow-sm flex gap-4 items-start">
+                    <Info size={20} style={{ color: accentColor }} className="mt-0.5 flex-shrink-0" />
                     <div>
-                        <div className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-1">Coach's Advice</div>
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-1">Coach's Advice</div>
                         <p className="text-sm text-neutral-900 dark:text-neutral-200 leading-relaxed">{metrics.advice}</p>
                     </div>
                 </div>
@@ -81,8 +81,8 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                 <div className="bg-neutral-900 dark:bg-white p-8 rounded-3xl shadow-lg text-white dark:text-neutral-900 flex flex-col justify-between min-h-[200px] md:col-span-2 lg:col-span-1">
                     <div className="flex justify-between items-start">
                         <div className="text-xs font-bold uppercase tracking-widest opacity-70">Next Target</div>
-                        <div className="bg-white/20 dark:bg-black/10 px-2 py-1 rounded text-xs font-mono">
-                            {currentWeekPlan.workRestRatio === '1:0' || currentWeekPlan.workRestRatio === 'steady'
+                        <div className="bg-white/20 dark:bg-black/10 px-2 py-1 rounded-full text-xs font-semibold">
+                            {currentWeekPlan.sessionStyle === 'steady-state' || currentWeekPlan.workRestRatio === '1:0' || currentWeekPlan.workRestRatio === 'steady'
                                 ? 'Steady State'
                                 : currentWeekPlan.workRestRatio}
                         </div>

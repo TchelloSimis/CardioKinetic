@@ -2,6 +2,20 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.3.2] - 2025-12-27
+
+### Fixed
+
+- **Work:Rest Badge Display**: Fixed the Next Target tile incorrectly showing work:rest ratios (1:1, 1:2) for steady-state sessions where the ratio is not applicable
+
+### Improved
+
+#### Dashboard Styling Refinements
+Minor visual polish to dashboard elements for a more cohesive appearance:
+
+- **Work:Rest Badge**: Updated styling to match the TSB and readiness/fatigue badges with fully rounded corners and consistent font weight
+- **Coach's Advice Card**: Refined to match other dashboard tiles with glassmorphism styling, consistent iconography, and more rounded corners
+
 ## [1.3.1] - 2025-12-27
 
 ### Improved
