@@ -3,6 +3,7 @@ import { Activity, Battery, Zap, Info, ClipboardCheck, TrendingUp } from 'lucide
 import { PlanWeek, ReadinessState, Session, ProgramRecord, QuestionnaireResponse } from '../types';
 import { AccentColorConfig } from '../presets';
 import ProgramHistory from './ProgramHistory';
+import { sanitizeDescription } from '../utils/chartUtils';
 
 interface DashboardMetrics {
     readiness: number;
@@ -99,7 +100,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                         </div>
                     </div>
                     <div className="mt-4 pt-4 border-t border-white/10 dark:border-black/10">
-                        <div className="text-sm opacity-80">{currentWeekPlan.description}</div>
+                        <div className="text-sm opacity-80">{sanitizeDescription(currentWeekPlan.description)}</div>
                     </div>
                 </div>
 
@@ -142,34 +143,34 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                                         : (isDarkMode ? currentAccent.darkAlt : currentAccent.lightAlt)
                                 }}
                             />
+                            {hasCompletedToday && metrics.questionnaireAdjustment && (
+                                <div className="flex flex-row gap-1.5 items-center">
+                                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${metrics.questionnaireAdjustment.fatigueChange < 0
+                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                        : metrics.questionnaireAdjustment.fatigueChange > 0
+                                            ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                            : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
+                                        }`}>
+                                        {metrics.questionnaireAdjustment.fatigueChange > 0 ? '+' : ''}{metrics.questionnaireAdjustment.fatigueChange} F
+                                    </span>
+                                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${metrics.questionnaireAdjustment.readinessChange > 0
+                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                        : metrics.questionnaireAdjustment.readinessChange < 0
+                                            ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                            : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
+                                        }`}>
+                                        {metrics.questionnaireAdjustment.readinessChange > 0 ? '+' : ''}{metrics.questionnaireAdjustment.readinessChange} R
+                                    </span>
+                                </div>
+                            )}
                         </div>
                         <div className="mt-auto">
                             {hasCompletedToday ? (
                                 <>
-                                    <div className="flex items-baseline justify-between gap-2">
-                                        <div className="text-2xl font-medium text-neutral-900 dark:text-white">
-                                            Done
-                                        </div>
-                                        {metrics.questionnaireAdjustment && (
-                                            <div className="flex gap-1.5">
-                                                <span className={`text-xs font-medium px-2 py-0.5 rounded ${metrics.questionnaireAdjustment.readinessChange >= 0
-                                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
-                                                    : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
-                                                    }`}>
-                                                    {metrics.questionnaireAdjustment.readinessChange >= 0 ? '+' : ''}
-                                                    {metrics.questionnaireAdjustment.readinessChange}R
-                                                </span>
-                                                <span className={`text-xs font-medium px-2 py-0.5 rounded ${metrics.questionnaireAdjustment.fatigueChange <= 0
-                                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
-                                                    : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
-                                                    }`}>
-                                                    {metrics.questionnaireAdjustment.fatigueChange >= 0 ? '+' : ''}
-                                                    {metrics.questionnaireAdjustment.fatigueChange}F
-                                                </span>
-                                            </div>
-                                        )}
+                                    <div className="text-2xl font-medium text-neutral-900 dark:text-white mb-1">
+                                        Done
                                     </div>
-                                    <div className="text-[10px] uppercase tracking-widest text-neutral-500 mt-1">
+                                    <div className="text-[10px] uppercase tracking-widest text-neutral-500">
                                         At {completionTime}
                                     </div>
                                 </>

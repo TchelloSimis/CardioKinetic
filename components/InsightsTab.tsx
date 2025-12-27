@@ -2,6 +2,8 @@ import React, { useMemo } from 'react';
 import { Trophy, TrendingUp, TrendingDown, Flame, Activity, Calendar, Zap, Heart, ArrowLeft, Minus } from 'lucide-react';
 import { Session, ProgramRecord } from '../types';
 import { AccentColorConfig } from '../presets';
+import { MetricsResult } from '../hooks/useMetrics';
+import { addDays, isDateInRange, parseLocalDate } from '../utils/dateUtils';
 import {
     calculatePersonalRecords,
     calculateTrends,
@@ -20,6 +22,8 @@ interface InsightsPageProps {
     simulatedDate: string;
     programStartDate: string;
     basePower: number;
+    currentMetrics: MetricsResult;  // Pre-calculated metrics from useMetrics (includes questionnaire adjustments)
+    activeProgram: ProgramRecord | null;  // For filtering sessions to match Dashboard
     onClose: () => void;
 }
 
@@ -31,21 +35,98 @@ const InsightsPage: React.FC<InsightsPageProps> = ({
     simulatedDate,
     programStartDate,
     basePower,
+    currentMetrics,
+    activeProgram,
     onClose
 }) => {
     const accentColor = isDarkMode ? currentAccent.dark : currentAccent.light;
     const accentAltColor = isDarkMode ? currentAccent.darkAlt : currentAccent.lightAlt;
-    const currentDate = useMemo(() => new Date(simulatedDate), [simulatedDate]);
-    const startDate = useMemo(() => new Date(programStartDate), [programStartDate]);
+    // Use parseLocalDate for timezone-agnostic date parsing (avoids UTC shift issues)
+    const currentDate = useMemo(() => parseLocalDate(simulatedDate), [simulatedDate]);
+    const startDate = useMemo(() => parseLocalDate(programStartDate), [programStartDate]);
 
-    // Calculate all insights with proper date handling
-    const personalRecords = useMemo(() => calculatePersonalRecords(sessions), [sessions]);
-    const weeklyTrends = useMemo(() => calculateTrends(sessions, 'week', currentDate), [sessions, currentDate]);
-    const fatigueReadiness = useMemo(() =>
-        calculateFatigueReadinessInsights(sessions, startDate, currentDate, basePower),
-        [sessions, startDate, currentDate, basePower]
+    // Filter sessions to active program only (matching Dashboard/useMetrics behavior)
+    const filteredSessions = useMemo(() => {
+        if (!activeProgram) return sessions;
+
+        // Calculate program end date string
+        const programWeeks = activeProgram.plan?.length || 12;
+        const programEndStr = addDays(activeProgram.startDate, programWeeks * 7);
+
+        return sessions.filter(s => {
+            // Include if session has matching programId
+            if (s.programId === activeProgram.id) return true;
+
+            // For legacy sessions without programId, include if within program date range
+            if (!s.programId) {
+                return isDateInRange(s.date, activeProgram.startDate, programEndStr);
+            }
+
+            return false;
+        });
+    }, [sessions, activeProgram]);
+
+    // Calculate insights using filtered sessions (matching Dashboard behavior)
+    const personalRecords = useMemo(() => calculatePersonalRecords(filteredSessions), [filteredSessions]);
+    const weeklyTrends = useMemo(() => calculateTrends(filteredSessions, 'week', currentDate), [filteredSessions, currentDate]);
+
+    // Calculate trend insights from filtered sessions
+    const fatigueReadinessInsights = useMemo(() =>
+        calculateFatigueReadinessInsights(filteredSessions, startDate, currentDate, basePower),
+        [filteredSessions, startDate, currentDate, basePower]
     );
-    const recentActivity = useMemo(() => getRecentActivity(sessions, 7, currentDate), [sessions, currentDate]);
+
+    // Use current values from useMetrics (includes questionnaire adjustments). 
+    // Recalculate changes and trend based on the adjusted current values vs previous week
+    const fatigueReadiness = useMemo(() => {
+        // Current values from useMetrics (with questionnaire adjustments)
+        const currentFatigue = currentMetrics.fatigue;
+        const currentReadiness = currentMetrics.readiness;
+
+        // Weekly averages from session-based calculation (these are our baseline)
+        const weeklyFatigueAvg = fatigueReadinessInsights.weeklyFatigueAvg;
+        const weeklyReadinessAvg = fatigueReadinessInsights.weeklyReadinessAvg;
+
+        // Calculate change: current adjusted value compared to previous week's average
+        // Note: fatigueReadinessInsights.fatigueChange is weeklyAvg - prevWeekAvg
+        // We want: currentAdjusted relative to previous week
+        // Approximation: Use the session-based weekly change + the questionnaire adjustment delta
+        const baseReadinessChange = fatigueReadinessInsights.readinessChange;
+        const baseFatigueChange = fatigueReadinessInsights.fatigueChange;
+
+        // Add the adjustment from questionnaire as a modifier on top
+        const questionnaireReadinessAdjust = currentMetrics.questionnaireAdjustment?.readinessChange || 0;
+        const questionnaireFatigueAdjust = currentMetrics.questionnaireAdjustment?.fatigueChange || 0;
+
+        // Final changes: base session-derived changes plus today's questionnaire impact
+        const readinessChange = Math.round(baseReadinessChange + questionnaireReadinessAdjust);
+        const fatigueChange = Math.round(baseFatigueChange + questionnaireFatigueAdjust);
+
+        // Re-determine trend based on actual current values
+        let trend: 'improving' | 'stable' | 'declining';
+        if (currentReadiness > 75 && currentFatigue < 30) {
+            trend = 'improving';
+        } else if (currentReadiness < 50 || currentFatigue > 60) {
+            trend = 'declining';
+        } else if (readinessChange > 5 && fatigueChange < 5) {
+            trend = 'improving';
+        } else if (readinessChange < -5 || fatigueChange > 10) {
+            trend = 'declining';
+        } else {
+            trend = 'stable';
+        }
+
+        return {
+            ...fatigueReadinessInsights,
+            currentFatigue,
+            currentReadiness,
+            fatigueChange,
+            readinessChange,
+            trend,
+        };
+    }, [fatigueReadinessInsights, currentMetrics]);
+
+    const recentActivity = useMemo(() => getRecentActivity(filteredSessions, 7, currentDate), [filteredSessions, currentDate]);
 
     const prIcons: Record<string, React.ReactNode> = {
         power: <Zap size={20} />,

@@ -7,6 +7,7 @@
 import type { ProgramRecord, ProgramTemplate } from '../../programTemplate';
 import type { PlanWeek, Session } from '../../types';
 import type { OnboardingData } from './types';
+import { getLocalDateString } from '../../utils/dateUtils';
 
 /**
  * Create handler for onboarding completion
@@ -42,7 +43,7 @@ export function createOnboardingCompleteHandler(
 
         setPrograms(prev => prev
             .map(p => p.status === 'active'
-                ? { ...p, status: 'completed' as const, endDate: new Date().toISOString().split('T')[0] }
+                ? { ...p, status: 'completed' as const, endDate: getLocalDateString() }
                 : p)
             .concat(newProgram)
         );
@@ -60,7 +61,7 @@ export function createFinishProgramHandler(
         if (activeProgram) {
             setPrograms(prev => prev.map(p =>
                 p.id === activeProgram.id
-                    ? { ...p, status: 'completed' as const, endDate: new Date().toISOString().split('T')[0] }
+                    ? { ...p, status: 'completed' as const, endDate: getLocalDateString() }
                     : p
             ));
         }

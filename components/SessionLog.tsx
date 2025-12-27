@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Session, PlanWeek, SessionBlock } from '../types';
 import { Calculator, ArrowRight, RefreshCw, X, Layers } from 'lucide-react';
+import { getLocalDateString, getWeekNumber } from '../utils/dateUtils';
 
 interface SessionLogProps {
   onAddSession: (session: Session) => void;
@@ -38,7 +39,7 @@ const SessionLog: React.FC<SessionLogProps> = ({ onAddSession, onCancel, current
   const isCustomSession = currentWeekPlan.sessionStyle === 'custom';
 
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalDateString(),
     duration: currentWeekPlan.targetDurationMinutes || 15,
     workPower: '' as number | string,
     restPower: '' as number | string,
@@ -66,13 +67,10 @@ const SessionLog: React.FC<SessionLogProps> = ({ onAddSession, onCancel, current
   }, [initialData]);
 
   const getWeekForDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    const s = new Date(startDate);
-    d.setHours(0, 0, 0, 0);
-    s.setHours(0, 0, 0, 0);
-    const diff = d.getTime() - s.getTime();
-    const week = Math.floor(diff / (1000 * 60 * 60 * 24 * 7)) + 1;
-    return Math.max(1, Math.min(week, 12));
+    // Use timezone-agnostic week calculation
+    const w = getWeekNumber(dateStr, startDate);
+    // Legacy behavior: clamp to 1-12 range
+    return w === 0 ? 1 : Math.min(w, 12);
   };
 
   const [calculatedWeek, setCalculatedWeek] = useState(currentWeekNum);

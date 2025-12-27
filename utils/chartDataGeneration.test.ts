@@ -21,9 +21,10 @@ import {
 } from './metricsUtils';
 import {
     getWeekNumber,
-    getProgramEndDate,
-    isDateInProgramRange
+    getProgramEndDateStr,
+    isDateInProgramRangeStr
 } from './chartUtils';
+import { parseLocalDate, getLocalDateString, getDayIndex, addDays } from './dateUtils';
 import { Session, ProgramRecord, PlanWeek } from '../types';
 
 // ============================================================================
@@ -96,12 +97,11 @@ function createMockProgram(overrides: Partial<ProgramRecord> = {}): ProgramRecor
 }
 
 /**
- * Parse a date string as UTC to avoid timezone issues in tests.
- * The Chart.tsx uses this format for date calculations.
+ * Parse a date string as local date (timezone-agnostic).
+ * Uses dateUtils for consistent behavior.
  */
-function parseUTCDate(dateStr: string): Date {
-    const [year, month, day] = dateStr.split('-').map(Number);
-    return new Date(Date.UTC(year, month - 1, day));
+function parseTestDate(dateStr: string): Date {
+    return parseLocalDate(dateStr);
 }
 
 /**
@@ -677,10 +677,10 @@ describe('Chart Data Generation - Fatigue/Readiness Display', () => {
             });
 
             // Week 4 date should be in range
-            expect(isDateInProgramRange(new Date('2024-01-25'), program)).toBe(true);
+            expect(isDateInProgramRangeStr('2024-01-25', program)).toBe(true);
 
             // Week 5 date should NOT be in range
-            expect(isDateInProgramRange(new Date('2024-01-29'), program)).toBe(false);
+            expect(isDateInProgramRangeStr('2024-01-29', program)).toBe(false);
         });
 
         it('should correctly calculate endDate for active vs completed programs', () => {
@@ -690,16 +690,14 @@ describe('Chart Data Generation - Fatigue/Readiness Display', () => {
                 endDate: '2024-02-15'
             });
 
-            const activeEnd = getProgramEndDate(activeProgram);
-            const completedEnd = getProgramEndDate(completedProgram);
+            const activeEnd = getProgramEndDateStr(activeProgram);
+            const completedEnd = getProgramEndDateStr(completedProgram);
 
-            // Active: uses plan length (12 weeks = 84 days - 1)
-            const expectedActiveEnd = new Date('2024-01-01');
-            expectedActiveEnd.setDate(expectedActiveEnd.getDate() + (12 * 7) - 1);
-            expect(activeEnd.toISOString().split('T')[0]).toBe(expectedActiveEnd.toISOString().split('T')[0]);
+            // Active: uses plan length (12 weeks from Jan 1 = Mar 24)
+            expect(activeEnd).toBe('2024-03-24');
 
             // Completed: uses endDate
-            expect(completedEnd.toISOString().split('T')[0]).toBe('2024-02-15');
+            expect(completedEnd).toBe('2024-02-15');
         });
     });
 

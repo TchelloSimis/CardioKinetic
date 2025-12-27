@@ -7,6 +7,7 @@
 
 import { Session, ProgramRecord } from '../types';
 import { calculateDailyMetrics, DailyMetrics } from './metricsUtils';
+import { getLocalDateString, addDays, compareDates, isDateInRange, parseLocalDate } from './dateUtils';
 
 // ============================================================================
 // TYPES
@@ -152,25 +153,18 @@ export function calculateTrends(
 ): TrendData {
     const periodDays = period === 'week' ? 7 : 30;
 
-    const currentStart = new Date(currentDate);
-    currentStart.setDate(currentStart.getDate() - periodDays);
-    currentStart.setHours(0, 0, 0, 0);
+    // Use timezone-agnostic date strings
+    const currentDateStr = getLocalDateString(currentDate);
+    const currentStartStr = addDays(currentDateStr, -periodDays);
+    const previousStartStr = addDays(currentStartStr, -periodDays);
 
-    const previousStart = new Date(currentStart);
-    previousStart.setDate(previousStart.getDate() - periodDays);
+    const currentSessions = sessions.filter(s =>
+        isDateInRange(s.date, currentStartStr, currentDateStr)
+    );
 
-    const currentDateNorm = new Date(currentDate);
-    currentDateNorm.setHours(23, 59, 59, 999);
-
-    const currentSessions = sessions.filter(s => {
-        const date = new Date(s.date);
-        return date >= currentStart && date <= currentDateNorm;
-    });
-
-    const previousSessions = sessions.filter(s => {
-        const date = new Date(s.date);
-        return date >= previousStart && date < currentStart;
-    });
+    const previousSessions = sessions.filter(s =>
+        s.date >= previousStartStr && s.date < currentStartStr
+    );
 
     const currentMetrics = calculatePeriodMetrics(currentSessions);
     const previousMetrics = calculatePeriodMetrics(previousSessions);
@@ -389,17 +383,13 @@ export function getRecentActivity(
     days: number = 7,
     currentDate: Date = new Date()
 ): RecentActivitySummary {
-    const cutoff = new Date(currentDate);
-    cutoff.setDate(cutoff.getDate() - days);
-    cutoff.setHours(0, 0, 0, 0);
+    // Use timezone-agnostic date strings
+    const currentDateStr = getLocalDateString(currentDate);
+    const cutoffStr = addDays(currentDateStr, -days);
 
-    const currentDateNorm = new Date(currentDate);
-    currentDateNorm.setHours(23, 59, 59, 999);
-
-    const recentSessions = sessions.filter(s => {
-        const date = new Date(s.date);
-        return date >= cutoff && date <= currentDateNorm;
-    });
+    const recentSessions = sessions.filter(s =>
+        isDateInRange(s.date, cutoffStr, currentDateStr)
+    );
 
     if (recentSessions.length === 0) {
         return {
@@ -418,7 +408,7 @@ export function getRecentActivity(
         power: s.power || 0,
         duration: s.duration || 0,
         rpe: s.rpe || 0
-    })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    })).sort((a, b) => compareDates(b.date, a.date)); // Most recent first
 
     const totalPower = simplifiedSessions.reduce((sum, s) => sum + s.power, 0);
     const totalDuration = simplifiedSessions.reduce((sum, s) => sum + s.duration, 0);
@@ -461,7 +451,8 @@ export function getChangeColor(value: number, metric: 'power' | 'duration' | 'wo
  * Formats a date for display.
  */
 export function formatPRDate(dateStr: string): string {
-    const date = new Date(dateStr);
+    // Parse using local date parsing to avoid timezone issues
+    const date = parseLocalDate(dateStr);
     return date.toLocaleDateString(undefined, {
         month: 'short',
         day: 'numeric',

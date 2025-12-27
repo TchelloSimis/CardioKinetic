@@ -15,6 +15,7 @@ import {
 } from '../utils/metricsUtils';
 import { applyFatigueModifiers } from '../utils/templateUtils';
 import { applyQuestionnaireAdjustment } from '../utils/questionnaireConfig';
+import { parseLocalDate, getDayIndex, addDays, isDateInRange } from '../utils/dateUtils';
 
 export interface MetricsResult {
     fatigue: number;
@@ -60,23 +61,39 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
         recentQuestionnaireResponses
     } = options;
 
-    return useMemo(() => {
-        const oneDay = 24 * 60 * 60 * 1000;
-        const start = new Date(startDate);
-        const simDate = new Date(simulatedDate);
-        simDate.setHours(0, 0, 0, 0);
+    // Filter sessions to active program only (matching Chart behavior)
+    const filteredSessions = useMemo(() => {
+        if (!activeProgram) return sessions;
 
-        const daysToSim = Math.floor((simDate.getTime() - start.getTime()) / oneDay);
+        // Calculate program end date string
+        const programWeeks = activeProgram.plan?.length || 12;
+        const programEndStr = addDays(activeProgram.startDate, (programWeeks * 7));
+
+        return sessions.filter(s => {
+            // Include if session has matching programId
+            if (s.programId === activeProgram.id) return true;
+
+            // For legacy sessions without programId, include if within program date range
+            if (!s.programId) {
+                return isDateInRange(s.date, activeProgram.startDate, programEndStr);
+            }
+
+            return false;
+        });
+    }, [sessions, activeProgram]);
+
+    return useMemo(() => {
+        // Use timezone-agnostic day calculations
+        const daysToSim = getDayIndex(simulatedDate, startDate);
         const totalCalcDays = Math.max(1, daysToSim + 1);
 
         // Build daily load array
         const dailyLoads = new Float32Array(totalCalcDays).fill(0);
-        sessions.forEach(s => {
-            const d = new Date(s.date);
-            d.setHours(0, 0, 0, 0);
-            const dayIndex = Math.floor((d.getTime() - start.getTime()) / oneDay);
+        filteredSessions.forEach(s => {
+            const dayIndex = getDayIndex(s.date, startDate);
             if (dayIndex >= 0 && dayIndex < totalCalcDays) {
-                const recentAvgPower = calculateRecentAveragePower(sessions, d, basePower);
+                const sessionDate = parseLocalDate(s.date);
+                const recentAvgPower = calculateRecentAveragePower(filteredSessions, sessionDate, basePower);
                 const powerRatio = s.power / recentAvgPower;
                 dailyLoads[dayIndex] += calculateSessionLoad(s.rpe, s.duration, powerRatio);
             }
@@ -197,5 +214,5 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
             modifierMessages,
             questionnaireAdjustment
         };
-    }, [sessions, simulatedDate, startDate, basePower, currentWeekNum, programLength, currentWeekPlan, activeProgram, todayQuestionnaireResponse, recentQuestionnaireResponses]);
+    }, [filteredSessions, simulatedDate, startDate, basePower, currentWeekNum, programLength, currentWeekPlan, activeProgram, todayQuestionnaireResponse, recentQuestionnaireResponses]);
 };

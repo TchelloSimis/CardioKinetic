@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Session, ProgramRecord, ProgramPreset, QuestionnaireResponse } from '../types';
 import { DEFAULT_PRESETS, AccentColor, AccentModifierState } from '../presets';
 import { hydratePreset } from '../utils/templateUtils';
+import { getLocalDateString } from '../utils/dateUtils';
 
 // Mutable array that combines defaults + custom templates (for backward compatibility)
 export let PRESETS: ProgramPreset[] = [...DEFAULT_PRESETS];
@@ -83,7 +84,7 @@ export function useAppState(): AppStateReturn {
 
     // Get today's questionnaire response
     const getTodayQuestionnaireResponse = () => {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDateString();
         return questionnaireResponses.find(r => r.date === today);
     };
 
@@ -164,7 +165,7 @@ export function useAppState(): AppStateReturn {
                                 id: 'legacy-' + Date.now(),
                                 presetId: preset.id,
                                 name: 'Legacy Program',
-                                startDate: parsed.startDate || new Date().toISOString().split('T')[0],
+                                startDate: parsed.startDate || getLocalDateString(),
                                 status: 'active',
                                 basePower: parsed.basePower || 150,
                                 plan: preset.generator(parsed.basePower || 150)

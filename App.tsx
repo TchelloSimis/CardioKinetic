@@ -31,6 +31,7 @@ import {
 } from './utils/metricsUtils';
 import { useMetrics } from './hooks/useMetrics';
 import { requestNotificationPermission, isAndroid as isAndroidPlatform } from './utils/foregroundService';
+import { getLocalDateString, getWeekNumber as getWeekNumberUtil, addDays } from './utils/dateUtils';
 
 const App: React.FC = () => {
     // Use extracted hooks
@@ -68,7 +69,7 @@ const App: React.FC = () => {
     const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
     const [sampleWeeks, setSampleWeeks] = useState(12);
     const [autoUpdateSimDate, setAutoUpdateSimDate] = useState(false);
-    const [simulatedCurrentDate, setSimulatedCurrentDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [simulatedCurrentDate, setSimulatedCurrentDate] = useState<string>(getLocalDateString());
 
 
     // Live Session Guide state
@@ -93,19 +94,15 @@ const App: React.FC = () => {
         startDate: activeProgram.startDate,
         basePower: activeProgram.basePower,
         restRecoveryPercentage: 50
-    } : { startDate: new Date().toISOString().split('T')[0], basePower: 150 }, [activeProgram]);
+    } : { startDate: getLocalDateString(), basePower: 150 }, [activeProgram]);
 
     const basePlan = useMemo(() => activeProgram ? activeProgram.plan : [], [activeProgram]);
 
+    // Use timezone-agnostic week number calculation
     const getWeekNumber = (dateStr: string, startStr: string) => {
-        const d = new Date(dateStr);
-        const s = new Date(startStr);
-        d.setHours(0, 0, 0, 0);
-        s.setHours(0, 0, 0, 0);
-        const diffTime = d.getTime() - s.getTime();
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        if (diffDays < 0) return 1;
-        return Math.floor(diffDays / 7) + 1;
+        const w = getWeekNumberUtil(dateStr, startStr);
+        // Legacy behavior: return 1 for dates before start (instead of 0)
+        return w === 0 ? 1 : w;
     };
 
     const programLength = basePlan.length || 12;
@@ -145,10 +142,8 @@ const App: React.FC = () => {
 
     // Get recent questionnaire responses for trend analysis (last 7 days, excluding today)
     const recentQuestionnaireResponses = useMemo(() => {
-        const today = new Date().toISOString().split('T')[0];
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        const cutoffDate = sevenDaysAgo.toISOString().split('T')[0];
+        const today = getLocalDateString();
+        const cutoffDate = addDays(today, -7);
 
         return questionnaireResponses
             .filter(r => r.date !== today && r.date >= cutoffDate)
@@ -174,6 +169,18 @@ const App: React.FC = () => {
             // Priority 1: Close any open modals first
             if (sessionToDelete) {
                 setSessionToDelete(null);
+                return;
+            }
+
+            // Priority 1.5: Close Insights Page (full-screen overlay)
+            if (showInsightsPage) {
+                setShowInsightsPage(false);
+                return;
+            }
+
+            // Priority 1.6: Close Readiness Questionnaire Modal
+            if (showQuestionnaireModal) {
+                setShowQuestionnaireModal(false);
                 return;
             }
 
@@ -238,7 +245,8 @@ const App: React.FC = () => {
         };
     }, [
         sessionToDelete, showLogModal, showLiveSession, showSessionSetup,
-        activeTab, settingsCategory, programCategory, logModalOrigin, preservedSessionResult
+        activeTab, settingsCategory, programCategory, logModalOrigin, preservedSessionResult,
+        showInsightsPage, showQuestionnaireModal
     ]);
 
     // Request notification permission on Android app startup (Android 13+ requires runtime permission)
@@ -284,12 +292,12 @@ const App: React.FC = () => {
             fatigueModifiers: preset.fatigueModifiers
         };
 
-        setPrograms(prev => prev.map(p => p.status === 'active' ? { ...p, status: 'completed', endDate: new Date().toISOString().split('T')[0] } : p).concat(newProgram));
+        setPrograms(prev => prev.map(p => p.status === 'active' ? { ...p, status: 'completed', endDate: getLocalDateString() } : p).concat(newProgram));
     };
 
     const handleFinishProgram = () => {
         if (activeProgram) {
-            setPrograms(prev => prev.map(p => p.id === activeProgram.id ? { ...p, status: 'completed', endDate: new Date().toISOString().split('T')[0] } : p));
+            setPrograms(prev => prev.map(p => p.id === activeProgram.id ? { ...p, status: 'completed', endDate: getLocalDateString() } : p));
         }
     };
 
@@ -406,7 +414,7 @@ const App: React.FC = () => {
 
                 newSessions.push({
                     id: Date.now() + Math.random().toString(),
-                    date: sessionDate.toISOString().split('T')[0],
+                    date: getLocalDateString(sessionDate),
                     duration: duration,
                     power: power,
                     workPower: Math.round(power * 1.1),
@@ -423,7 +431,7 @@ const App: React.FC = () => {
         setSessions(prev => [...prev, ...newSessions]);
 
         if (autoUpdateSimDate) {
-            setSimulatedCurrentDate(latestDate.toISOString().split('T')[0]);
+            setSimulatedCurrentDate(getLocalDateString(latestDate));
         }
     };
 
@@ -505,7 +513,7 @@ const App: React.FC = () => {
 
         setEditingSession({
             id: Date.now().toString(),
-            date: new Date().toISOString().split('T')[0],
+            date: getLocalDateString(),
             duration: result.actualDurationMinutes,
             power: effectivePower,
             workPower: suggestedWorkPower,
@@ -710,7 +718,7 @@ const App: React.FC = () => {
                 onClose={() => setShowQuestionnaireModal(false)}
                 onSubmit={(response: QuestionnaireResponse) => {
                     // Update or add today's response
-                    const today = new Date().toISOString().split('T')[0];
+                    const today = getLocalDateString();
                     setQuestionnaireResponses(prev => {
                         const filtered = prev.filter(r => r.date !== today);
                         return [...filtered, response];
@@ -750,7 +758,7 @@ const App: React.FC = () => {
 
                             {activeTab === 'chart' && (
                                 <div className="h-full animate-in fade-in duration-500">
-                                    <Chart sessions={sessions} programs={programs} isDarkMode={isDarkMode} accentColor={accentValue} accentAltColor={accentAltValue} currentDate={simulatedCurrentDate} />
+                                    <Chart sessions={sessions} programs={programs} isDarkMode={isDarkMode} accentColor={accentValue} accentAltColor={accentAltValue} currentDate={simulatedCurrentDate} todayQuestionnaireResponse={getTodayQuestionnaireResponse()} recentQuestionnaireResponses={recentQuestionnaireResponses} />
                                 </div>
                             )}
                             {activeTab === 'plan' && (
@@ -847,6 +855,8 @@ const App: React.FC = () => {
                     simulatedDate={simulatedCurrentDate}
                     programStartDate={settings.startDate}
                     basePower={settings.basePower}
+                    currentMetrics={metrics}
+                    activeProgram={activeProgram}
                     onClose={() => setShowInsightsPage(false)}
                 />
             )}

@@ -12,7 +12,7 @@ import {
   Legend,
   ReferenceArea
 } from 'recharts';
-import { Session, PlanWeek, ProgramRecord } from '../types';
+import { Session, PlanWeek, ProgramRecord, QuestionnaireResponse } from '../types';
 import { ZoomIn, ZoomOut, RefreshCcw, Check, Square, CheckSquare } from 'lucide-react';
 import {
   calculateSessionLoad,
@@ -22,8 +22,11 @@ import {
 } from '../utils/metricsUtils';
 import {
   getWeekNumber,
-  getProgramEndDate
+  getProgramEndDateStr,
+  isDateInProgramRangeStr
 } from '../utils/chartUtils';
+import { getLocalDateString, getDayIndex, addDays, formatDateShort, parseLocalDate } from '../utils/dateUtils';
+import { applyQuestionnaireAdjustment } from '../utils/questionnaireConfig';
 
 interface ChartProps {
   sessions: Session[];
@@ -33,6 +36,8 @@ interface ChartProps {
   accentColor?: string; // Accent color for readiness line
   accentAltColor?: string; // Alternate accent color for fatigue line
   currentDate?: string; // Current date (supports simulated date from dev tools)
+  todayQuestionnaireResponse?: QuestionnaireResponse; // Today's questionnaire for adjustment
+  recentQuestionnaireResponses?: QuestionnaireResponse[]; // Last 7 days for trend analysis
 }
 
 
@@ -64,7 +69,7 @@ const CustomTooltip = ({ active, payload, label, viewMode }: any) => {
   return null;
 };
 
-const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentColor, accentAltColor, currentDate: currentDateProp }) => {
+const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentColor, accentAltColor, currentDate: currentDateProp, todayQuestionnaireResponse, recentQuestionnaireResponses }) => {
   // Use ref to track if we've initialized from localStorage to prevent re-init on re-renders
   const initializedRef = useRef(false);
 
@@ -231,39 +236,41 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
   const timelineData = useMemo(() => {
     if (filteredPrograms.length === 0) return { weekly: [], daily: [] };
 
-    // Sort programs by date
-    const sortedPrograms = [...filteredPrograms].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-    const firstStart = new Date(sortedPrograms[0].startDate);
+    // Sort programs by date (string comparison works for YYYY-MM-DD)
+    const sortedPrograms = [...filteredPrograms].sort((a, b) => a.startDate.localeCompare(b.startDate));
+    const firstStartStr = sortedPrograms[0].startDate;
+    const firstStart = parseLocalDate(firstStartStr);
     const lastProgram = sortedPrograms[sortedPrograms.length - 1];
-    // End date: use actual end date for completed programs, plan length for active
-    const today = new Date();
-    const lastPlanEnd = getProgramEndDate(lastProgram);
 
-    // Use the later of today or program end, but only if we have data for it
-    const end = today > lastPlanEnd ? today : lastPlanEnd;
+    // End date: use actual end date for completed programs, plan length for active
+    const todayStr = getLocalDateString();
+    const lastPlanEndStr = getProgramEndDateStr(lastProgram);
+
+    // Use the later of today or program end
+    const endStr = todayStr > lastPlanEndStr ? todayStr : lastPlanEndStr;
 
     const oneDay = 24 * 60 * 60 * 1000;
-    const totalDays = Math.ceil((end.getTime() - firstStart.getTime()) / oneDay) + 1;
+    const totalDays = getDayIndex(endStr, firstStartStr) + 1;
 
     // Calculate Daily Loads
     const dailyLoads = new Float32Array(totalDays).fill(0);
 
+
     // Calculate the current day index for fatigue/readiness display cutoff
-    // Uses currentDate prop (simulated date) or today
-    const currentDateForCalc = currentDateProp ? new Date(currentDateProp) : new Date();
-    currentDateForCalc.setHours(0, 0, 0, 0);
-    const currentDayIndex = Math.floor((currentDateForCalc.getTime() - firstStart.getTime()) / oneDay);
+    // Uses currentDate prop (simulated date) or today - timezone-agnostic
+    const currentDateStr = currentDateProp || getLocalDateString();
+    const currentDayIndex = getDayIndex(currentDateStr, firstStartStr);
 
     // Get default basePower from first selected program (fallback for power ratio)
     const defaultBasePower = sortedPrograms[0]?.basePower || 150;
 
     filteredSessions.forEach(s => {
-      // Session dates are stored as "YYYY-MM-DD" which parses as UTC midnight
-      // Don't use setHours() as it operates in local time and shifts the UTC date
-      const sessionDate = new Date(s.date);
-      const dayIndex = Math.floor((sessionDate.getTime() - firstStart.getTime()) / oneDay);
+      // Session dates are stored as "YYYY-MM-DD" local date strings
+      // Use string-based day index calculation for timezone-agnostic behavior
+      const dayIndex = getDayIndex(s.date, firstStartStr);
       if (dayIndex >= 0 && dayIndex < totalDays) {
         // Calculate recent average power up to this session's date for power ratio
+        const sessionDate = parseLocalDate(s.date);
         const recentAvgPower = calculateRecentAveragePower(filteredSessions, sessionDate, defaultBasePower);
         const powerRatio = s.power / recentAvgPower;
         dailyLoads[dayIndex] += calculateSessionLoad(s.rpe, s.duration, powerRatio);
@@ -275,28 +282,12 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
     // Generate Daily Data
     const daily = [];
     for (let i = 0; i < totalDays; i++) {
-      // Create date by adding milliseconds (UTC-safe)
-      const currentDate = new Date(firstStart.getTime() + (i * oneDay));
+      // Calculate date string for this day index (timezone-agnostic)
+      const dateStr = addDays(firstStartStr, i);
+      const dateDisplay = formatDateShort(dateStr);
 
-      // Session dates are stored using toISOString().split('T')[0] (UTC)
-      // So we must match using the same UTC format
-      const dateStr = currentDate.toISOString().split('T')[0];
-
-      // For DISPLAY, parse the UTC dateStr to show the correct date label
-      // This ensures tooltip shows the same date as stored in session
-      const [year, month, day] = dateStr.split('-').map(Number);
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const dateDisplay = `${day}/${monthNames[month - 1].slice(0, 2)}`;
-
-      // Find active program for this date, respecting endDate for completed programs
-      const activeProgram = sortedPrograms.find(p => {
-        const pStart = new Date(p.startDate);
-        // Get actual end date (respects endDate for completed programs)
-        const pEnd = getProgramEndDate(p);
-        // Add 1 day to include the end date itself
-        pEnd.setDate(pEnd.getDate() + 1);
-        return currentDate >= pStart && currentDate < pEnd;
-      });
+      // Find active program for this date using string-based range check
+      const activeProgram = sortedPrograms.find(p => isDateInProgramRangeStr(dateStr, p));
 
       let plannedPower = null;
       let plannedDuration = 15; // Default duration in minutes
@@ -320,6 +311,18 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
       if (i <= currentDayIndex && i < dailyMetrics.length) {
         fatigue = dailyMetrics[i].fatigue;
         readiness = dailyMetrics[i].readiness;
+
+        // Apply questionnaire adjustments for current day only
+        if (i === currentDayIndex && todayQuestionnaireResponse) {
+          const adjustment = applyQuestionnaireAdjustment(
+            readiness,
+            fatigue,
+            todayQuestionnaireResponse,
+            recentQuestionnaireResponses
+          );
+          fatigue = adjustment.fatigue;
+          readiness = adjustment.readiness;
+        }
       }
 
       // Calculate actual work done
@@ -416,7 +419,7 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
     }
 
     return { daily, weekly };
-  }, [filteredSessions, filteredPrograms, currentDateProp]); // Added currentDateProp dependency
+  }, [filteredSessions, filteredPrograms, currentDateProp, todayQuestionnaireResponse, recentQuestionnaireResponses]);
 
   const currentData = viewMode === 'week' ? timelineData.weekly : timelineData.daily;
   const [zoomDomain, setZoomDomain] = useState({ start: 0, end: Math.max(0, currentData.length - 1) });

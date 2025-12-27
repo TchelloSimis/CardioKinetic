@@ -2,6 +2,23 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.3.1] - 2025-12-27
+
+### Improved
+
+#### Questionnaire Badge Redesign
+The daily check-in tile now displays readiness and fatigue adjustments using a cleaner badge style that matches the TSB indicator. Badges are rounded, stacked vertically, and color-coded: green for beneficial adjustments, red for concerning ones, and neutral gray for zero impact.
+
+#### Back Button Navigation
+Android hardware back button now properly navigates out of the Readiness Questionnaire modal and Training Insights page. The modal header has been updated with a consistent back arrow style that matches the rest of the application.
+
+### Fixed
+
+- **Dashboard and Chart Metrics Synchronization**: Resolved an issue where the Dashboard and Analytics Chart displayed different fatigue and readiness values. The Dashboard now filters sessions to the active program only (matching Chart behavior), and the Chart now applies questionnaire adjustments to current-day values
+- **Training Insights Metrics Accuracy**: Fixed the Training Insights page showing different values than the Dashboard. The page now uses pre-calculated metrics from the shared useMetrics hook, ensuring consistency with questionnaire adjustments and program-filtered sessions
+- **Timezone-Agnostic Date Handling**: Fixed an issue where session dates could shift by one day in non-UTC timezones. All date operations now use local time consistently via a centralized dateUtils module, ensuring sessions logged late at night appear on the correct calendar day
+- **Week Description Cleanup**: Fixed unresolved template placeholders like `{weekCount}` appearing in dashboard week descriptions. Legacy program data is now sanitized at display time to remove any leftover template variables
+
 ## [1.3.0] - 2025-12-26
 
 ### Added

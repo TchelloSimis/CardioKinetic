@@ -12,6 +12,7 @@ import {
     getChangeColor,
     formatPRDate
 } from './insightsUtils';
+import { parseLocalDate, getLocalDateString } from './dateUtils';
 import { Session } from '../types';
 
 // ============================================================================
@@ -20,7 +21,7 @@ import { Session } from '../types';
 
 const createSession = (overrides: Partial<Session> = {}): Session => ({
     id: `session-${Date.now()}-${Math.random()}`,
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalDateString(),
     duration: 30,
     power: 150,
     distance: 10,
@@ -103,7 +104,8 @@ describe('calculatePersonalRecords', () => {
 
 describe('calculateTrends', () => {
     it('should calculate weekly trends with explicit currentDate', () => {
-        const currentDate = new Date('2024-01-15');
+        // Use parseLocalDate to create date that won't shift due to timezone
+        const currentDate = parseLocalDate('2024-01-15');
         const thisWeek = '2024-01-14';
         const lastWeekStr = '2024-01-05';
 
@@ -120,7 +122,7 @@ describe('calculateTrends', () => {
     });
 
     it('should handle empty current period', () => {
-        const currentDate = new Date('2024-02-01');
+        const currentDate = parseLocalDate('2024-02-01');
         const oldDate = '2023-12-01';
 
         const sessions = [
@@ -134,7 +136,7 @@ describe('calculateTrends', () => {
     });
 
     it('should calculate percentage changes', () => {
-        const currentDate = new Date('2024-01-15');
+        const currentDate = parseLocalDate('2024-01-15');
         const thisWeekDate = '2024-01-14';
         const lastWeekStr = '2024-01-05';
 
@@ -155,7 +157,7 @@ describe('calculateTrends', () => {
 
 describe('calculateFatigueReadinessInsights', () => {
     it('should return default insights for no sessions', () => {
-        const result = calculateFatigueReadinessInsights([], new Date('2024-01-01'), new Date('2024-01-15'), 150);
+        const result = calculateFatigueReadinessInsights([], parseLocalDate('2024-01-01'), parseLocalDate('2024-01-15'), 150);
 
         expect(result.trend).toBe('stable');
         expect(result.insight).toContain('Start training');
@@ -170,8 +172,8 @@ describe('calculateFatigueReadinessInsights', () => {
 
         const result = calculateFatigueReadinessInsights(
             sessions,
-            new Date('2024-01-01'),
-            new Date('2024-01-15'),
+            parseLocalDate('2024-01-01'),
+            parseLocalDate('2024-01-15'),
             150
         );
 
@@ -196,7 +198,7 @@ describe('getRecentActivity', () => {
     });
 
     it('should filter to recent days only using explicit currentDate', () => {
-        const currentDate = new Date('2024-01-15');
+        const currentDate = parseLocalDate('2024-01-15');
 
         const sessions = [
             createSession({ date: '2024-01-14', power: 160 }),
@@ -210,7 +212,7 @@ describe('getRecentActivity', () => {
     });
 
     it('should calculate averages correctly', () => {
-        const currentDate = new Date('2024-01-15');
+        const currentDate = parseLocalDate('2024-01-15');
 
         const sessions = [
             createSession({ date: '2024-01-15', power: 160, duration: 30, rpe: 7 }),
@@ -225,7 +227,7 @@ describe('getRecentActivity', () => {
     });
 
     it('should calculate total work in Wh', () => {
-        const currentDate = new Date('2024-01-15');
+        const currentDate = parseLocalDate('2024-01-15');
 
         const sessions = [
             createSession({ date: '2024-01-14', power: 100, duration: 60 }) // 100 * 60 / 60 = 100 Wh

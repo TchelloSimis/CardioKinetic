@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { ProgramPreset } from '../types';
 import { ArrowRight, Check, ChevronRight, Info, Upload } from 'lucide-react';
 import { formatBlockCounts } from '../utils/blockExpansion';
+import { getLocalDateString } from '../utils/dateUtils';
 
 interface OnboardingProps {
     presets: ProgramPreset[];
@@ -14,7 +15,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ presets, onComplete, onImportTe
     const [step, setStep] = useState(0);
     const [selectedPresetId, setSelectedPresetId] = useState<string>(presets[0].id);
     const [basePower, setBasePower] = useState(initialBasePower);
-    const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+    const [startDate, setStartDate] = useState(getLocalDateString());
     const [selectedWeekCount, setSelectedWeekCount] = useState<number | null>(null);
 
     const selectedPreset = presets.find(p => p.id === selectedPresetId);

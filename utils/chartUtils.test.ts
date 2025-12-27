@@ -8,11 +8,17 @@ import { describe, it, expect } from 'vitest';
 import {
     getWeekNumber,
     getProgramEndDate,
+    getProgramEndDateStr,
     getMaxProgramWeek,
     isSessionInProgramRange,
-    isDateInProgramRange
+    isSessionInProgramRangeStr,
+    isDateInProgramRange,
+    isDateInProgramRangeStr,
+    sanitizeDescription
 } from './chartUtils';
+import { getLocalDateString } from './dateUtils';
 import { ProgramRecord, PlanWeek } from '../types';
+
 
 // Helper to create a mock program
 const createMockProgram = (overrides: Partial<ProgramRecord> = {}): ProgramRecord => ({
@@ -67,8 +73,8 @@ describe('Chart Utilities', () => {
                 status: 'completed',
                 endDate: '2024-02-15'
             });
-            const result = getProgramEndDate(program);
-            expect(result.toISOString().split('T')[0]).toBe('2024-02-15');
+            const result = getProgramEndDateStr(program);
+            expect(result).toBe('2024-02-15');
         });
 
         it('should use plan length for active programs', () => {
@@ -84,11 +90,10 @@ describe('Chart Utilities', () => {
                     description: `Week ${i + 1}`
                 }))
             });
-            const result = getProgramEndDate(program);
-            // 8 weeks = 56 days, but -1 for inclusive end = day 55
-            const expected = new Date('2024-01-01');
-            expected.setDate(expected.getDate() + (8 * 7) - 1);
-            expect(result.toISOString().split('T')[0]).toBe(expected.toISOString().split('T')[0]);
+            const result = getProgramEndDateStr(program);
+            // 8 weeks = 56 days, but -1 for inclusive end = day 55 = Feb 25
+            // Jan has 31 days, so 31 + 24 = Feb 25
+            expect(result).toBe('2024-02-25');
         });
 
         it('should default to 12 weeks if plan is missing', () => {
@@ -96,10 +101,9 @@ describe('Chart Utilities', () => {
                 status: 'active',
                 plan: []
             });
-            const result = getProgramEndDate(program);
-            const expected = new Date('2024-01-01');
-            expected.setDate(expected.getDate() + (12 * 7) - 1);
-            expect(result.toISOString().split('T')[0]).toBe(expected.toISOString().split('T')[0]);
+            const result = getProgramEndDateStr(program);
+            // 12 weeks = 84 days, but -1 = 83 = Mar 24
+            expect(result).toBe('2024-03-24');
         });
 
         it('should ignore endDate for active programs', () => {
@@ -107,11 +111,9 @@ describe('Chart Utilities', () => {
                 status: 'active',
                 endDate: '2024-02-15' // Should be ignored
             });
-            const result = getProgramEndDate(program);
-            // Use plan length (12 weeks)
-            const expected = new Date('2024-01-01');
-            expected.setDate(expected.getDate() + (12 * 7) - 1);
-            expect(result.toISOString().split('T')[0]).toBe(expected.toISOString().split('T')[0]);
+            const result = getProgramEndDateStr(program);
+            // 12 weeks from Jan 1 = Mar 24
+            expect(result).toBe('2024-03-24');
         });
     });
 
@@ -162,8 +164,7 @@ describe('Chart Utilities', () => {
     describe('isSessionInProgramRange', () => {
         it('should return true for session on start date', () => {
             const program = createMockProgram({ startDate: '2024-01-01' });
-            const sessionDate = new Date('2024-01-01');
-            expect(isSessionInProgramRange(sessionDate, program)).toBe(true);
+            expect(isSessionInProgramRangeStr('2024-01-01', program)).toBe(true);
         });
 
         it('should return true for session on end date of completed program', () => {
@@ -172,14 +173,12 @@ describe('Chart Utilities', () => {
                 startDate: '2024-01-01',
                 endDate: '2024-01-28'
             });
-            const sessionDate = new Date('2024-01-28');
-            expect(isSessionInProgramRange(sessionDate, program)).toBe(true);
+            expect(isSessionInProgramRangeStr('2024-01-28', program)).toBe(true);
         });
 
         it('should return false for session before program start', () => {
             const program = createMockProgram({ startDate: '2024-01-01' });
-            const sessionDate = new Date('2023-12-31');
-            expect(isSessionInProgramRange(sessionDate, program)).toBe(false);
+            expect(isSessionInProgramRangeStr('2023-12-31', program)).toBe(false);
         });
 
         it('should return false for session after completed program end', () => {
@@ -188,8 +187,7 @@ describe('Chart Utilities', () => {
                 startDate: '2024-01-01',
                 endDate: '2024-01-28'
             });
-            const sessionDate = new Date('2024-01-29');
-            expect(isSessionInProgramRange(sessionDate, program)).toBe(false);
+            expect(isSessionInProgramRangeStr('2024-01-29', program)).toBe(false);
         });
 
         it('should allow sessions during active program plan', () => {
@@ -207,16 +205,14 @@ describe('Chart Utilities', () => {
                 }))
             });
             // Week 4 = days 21-27
-            const sessionDate = new Date('2024-01-25');
-            expect(isSessionInProgramRange(sessionDate, program)).toBe(true);
+            expect(isSessionInProgramRangeStr('2024-01-25', program)).toBe(true);
         });
     });
 
     describe('isDateInProgramRange', () => {
         it('should return true for date on start date', () => {
             const program = createMockProgram({ startDate: '2024-01-01' });
-            const date = new Date('2024-01-01');
-            expect(isDateInProgramRange(date, program)).toBe(true);
+            expect(isDateInProgramRangeStr('2024-01-01', program)).toBe(true);
         });
 
         it('should return true for date on end date of completed program', () => {
@@ -225,8 +221,7 @@ describe('Chart Utilities', () => {
                 startDate: '2024-01-01',
                 endDate: '2024-01-28'
             });
-            const date = new Date('2024-01-28');
-            expect(isDateInProgramRange(date, program)).toBe(true);
+            expect(isDateInProgramRangeStr('2024-01-28', program)).toBe(true);
         });
 
         it('should return false for date after completed program end', () => {
@@ -235,8 +230,7 @@ describe('Chart Utilities', () => {
                 startDate: '2024-01-01',
                 endDate: '2024-01-28'
             });
-            const date = new Date('2024-01-29');
-            expect(isDateInProgramRange(date, program)).toBe(false);
+            expect(isDateInProgramRangeStr('2024-01-29', program)).toBe(false);
         });
 
         it('should not show planned data for weeks after endDate', () => {
@@ -258,12 +252,10 @@ describe('Chart Utilities', () => {
             });
 
             // Week 5 should NOT be in range
-            const week5Date = new Date('2024-02-01');
-            expect(isDateInProgramRange(week5Date, program)).toBe(false);
+            expect(isDateInProgramRangeStr('2024-02-01', program)).toBe(false);
 
             // Week 4 (last completed week) should be in range
-            const week4Date = new Date('2024-01-25');
-            expect(isDateInProgramRange(week4Date, program)).toBe(true);
+            expect(isDateInProgramRangeStr('2024-01-25', program)).toBe(true);
         });
     });
 
@@ -288,16 +280,67 @@ describe('Chart Utilities', () => {
             expect(getMaxProgramWeek(program)).toBe(4);
 
             // Verify endDate is respected
-            const endDate = getProgramEndDate(program);
-            expect(endDate.toISOString().split('T')[0]).toBe('2024-01-28');
+            const endDateStr = getProgramEndDateStr(program);
+            expect(endDateStr).toBe('2024-01-28');
 
             // Verify week 5 dates are out of range
-            expect(isDateInProgramRange(new Date('2024-01-29'), program)).toBe(false);
-            expect(isDateInProgramRange(new Date('2024-02-01'), program)).toBe(false);
+            expect(isDateInProgramRangeStr('2024-01-29', program)).toBe(false);
+            expect(isDateInProgramRangeStr('2024-02-01', program)).toBe(false);
 
             // Verify week 4 dates are still in range
-            expect(isDateInProgramRange(new Date('2024-01-22'), program)).toBe(true);
-            expect(isDateInProgramRange(new Date('2024-01-28'), program)).toBe(true);
+            expect(isDateInProgramRangeStr('2024-01-22', program)).toBe(true);
+            expect(isDateInProgramRangeStr('2024-01-28', program)).toBe(true);
+        });
+    });
+
+    describe('sanitizeDescription', () => {
+        it('should return empty string for undefined', () => {
+            expect(sanitizeDescription(undefined)).toBe('');
+        });
+
+        it('should return empty string for empty string', () => {
+            expect(sanitizeDescription('')).toBe('');
+        });
+
+        it('should return unchanged string with no placeholders', () => {
+            expect(sanitizeDescription('Week 1 of 4 in Build block')).toBe('Week 1 of 4 in Build block');
+        });
+
+        it('should remove /{weekCount} pattern', () => {
+            expect(sanitizeDescription('Week 1/{weekCount}')).toBe('Week 1');
+        });
+
+        it('should remove standalone {weekCount} pattern', () => {
+            expect(sanitizeDescription('Week 1 of {weekCount}')).toBe('Week 1 of');
+        });
+
+        it('should remove {weekInBlock} pattern', () => {
+            expect(sanitizeDescription('Week {weekInBlock}/4')).toBe('Week /4');
+        });
+
+        it('should remove {blockName} pattern', () => {
+            expect(sanitizeDescription('Building {blockName} block')).toBe('Building block');
+        });
+
+        it('should handle multiple placeholders', () => {
+            expect(sanitizeDescription('Week {weekInBlock}/{weekCount} of {blockName}')).toBe('Week of');
+        });
+
+        it('should clean up multiple spaces', () => {
+            expect(sanitizeDescription('Week  1  of  4')).toBe('Week 1 of 4');
+        });
+
+        it('should trim whitespace', () => {
+            expect(sanitizeDescription('  Week 1  ')).toBe('Week 1');
+        });
+
+        it('should handle complex case from block templates', () => {
+            // This is the actual case from the bug: "Week 1/{weekCount}"
+            const input = 'Week 1/{weekCount}';
+            const result = sanitizeDescription(input);
+            expect(result).toBe('Week 1');
+            expect(result).not.toContain('{');
+            expect(result).not.toContain('}');
         });
     });
 });
