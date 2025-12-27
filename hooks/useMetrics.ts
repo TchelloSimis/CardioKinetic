@@ -40,6 +40,7 @@ interface UseMetricsOptions {
     currentWeekPlan: PlanWeek | undefined;
     activeProgram: ProgramRecord | null;
     todayQuestionnaireResponse?: QuestionnaireResponse;
+    recentQuestionnaireResponses?: QuestionnaireResponse[];  // Last 7 days for trend analysis
 }
 
 /**
@@ -55,7 +56,8 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
         programLength,
         currentWeekPlan,
         activeProgram,
-        todayQuestionnaireResponse
+        todayQuestionnaireResponse,
+        recentQuestionnaireResponses
     } = options;
 
     return useMemo(() => {
@@ -99,7 +101,12 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
         // Apply questionnaire adjustments if available
         let questionnaireAdjustment: { readinessChange: number; fatigueChange: number } | undefined;
         if (todayQuestionnaireResponse) {
-            const adjustment = applyQuestionnaireAdjustment(readinessScore, fatigueScore, todayQuestionnaireResponse);
+            const adjustment = applyQuestionnaireAdjustment(
+                readinessScore,
+                fatigueScore,
+                todayQuestionnaireResponse,
+                recentQuestionnaireResponses  // Last 7 days for trend analysis
+            );
             questionnaireAdjustment = {
                 readinessChange: adjustment.readinessChange,
                 fatigueChange: adjustment.fatigueChange
@@ -190,5 +197,5 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
             modifierMessages,
             questionnaireAdjustment
         };
-    }, [sessions, simulatedDate, startDate, basePower, currentWeekNum, programLength, currentWeekPlan, activeProgram, todayQuestionnaireResponse]);
+    }, [sessions, simulatedDate, startDate, basePower, currentWeekNum, programLength, currentWeekPlan, activeProgram, todayQuestionnaireResponse, recentQuestionnaireResponses]);
 };

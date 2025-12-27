@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Battery, Zap, Info, ClipboardCheck, ChevronRight } from 'lucide-react';
+import { Activity, Battery, Zap, Info, ClipboardCheck, TrendingUp } from 'lucide-react';
 import { PlanWeek, ReadinessState, Session, ProgramRecord, QuestionnaireResponse } from '../types';
 import { AccentColorConfig } from '../presets';
 import ProgramHistory from './ProgramHistory';
@@ -31,6 +31,7 @@ interface DashboardTabProps {
     onStartSession?: () => void;
     todayQuestionnaireResponse?: QuestionnaireResponse;
     onOpenQuestionnaire: () => void;
+    onOpenInsights: () => void;
 }
 
 const DashboardTab: React.FC<DashboardTabProps> = ({
@@ -47,7 +48,8 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
     onDeleteProgram,
     onStartSession,
     todayQuestionnaireResponse,
-    onOpenQuestionnaire
+    onOpenQuestionnaire,
+    onOpenInsights
 }) => {
     const hasCompletedToday = !!todayQuestionnaireResponse;
     const completionTime = hasCompletedToday
@@ -126,61 +128,82 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                         </div>
                     </div>
 
-                    {/* Daily Check-In Tile - Styled like readiness/fatigue tiles */}
+                    {/* Daily Check-In Tile - Side by side with Training Insights */}
                     <div
                         onClick={onOpenQuestionnaire}
-                        className="col-span-2 bg-white/60 dark:bg-neutral-900/60 backdrop-blur-md p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm flex flex-col justify-between cursor-pointer hover:bg-white/80 dark:hover:bg-neutral-900/80 transition-colors"
+                        className="bg-white/60 dark:bg-neutral-900/60 backdrop-blur-md p-5 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm flex flex-col justify-between cursor-pointer hover:bg-white/80 dark:hover:bg-neutral-900/80 transition-colors min-h-[130px]"
                     >
-                        <div className="flex justify-between items-start mb-2">
+                        <div className="flex justify-between items-start">
                             <ClipboardCheck
                                 size={20}
                                 style={{
                                     color: hasCompletedToday
-                                        ? (isDarkMode ? currentAccent.dark : currentAccent.light)  // Readiness color when completed
-                                        : (isDarkMode ? currentAccent.darkAlt : currentAccent.lightAlt)  // Fatigue color when not completed
+                                        ? (isDarkMode ? currentAccent.dark : currentAccent.light)
+                                        : (isDarkMode ? currentAccent.darkAlt : currentAccent.lightAlt)
                                 }}
                             />
-                            <ChevronRight size={18} className="text-neutral-400" />
                         </div>
-                        <div className="flex items-end justify-between">
-                            <div>
-                                <div className="text-xs font-bold uppercase tracking-widest text-neutral-400 mb-1">
-                                    Readiness Questionnaire
-                                </div>
-                                {hasCompletedToday ? (
-                                    <>
-                                        <div className="text-lg font-medium text-neutral-900 dark:text-white mb-1">
-                                            Completed
+                        <div className="mt-auto">
+                            {hasCompletedToday ? (
+                                <>
+                                    <div className="flex items-baseline justify-between gap-2">
+                                        <div className="text-2xl font-medium text-neutral-900 dark:text-white">
+                                            Done
                                         </div>
-                                        <div className="text-[10px] uppercase tracking-widest text-neutral-500">
-                                            at {completionTime}
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="text-lg font-medium text-neutral-900 dark:text-white mb-1">
-                                        Not completed
+                                        {metrics.questionnaireAdjustment && (
+                                            <div className="flex gap-1.5">
+                                                <span className={`text-xs font-medium px-2 py-0.5 rounded ${metrics.questionnaireAdjustment.readinessChange >= 0
+                                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+                                                    : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
+                                                    }`}>
+                                                    {metrics.questionnaireAdjustment.readinessChange >= 0 ? '+' : ''}
+                                                    {metrics.questionnaireAdjustment.readinessChange}R
+                                                </span>
+                                                <span className={`text-xs font-medium px-2 py-0.5 rounded ${metrics.questionnaireAdjustment.fatigueChange <= 0
+                                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+                                                    : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
+                                                    }`}>
+                                                    {metrics.questionnaireAdjustment.fatigueChange >= 0 ? '+' : ''}
+                                                    {metrics.questionnaireAdjustment.fatigueChange}F
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                            {/* Show both adjustments */}
-                            {hasCompletedToday && metrics.questionnaireAdjustment && (
-                                <div className="flex gap-2">
-                                    <span className={`text-xs px-2 py-1 rounded-full ${metrics.questionnaireAdjustment.readinessChange >= 0
-                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                        }`}>
-                                        {metrics.questionnaireAdjustment.readinessChange >= 0 ? '+' : ''}
-                                        {metrics.questionnaireAdjustment.readinessChange} R
-                                    </span>
-                                    <span className={`text-xs px-2 py-1 rounded-full ${metrics.questionnaireAdjustment.fatigueChange <= 0
-                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                        }`}>
-                                        {metrics.questionnaireAdjustment.fatigueChange >= 0 ? '+' : ''}
-                                        {metrics.questionnaireAdjustment.fatigueChange} F
-                                    </span>
-                                </div>
+                                    <div className="text-[10px] uppercase tracking-widest text-neutral-500 mt-1">
+                                        At {completionTime}
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="text-2xl font-medium text-neutral-900 dark:text-white mb-1">
+                                        Pending
+                                    </div>
+                                    <div className="text-[10px] uppercase tracking-widest text-neutral-500">
+                                        Questionnaire
+                                    </div>
+                                </>
                             )}
+                        </div>
+                    </div>
+
+                    {/* Training Insights Tile - Side by side with Questionnaire */}
+                    <div
+                        onClick={onOpenInsights}
+                        className="bg-white/60 dark:bg-neutral-900/60 backdrop-blur-md p-5 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm flex flex-col justify-between cursor-pointer hover:bg-white/80 dark:hover:bg-neutral-900/80 transition-colors min-h-[130px]"
+                    >
+                        <div className="flex justify-between items-start">
+                            <TrendingUp
+                                size={20}
+                                style={{ color: isDarkMode ? currentAccent.darkAlt : currentAccent.lightAlt }}
+                            />
+                        </div>
+                        <div className="mt-auto">
+                            <div className="text-2xl font-medium text-neutral-900 dark:text-white mb-1">
+                                Insights
+                            </div>
+                            <div className="text-[10px] uppercase tracking-widest text-neutral-500">
+                                Records & Trends
+                            </div>
                         </div>
                     </div>
 

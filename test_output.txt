@@ -1,0 +1,323 @@
+﻿
+[1m[46m RUN [49m[22m [36mv4.0.16 [39m[90mC:/Users/marce/Downloads/cardiokinetic(1)[39m
+
+ [31mÔØ»[39m utils/chartDataGeneration.test.ts [2m([22m[2m29 tests[22m[2m | [22m[31m11 failed[39m[2m)[22m[32m 33[2mms[22m[39m
+[31m       [31m├ù[31m should display fatigue/readiness values for each day directly[39m[32m 12[2mms[22m[39m
+[31m       [31m├ù[31m should show metrics up to currentDate, not just last session date[39m[32m 2[2mms[22m[39m
+       [32mÔ£ô[39m should show different metric values for each day (EWMA progression)[32m 1[2mms[22m[39m
+[31m       [31m├ù[31m should use weekly averages, not end-of-week metrics[39m[32m 1[2mms[22m[39m
+[31m       [31m├ù[31m should handle partial weeks correctly (average only completed days)[39m[32m 1[2mms[22m[39m
+[31m       [31m├ù[31m should display null for weeks after currentDate[39m[32m 1[2mms[22m[39m
+[31m       [31m├ù[31m should handle multi-week programs correctly[39m[32m 1[2mms[22m[39m
+[31m       [31m├ù[31m should display metrics up to simulated date, even with no recent sessions[39m[32m 1[2mms[22m[39m
+[31m       [31m├ù[31m should not display metrics for dates after simulated current date[39m[32m 1[2mms[22m[39m
+[31m       [31m├ù[31m should handle simulated date in the middle of a week[39m[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should use ACWR Sigmoid for fatigue calculation[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should use TSB Gaussian for readiness calculation[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should show increasing fatigue with consecutive high-load sessions[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should show decreasing fatigue during rest days[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should correctly map dates to week numbers[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should return 0 for dates before program start[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should not display planned data for weeks after completed program endDate[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should correctly calculate endDate for active vs completed programs[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should aggregate loads from multiple sessions on same day[32m 0[2mms[22m[39m
+[31m       [31m├ù[31m should handle program with only one day of data[39m[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should handle very long programs (12+ weeks)[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should handle sessions at exact week boundaries[32m 0[2mms[22m[39m
+[31m       [31m├ù[31m should handle no sessions with currentDate set[39m[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should calculate weekly average power from sessions[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should calculate weekly average work from sessions[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should show session power directly on session day[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should calculate work correctly (Power ├ù Duration / 60)[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should get planned power from program plan for correct week[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should use first day of week planned values for weekly chart[32m 0[2mms[22m[39m
+node.exe : 
+No linha:1 caractere:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m[1m[41m Failed Tests 11 
+[49m[22m[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m
+
+[41m[1m FAIL [22m[49m utils/chartDataGeneration.test.ts[2m > 
+[22mChart Data Generation - Fatigue/Readiness Display[2m > [22mDays View 
+- Daily Metrics Display[2m > [22mshould display fatigue/readiness values 
+for each day directly
+[31m[1mAssertionError[22m: expected 3 to be 4 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 4[39m
+[31m+ 3[39m
+
+[36m [2mÔØ»[22m utils/chartDataGeneration.test.ts:[2m254:37[22m[39m
+    [90m252| [39m
+    [90m253| [39m            [90m// currentDayIndex should be 4 (Jan 
+5)[39m
+    [90m254| [39m            [34mexpect[39m(currentDayIndex)[33m.[39m
+[34mtoBe[39m([34m4[39m)[33m;[39m
+    [90m   | [39m                                    [31m^[39m
+    [90m255| [39m
+    [90m256| [39m            [90m// Day 0 (Jan 1) - has session, should 
+have metrics[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»[1/11]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m utils/chartDataGeneration.test.ts[2m > 
+[22mChart Data Generation - Fatigue/Readiness Display[2m > [22mDays View 
+- Daily Metrics Display[2m > [22mshould show metrics up to currentDate, 
+not just last session date
+[31m[1mAssertionError[22m: expected 12 to be 13 // Object.is 
+equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 13[39m
+[31m+ 12[39m
+
+[36m [2mÔØ»[22m utils/chartDataGeneration.test.ts:[2m289:37[22m[39m
+    [90m287| [39m
+    [90m288| [39m            [90m// currentDayIndex should be 13 (Jan 
+14)[39m
+    [90m289| [39m            [34mexpect[39m(currentDayIndex)[33m.[39m
+[34mtoBe[39m([34m13[39m)[33m;[39m
+    [90m   | [39m                                    [31m^[39m
+    [90m290| [39m
+    [90m291| [39m            // All days 0-13 should have metrics (even 
+after last sessÔÇª
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»[2/11]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m utils/chartDataGeneration.test.ts[2m > 
+[22mChart Data Generation - Fatigue/Readiness Display[2m > [22mWeeks 
+View - Weekly Averages (NEW BEHAVIOR)[2m > [22mshould use weekly 
+averages, not end-of-week metrics
+[31m[1mAssertionError[22m: expected 36 to be 45 // Object.is 
+equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 45[39m
+[31m+ 36[39m
+
+[36m [2mÔØ»[22m utils/chartDataGeneration.test.ts:[2m356:39[22m[39m
+    [90m354| [39m
+    [90m355| [39m            [90m// Week 1 should use AVERAGE, not 
+end-of-week value[39m
+    [90m356| [39m            [34mexpect[39m(weekly[[34m0[39m][33m.[3
+9m[33mFatigue[39m)[33m.[39m[34mtoBe[39m(expectedFatigue)[33m;[39m
+    [90m   | [39m                                      [31m^[39m
+    [90m357| [39m            [34mexpect[39m(weekly[[34m0[39m][33m.[3
+9m[33mReadiness[39m)[33m.[39m[34mtoBe[39m(expectedReadiness)[33m;[39
+m
+    [90m358| [39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»[3/11]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m utils/chartDataGeneration.test.ts[2m > 
+[22mChart Data Generation - Fatigue/Readiness Display[2m > [22mWeeks 
+View - Weekly Averages (NEW BEHAVIOR)[2m > [22mshould handle partial 
+weeks correctly (average only completed days)
+[31m[1mAssertionError[22m: expected 2 to be 3 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 3[39m
+[31m+ 2[39m
+
+[36m [2mÔØ»[22m utils/chartDataGeneration.test.ts:[2m377:37[22m[39m
+    [90m375| [39m
+    [90m376| [39m            [90m// currentDayIndex = 3 (Jan 4)[39m
+    [90m377| [39m            [34mexpect[39m(currentDayIndex)[33m.[39m
+[34mtoBe[39m([34m3[39m)[33m;[39m
+    [90m   | [39m                                    [31m^[39m
+    [90m378| [39m            [34mexpect[39m(weekly[[34m0[39m][33m.[3
+9meffectiveEndIndex)[33m.[39m[34mtoBe[39m([34m3[39m)[33m;[39m
+    [90m379| [39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»[4/11]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m utils/chartDataGeneration.test.ts[2m > 
+[22mChart Data Generation - Fatigue/Readiness Display[2m > [22mWeeks 
+View - Weekly Averages (NEW BEHAVIOR)[2m > [22mshould display null for 
+weeks after currentDate
+[31m[1mAssertionError[22m: expected 3 to be 4 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 4[39m
+[31m+ 3[39m
+
+[36m [2mÔØ»[22m utils/chartDataGeneration.test.ts:[2m409:37[22m[39m
+    [90m407| [39m            )[33m;[39m
+    [90m408| [39m
+    [90m409| [39m            [34mexpect[39m(currentDayIndex)[33m.[39m
+[34mtoBe[39m([34m4[39m)[33m;[39m
+    [90m   | [39m                                    [31m^[39m
+    [90m410| [39m
+    [90m411| [39m            // Week 1 (days 0-6): should show (partial 
+week up to day ÔÇª
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»[5/11]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m utils/chartDataGeneration.test.ts[2m > 
+[22mChart Data Generation - Fatigue/Readiness Display[2m > [22mWeeks 
+View - Weekly Averages (NEW BEHAVIOR)[2m > [22mshould handle multi-week 
+programs correctly
+[31m[1mAssertionError[22m: expected 19 to be 20 // Object.is 
+equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 20[39m
+[31m+ 19[39m
+
+[36m [2mÔØ»[22m utils/chartDataGeneration.test.ts:[2m441:37[22m[39m
+    [90m439| [39m            )[33m;[39m
+    [90m440| [39m
+    [90m441| [39m            [34mexpect[39m(currentDayIndex)[33m.[39m
+[34mtoBe[39m([34m20[39m)[33m;[39m
+    [90m   | [39m                                    [31m^[39m
+    [90m442| [39m
+    [90m443| [39m            [90m// Week 1, 2, 3 should have metrics[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»[6/11]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m utils/chartDataGeneration.test.ts[2m > 
+[22mChart Data Generation - Fatigue/Readiness Display[2m > [22mMetrics 
+Display with currentDate (simulated date support)[2m > [22mshould display 
+metrics up to simulated date, even with no recent sessions
+[31m[1mAssertionError[22m: expected 18 to be 19 // Object.is 
+equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 19[39m
+[31m+ 18[39m
+
+[36m [2mÔØ»[22m utils/chartDataGeneration.test.ts:[2m467:37[22m[39m
+    [90m465| [39m            )[33m;[39m
+    [90m466| [39m
+    [90m467| [39m            [34mexpect[39m(currentDayIndex)[33m.[39m
+[34mtoBe[39m([34m19[39m)[33m;[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m11 failed[39m[22m[2m | [22m[1m[32m18 passed[39m[22m[90m (29)[39m
+[2m   Start at [22m 12:23:32
+[2m   Duration [22m 2.28s[2m (transform 143ms, setup 208ms, import 132ms, tests 33ms, environment 1.57s)[22m
+
+    [90m   | [39m                                    [31m^[39m
+    [90m468| [39m
+    [90m469| [39m            // All days 0-19 should have metrics (even 
+though last sesÔÇª
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»[7/11]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m utils/chartDataGeneration.test.ts[2m > 
+[22mChart Data Generation - Fatigue/Readiness Display[2m > [22mMetrics 
+Display with currentDate (simulated date support)[2m > [22mshould not 
+display metrics for dates after simulated current date
+[31m[1mAssertionError[22m: expected 3 to be 4 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 4[39m
+[31m+ 3[39m
+
+[36m [2mÔØ»[22m utils/chartDataGeneration.test.ts:[2m491:37[22m[39m
+    [90m489| [39m            )[33m;[39m
+    [90m490| [39m
+    [90m491| [39m            [34mexpect[39m(currentDayIndex)[33m.[39m
+[34mtoBe[39m([34m4[39m)[33m;[39m
+    [90m   | [39m                                    [31m^[39m
+    [90m492| [39m
+    [90m493| [39m            [90m// Days 0-4 should have metrics[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»[8/11]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m utils/chartDataGeneration.test.ts[2m > 
+[22mChart Data Generation - Fatigue/Readiness Display[2m > [22mMetrics 
+Display with currentDate (simulated date support)[2m > [22mshould handle 
+simulated date in the middle of a week
+[31m[1mAssertionError[22m: expected 8 to be 9 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 9[39m
+[31m+ 8[39m
+
+[36m [2mÔØ»[22m utils/chartDataGeneration.test.ts:[2m517:37[22m[39m
+    [90m515| [39m            )[33m;[39m
+    [90m516| [39m
+    [90m517| [39m            [34mexpect[39m(currentDayIndex)[33m.[39m
+[34mtoBe[39m([34m9[39m)[33m;[39m
+    [90m   | [39m                                    [31m^[39m
+    [90m518| [39m
+    [90m519| [39m            [90m// Week 1 should be complete (full 7 
+days)[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»[9/11]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m utils/chartDataGeneration.test.ts[2m > 
+[22mChart Data Generation - Fatigue/Readiness Display[2m > [22mEdge 
+Cases[2m > [22mshould handle program with only one day of data
+[31m[1mAssertionError[22m: expected null not to be null[39m
+[36m [2mÔØ»[22m utils/chartDataGeneration.test.ts:[2m703:42[22m[39m
+    [90m701| [39m            const weeklyData = 
+generateWeeklyDataForTest(sessions, proÔÇª
+    [90m702| [39m
+    [90m703| [39m            [34mexpect[39m(daily[[34m0[39m][33m.[39
+m[33mFatigue[39m)[33m.[39mnot[33m.[39m[34mtoBeNull[39m()[33m;[39m
+    [90m   | [39m                                         [31m^[39m
+    [90m704| [39m            [34mexpect[39m(weeklyData[33m.[39mweekly[
+[34m0[39m][33m.[39m[33mFatigue[39m)[33m.[39mnot[33m.[39m[34mtoBeN
+ull[39m()[33m;[39m
+    [90m705| [39m        })[33m;[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[
+10/11]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m utils/chartDataGeneration.test.ts[2m > 
+[22mChart Data Generation - Fatigue/Readiness Display[2m > [22mEdge 
+Cases[2m > [22mshould handle no sessions with currentDate set
+[31m[1mAssertionError[22m: expected 5 to be 6 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 6[39m
+[31m+ 5[39m
+
+[36m [2mÔØ»[22m utils/chartDataGeneration.test.ts:[2m756:37[22m[39m
+    [90m754| [39m            )[33m;[39m
+    [90m755| [39m
+    [90m756| [39m            [34mexpect[39m(currentDayIndex)[33m.[39m
+[34mtoBe[39m([34m6[39m)[33m;[39m
+    [90m   | [39m                                    [31m^[39m
+    [90m757| [39m
+    [90m758| [39m            // Days 0-6 should still have metrics 
+(baseline metrics wiÔÇª
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[
+11/11]ÔÄ»[22m[39m
+

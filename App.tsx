@@ -9,6 +9,7 @@ import Onboarding from './components/Onboarding';
 import LoadingScreen from './components/LoadingScreen';
 import SettingsTab, { SettingsCategory } from './components/SettingsTab';
 import DashboardTab from './components/DashboardTab';
+import InsightsPage from './components/InsightsTab';
 import DeleteConfirmModal from './components/modals/DeleteConfirmModal';
 import SessionSetupModal from './components/modals/SessionSetupModal';
 import ReadinessQuestionnaireModal from './components/modals/ReadinessQuestionnaireModal';
@@ -77,6 +78,7 @@ const App: React.FC = () => {
     const [sessionResult, setSessionResult] = useState<SessionResult | null>(null);
     const [liveSessionBackPress, setLiveSessionBackPress] = useState(0); // Counter to trigger back in LiveSessionGuide
     const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
+    const [showInsightsPage, setShowInsightsPage] = useState(false);
 
     // Tab subcategory state (lifted from child components for back button handling)
     const [settingsCategory, setSettingsCategory] = useState<SettingsCategory>('main');
@@ -141,6 +143,18 @@ const App: React.FC = () => {
 
     const currentWeekPlan = adaptedPlan.find(p => p.week === currentWeekNum) || adaptedPlan[adaptedPlan.length - 1];
 
+    // Get recent questionnaire responses for trend analysis (last 7 days, excluding today)
+    const recentQuestionnaireResponses = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const cutoffDate = sevenDaysAgo.toISOString().split('T')[0];
+
+        return questionnaireResponses
+            .filter(r => r.date !== today && r.date >= cutoffDate)
+            .sort((a, b) => b.date.localeCompare(a.date));  // Most recent first
+    }, [questionnaireResponses]);
+
     const metrics = useMetrics({
         sessions,
         simulatedDate: simulatedCurrentDate,
@@ -150,7 +164,8 @@ const App: React.FC = () => {
         programLength,
         currentWeekPlan,
         activeProgram,
-        todayQuestionnaireResponse: getTodayQuestionnaireResponse()
+        todayQuestionnaireResponse: getTodayQuestionnaireResponse(),
+        recentQuestionnaireResponses
     });
 
     // Android back button handler
@@ -729,12 +744,13 @@ const App: React.FC = () => {
                                     onStartSession={handleStartSessionClick}
                                     todayQuestionnaireResponse={getTodayQuestionnaireResponse()}
                                     onOpenQuestionnaire={() => setShowQuestionnaireModal(true)}
+                                    onOpenInsights={() => setShowInsightsPage(true)}
                                 />
                             </div>
 
                             {activeTab === 'chart' && (
                                 <div className="h-full animate-in fade-in duration-500">
-                                    <Chart sessions={sessions} programs={programs} isDarkMode={isDarkMode} accentColor={accentValue} accentAltColor={accentAltValue} />
+                                    <Chart sessions={sessions} programs={programs} isDarkMode={isDarkMode} accentColor={accentValue} accentAltColor={accentAltValue} currentDate={simulatedCurrentDate} />
                                 </div>
                             )}
                             {activeTab === 'plan' && (
@@ -800,6 +816,10 @@ const App: React.FC = () => {
                                     PRESETS={PRESETS}
                                     activeCategory={settingsCategory}
                                     setActiveCategory={setSettingsCategory}
+                                    questionnaireResponses={questionnaireResponses}
+                                    setQuestionnaireResponses={setQuestionnaireResponses}
+                                    templateOrder={templateOrder}
+                                    setTemplateOrder={setTemplateOrder}
                                     sampleWeeks={sampleWeeks}
                                     setSampleWeeks={setSampleWeeks}
                                     programLength={programLength}
@@ -810,16 +830,26 @@ const App: React.FC = () => {
                                     jumpToLastSession={jumpToLastSession}
                                     generateSampleData={generateSampleData}
                                     clearSessions={() => setSessions([])}
-                                    colorBrightness={100} // Mocked for backward compat if needed, or removed if SettingsTab updated
-                                    setColorBrightness={() => { }}
-                                    colorSaturation={100}
-                                    setColorSaturation={() => { }}
                                 />
                             )}
                         </div>
                     </div>
                 </div>
             </main>
+
+            {/* Insights Page Modal */}
+            {showInsightsPage && (
+                <InsightsPage
+                    sessions={sessions}
+                    programs={programs}
+                    isDarkMode={isDarkMode}
+                    currentAccent={currentAccent}
+                    simulatedDate={simulatedCurrentDate}
+                    programStartDate={settings.startDate}
+                    basePower={settings.basePower}
+                    onClose={() => setShowInsightsPage(false)}
+                />
+            )}
         </div>
     );
 };

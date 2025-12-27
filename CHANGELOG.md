@@ -2,6 +2,63 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.3.0] - 2025-12-26
+
+### Added
+
+#### Training Insights Dashboard
+A new full-screen insights page provides a comprehensive view of your training status and progress:
+
+- **Body Status Overview**: Current readiness and fatigue percentages with weekly averages and trend indicators
+- **Personalized Recommendations**: Smart insights based on fatigue and readiness patterns, suggesting when to push harder or recover
+- **Personal Records**: Track peak power, longest session duration, and most work completed (in Wh)
+- **Weekly Trends**: Side-by-side comparison of current week vs. previous week training metrics
+- **Recent Activity Summary**: Quick view of your last 7 days of training sessions
+
+#### Complete Export and Import System
+Full backup and restore functionality for all your training data:
+
+- **Comprehensive Exports**: Backup includes programs, sessions, questionnaire responses, custom templates, and settings
+- **Format Migration**: Automatic migration from v1 (legacy) to v2 format during import
+- **Merge Import Mode**: Option to preserve existing data during import, with newer entries winning on conflicts
+- **Import Preview**: Review data counts before confirming an import operation
+
+#### PWA and Offline Support
+CardioKinetic now works offline as a Progressive Web App:
+
+- **Android Standalone Experience**: Install directly from the browser with `manifest.json` support
+- **Offline Caching**: Service worker with cache-first strategy ensures the app works without internet
+- **Seamless Updates**: Background cache updates when connectivity is restored
+
+### Improved
+
+#### Enhanced Readiness Questionnaire Algorithm
+A complete overhaul of the daily check-in algorithm with six new intelligence layers for more accurate training adjustments:
+
+- **Synergy Detection**: Compound effects when multiple wellness categories strongly align, with 1.25x-1.5x multipliers
+- **7-Day Trend Analysis**: Historical pattern detection that amplifies declining trends and dampens improving ones
+- **Cascade Effects**: Physiological rule-based triggers for conditions like sleep deprivation or extreme soreness
+- **Athlete Profile Detection**: Identifies patterns like "masked fatigue" (high motivation but low energy) and "resilient athlete"
+- **Cluster Weighting**: Different weights for Recovery Input categories vs. Current State categories
+- **Non-linear Scaling**: Extreme responses (1 or 5) have amplified impact compared to moderate answers
+
+Calibrated base impacts increased to ±8 for both readiness and fatigue, with asymmetric risk weighting for injury prevention and combined multipliers capped at 2.5x.
+
+#### Analytics Chart Improvements
+- **Weekly Averages**: Fatigue and readiness in weeks view now show weekly averages instead of end-of-week snapshots
+- **Partial Week Handling**: Current week correctly averages only completed days
+- **Continuous Display**: Fatigue and readiness extend to current date, not just last session
+- **Simulated Date Support**: Chart respects developer tools simulated date for testing historical states
+
+### Fixed
+
+- **Incomplete Program Handling**: Programs finished early now correctly respect their actual end date for timeline calculations, planned power/work display, and session grouping
+- **Block Description Placeholder**: The `{weekCount}` placeholder in block-based program descriptions now correctly substitutes the actual week count
+
+### Testing
+
+Comprehensive test coverage now includes 40 test files with 810+ unit tests, covering core training metrics, block expansion, template validation, fatigue modifiers, export/import functionality, chart data generation, and component rendering.
+
 ## [1.2.2] - 2025-12-24
 
 ### Added

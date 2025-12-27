@@ -76,6 +76,15 @@ Track every session and visualize your progress with detailed analytics:
 - **Session History** — Complete log of all sessions with RPE, duration, and performance metrics
 - **Edit & Delete Sessions** — Full control over your training history
 
+### Training Insights
+
+Get a comprehensive view of your training status with the dedicated Insights page:
+
+- **Body Status Overview** — Current readiness and fatigue percentages with weekly averages and trend indicators
+- **Personalized Recommendations** — Smart insights suggesting when to push harder or take it easy
+- **Personal Records** — Track your peak power, longest session, and most work completed
+- **Weekly Trends** — Compare current week vs. previous week training metrics
+
 ### Adaptive Fatigue System
 
 CardioKinetic uses an evidence-based **Fitness-Fatigue model** (Banister model) combined with advanced scoring algorithms:
@@ -124,6 +133,7 @@ Mix and match training blocks in a single session:
 - **Multiple Accent Colors** — Choose from Lavender, Rose, Sage, Ocean, Sunset, Monochrome, or create your own
 - **Custom Accent Controls** — Fine-tune saturation, brightness, and hue to match your style
 - **Monospace Numbers** — Clean, readable numeric displays with Inconsolata font
+- **Full Backup & Restore** — Export all your data (programs, sessions, settings) and import on any device
 
 ### Native Android Experience
 
@@ -133,6 +143,7 @@ Built with Capacitor for a true native feel:
 - **Hardware Back Button** — Proper handling with confirmation dialogs during sessions
 - **Reliable Audio Cues** — Interval transitions and countdowns work even when screen is off
 - **Haptic Feedback** — Tactile responses for key interactions
+- **PWA Support** — Install from browser with offline capability
 
 ---
 

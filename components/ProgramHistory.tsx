@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ProgramRecord, Session } from '../types';
 import { ChevronDown, ChevronRight, Calendar, Zap, Pencil, Trash2, Check, X } from 'lucide-react';
+import { getWeekNumber, getMaxProgramWeek } from '../utils/chartUtils';
 
 interface ProgramHistoryProps {
     programs: ProgramRecord[];
@@ -10,18 +11,6 @@ interface ProgramHistoryProps {
     onRenameProgram?: (programId: string, newName: string) => void;
     onDeleteProgram?: (programId: string) => void;
 }
-
-// Helper to calculate week number from session date and program start date
-const getWeekNumber = (sessionDate: string, programStartDate: string): number => {
-    const session = new Date(sessionDate);
-    const start = new Date(programStartDate);
-    session.setHours(0, 0, 0, 0);
-    start.setHours(0, 0, 0, 0);
-    const diffTime = session.getTime() - start.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) return 0;
-    return Math.floor(diffDays / 7) + 1;
-};
 
 interface WeekGroup {
     weekNum: number;
@@ -122,16 +111,25 @@ const ProgramHistory: React.FC<ProgramHistoryProps> = ({
                 // Fallback: check if session date is within program range
                 const sessionDate = new Date(s.date);
                 const startDate = new Date(program.startDate);
-                const endDate = program.endDate ? new Date(program.endDate) : new Date();
-                endDate.setDate(endDate.getDate() + 84);
+                // Use actual end date for completed programs, plan length for active
+                let endDate: Date;
+                if (program.status === 'completed' && program.endDate) {
+                    endDate = new Date(program.endDate);
+                } else {
+                    endDate = new Date(program.startDate);
+                    endDate.setDate(endDate.getDate() + (program.plan?.length || 12) * 7);
+                }
+                // Add 1 day to include sessions on end date
+                endDate.setDate(endDate.getDate() + 1);
                 return sessionDate >= startDate && sessionDate <= endDate;
             });
 
-            // Group by week number
+            // Group by week number - use actual max week for this program
+            const maxWeek = getMaxProgramWeek(program);
             const weekMap = new Map<number, Session[]>();
             programSessions.forEach(session => {
                 const weekNum = getWeekNumber(session.date, program.startDate);
-                if (weekNum > 0 && weekNum <= 12) {
+                if (weekNum > 0 && weekNum <= maxWeek) {
                     if (!weekMap.has(weekNum)) {
                         weekMap.set(weekNum, []);
                     }

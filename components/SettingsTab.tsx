@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronRight, Palette, Database, ListTodo, Wrench } from 'lucide-react';
-import { ProgramPreset, ProgramRecord, Session } from '../types';
+import { ProgramPreset, ProgramRecord, Session, QuestionnaireResponse } from '../types';
 import { AccentColor, AccentColorConfig, ThemePreference, AccentModifierState } from '../presets';
 import AppearanceSettings from './settings/AppearanceSettings';
 import ProgrammingSettings from './settings/ProgrammingSettings';
@@ -56,6 +56,12 @@ interface SettingsTabProps {
     activeCategory: SettingsCategory;
     setActiveCategory: (category: SettingsCategory) => void;
 
+    // Questionnaire and template order (for complete backup)
+    questionnaireResponses: QuestionnaireResponse[];
+    setQuestionnaireResponses: React.Dispatch<React.SetStateAction<QuestionnaireResponse[]>>;
+    templateOrder: string[];
+    setTemplateOrder: React.Dispatch<React.SetStateAction<string[]>>;
+
     // Developer Tools props
     sampleWeeks: number;
     setSampleWeeks: (weeks: number) => void;
@@ -78,6 +84,8 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
     editingTemplateId, setEditingTemplateId, editingTemplateName, setEditingTemplateName,
     isDefaultPreset, isDefaultModified, moveTemplate, PRESETS,
     activeCategory, setActiveCategory,
+    questionnaireResponses, setQuestionnaireResponses,
+    templateOrder, setTemplateOrder,
     sampleWeeks, setSampleWeeks, programLength, simulatedCurrentDate, setSimulatedCurrentDate,
     autoUpdateSimDate, setAutoUpdateSimDate, jumpToLastSession, generateSampleData, clearSessions,
     accentModifiers, setAccentModifiers
@@ -179,6 +187,18 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                     setSessions={setSessions}
                     accentColor={accentColor}
                     setAccentColor={setAccentColor}
+                    questionnaireResponses={questionnaireResponses}
+                    setQuestionnaireResponses={setQuestionnaireResponses}
+                    customTemplates={customTemplates}
+                    setCustomTemplates={setCustomTemplates}
+                    accentModifiers={accentModifiers}
+                    setAccentModifiers={setAccentModifiers}
+                    templateOrder={templateOrder}
+                    setTemplateOrder={setTemplateOrder}
+                    modifiedDefaults={modifiedDefaults}
+                    setModifiedDefaults={setModifiedDefaults}
+                    deletedDefaultIds={deletedDefaultIds}
+                    setDeletedDefaultIds={setDeletedDefaultIds}
                 />
             )}
 

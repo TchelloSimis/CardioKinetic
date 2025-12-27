@@ -20,6 +20,10 @@ import {
   calculateFatigueScore,
   calculateReadinessScore
 } from '../utils/metricsUtils';
+import {
+  getWeekNumber,
+  getProgramEndDate
+} from '../utils/chartUtils';
 
 interface ChartProps {
   sessions: Session[];
@@ -28,18 +32,9 @@ interface ChartProps {
   startDate?: string; // Optional now, derived from programs
   accentColor?: string; // Accent color for readiness line
   accentAltColor?: string; // Alternate accent color for fatigue line
+  currentDate?: string; // Current date (supports simulated date from dev tools)
 }
 
-const getWeekNumber = (dateStr: string, startStr: string) => {
-  const d = new Date(dateStr);
-  const s = new Date(startStr);
-  d.setHours(0, 0, 0, 0);
-  s.setHours(0, 0, 0, 0);
-  const diffTime = d.getTime() - s.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  if (diffDays < 0) return 0;
-  return Math.floor(diffDays / 7) + 1;
-};
 
 const CustomTooltip = ({ active, payload, label, viewMode }: any) => {
   if (active && payload && payload.length) {
@@ -69,7 +64,7 @@ const CustomTooltip = ({ active, payload, label, viewMode }: any) => {
   return null;
 };
 
-const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentColor, accentAltColor }) => {
+const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentColor, accentAltColor, currentDate: currentDateProp }) => {
   // Use ref to track if we've initialized from localStorage to prevent re-init on re-renders
   const initializedRef = useRef(false);
 
@@ -195,8 +190,9 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
       return filteredPrograms.some(p => {
         const sessionDate = new Date(s.date);
         const startDate = new Date(p.startDate);
-        const endDate = p.endDate ? new Date(p.endDate) : new Date();
-        endDate.setDate(endDate.getDate() + 84);
+        // Use actual program end date with minimal 1-day buffer
+        const endDate = getProgramEndDate(p);
+        endDate.setDate(endDate.getDate() + 1); // Include sessions on end date
         return sessionDate >= startDate && sessionDate <= endDate;
       });
     }),
@@ -239,11 +235,9 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
     const sortedPrograms = [...filteredPrograms].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
     const firstStart = new Date(sortedPrograms[0].startDate);
     const lastProgram = sortedPrograms[sortedPrograms.length - 1];
-    // End date is either today or end of last program plan (use actual plan length)
+    // End date: use actual end date for completed programs, plan length for active
     const today = new Date();
-    const lastProgramWeeks = lastProgram.plan?.length || 12;
-    const lastPlanEnd = new Date(lastProgram.startDate);
-    lastPlanEnd.setDate(lastPlanEnd.getDate() + (lastProgramWeeks * 7) - 1); // -1 to end on last day, not day after
+    const lastPlanEnd = getProgramEndDate(lastProgram);
 
     // Use the later of today or program end, but only if we have data for it
     const end = today > lastPlanEnd ? today : lastPlanEnd;
@@ -254,8 +248,11 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
     // Calculate Daily Loads
     const dailyLoads = new Float32Array(totalDays).fill(0);
 
-    // Track the last session day for fatigue/readiness display
-    let lastSessionDayIndex = -1;
+    // Calculate the current day index for fatigue/readiness display cutoff
+    // Uses currentDate prop (simulated date) or today
+    const currentDateForCalc = currentDateProp ? new Date(currentDateProp) : new Date();
+    currentDateForCalc.setHours(0, 0, 0, 0);
+    const currentDayIndex = Math.floor((currentDateForCalc.getTime() - firstStart.getTime()) / oneDay);
 
     // Get default basePower from first selected program (fallback for power ratio)
     const defaultBasePower = sortedPrograms[0]?.basePower || 150;
@@ -270,8 +267,6 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
         const recentAvgPower = calculateRecentAveragePower(filteredSessions, sessionDate, defaultBasePower);
         const powerRatio = s.power / recentAvgPower;
         dailyLoads[dayIndex] += calculateSessionLoad(s.rpe, s.duration, powerRatio);
-        // Track the last session day for fatigue/readiness display
-        if (dayIndex > lastSessionDayIndex) lastSessionDayIndex = dayIndex;
       }
     });
 
@@ -293,12 +288,13 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const dateDisplay = `${day}/${monthNames[month - 1].slice(0, 2)}`;
 
-      // Find active program for this date
+      // Find active program for this date, respecting endDate for completed programs
       const activeProgram = sortedPrograms.find(p => {
         const pStart = new Date(p.startDate);
-        const pEnd = new Date(pStart);
-        const programWeeks = p.plan?.length || 12;
-        pEnd.setDate(pEnd.getDate() + (programWeeks * 7));
+        // Get actual end date (respects endDate for completed programs)
+        const pEnd = getProgramEndDate(p);
+        // Add 1 day to include the end date itself
+        pEnd.setDate(pEnd.getDate() + 1);
         return currentDate >= pStart && currentDate < pEnd;
       });
 
@@ -320,8 +316,8 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
 
       let fatigue = null;
       let readiness = null;
-      // Show fatigue/readiness up to the last session day (accounts for simulated dates)
-      if (i <= lastSessionDayIndex && i < dailyMetrics.length) {
+      // Show fatigue/readiness up to current date (supports simulated date)
+      if (i <= currentDayIndex && i < dailyMetrics.length) {
         fatigue = dailyMetrics[i].fatigue;
         readiness = dailyMetrics[i].readiness;
       }
@@ -381,12 +377,30 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
       const planned = day0 ? day0.Planned : null;
       const plannedWork = day0 ? day0.PlannedWork : null;
 
+      // Calculate AVERAGE fatigue/readiness for the week (not end-of-week value)
+      // For partial weeks, only average up to the current day
       let fatigue = null;
       let readiness = null;
-      // Show fatigue/readiness up to the last session day (accounts for simulated dates)
-      if (weekStartIndex <= lastSessionDayIndex && weekMetrics) {
-        fatigue = weekMetrics.fatigue;
-        readiness = weekMetrics.readiness;
+
+      // Determine the effective end index for this week (respecting current date)
+      const effectiveEndIndex = Math.min(weekEndIndex, currentDayIndex);
+
+      if (weekStartIndex <= currentDayIndex && effectiveEndIndex >= weekStartIndex) {
+        // Calculate average of all days in this week up to current date
+        let fatigueSum = 0;
+        let readinessSum = 0;
+        let daysWithMetrics = 0;
+
+        for (let d = weekStartIndex; d <= effectiveEndIndex && d < dailyMetrics.length; d++) {
+          fatigueSum += dailyMetrics[d].fatigue;
+          readinessSum += dailyMetrics[d].readiness;
+          daysWithMetrics++;
+        }
+
+        if (daysWithMetrics > 0) {
+          fatigue = Math.round(fatigueSum / daysWithMetrics);
+          readiness = Math.round(readinessSum / daysWithMetrics);
+        }
       }
 
       weekly.push({
@@ -402,7 +416,7 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
     }
 
     return { daily, weekly };
-  }, [filteredSessions, filteredPrograms]); // Updated dependencies
+  }, [filteredSessions, filteredPrograms, currentDateProp]); // Added currentDateProp dependency
 
   const currentData = viewMode === 'week' ? timelineData.weekly : timelineData.daily;
   const [zoomDomain, setZoomDomain] = useState({ start: 0, end: Math.max(0, currentData.length - 1) });

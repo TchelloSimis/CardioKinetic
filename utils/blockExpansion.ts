@@ -385,6 +385,7 @@ export function expandBlocksToWeeks(
         // Build description with placeholder replacement
         const description = block.description
             .replace('{weekInBlock}', String(assignment.weekInBlock))
+            .replace('{weekCount}', String(block.weekCount))
             .replace('{blockName}', block.name);
 
         // Determine session style (from weekSession or block or template default)
