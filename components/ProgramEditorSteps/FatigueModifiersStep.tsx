@@ -1,8 +1,6 @@
-import React, { useState, useCallback } from 'react';
-import { Activity, Plus, Trash2, Sparkles, Loader2 } from 'lucide-react';
-import { FatigueModifier, FatigueAdjustments, FlexibleCondition, ThresholdCondition, ProgramTemplate } from '../../programTemplate';
-import { suggestModifiersAsync } from '../../utils/suggestModifiers';
-import { expandBlocksToWeeks } from '../../utils/blockExpansion';
+import React, { useCallback } from 'react';
+import { Activity, Plus, Trash2 } from 'lucide-react';
+import { FatigueModifier, FatigueAdjustments, FlexibleCondition, ThresholdCondition } from '../../programTemplate';
 import { EditorState } from '../ProgramEditor';
 import { SelectInput } from '../ProgramInputs';
 
@@ -68,72 +66,6 @@ const normalizeCondition = (condition: any): FlexibleCondition => {
 };
 
 const FatigueModifiersStep: React.FC<FatigueModifiersStepProps> = ({ editorState, setEditorState }) => {
-    // State for loading indicator during simulation
-    const [isSimulating, setIsSimulating] = useState(false);
-    const [simulationProgress, setSimulationProgress] = useState(0);
-
-    // Handle suggest modifiers button click
-    const handleSuggestModifiers = useCallback(async () => {
-        setIsSimulating(true);
-        setSimulationProgress(0);
-
-        try {
-            // Determine expanded weeks based on structure type
-            let expandedWeeks = editorState.weeks;
-            const basePower = 200; // Default base power for simulation
-
-            if (editorState.structureType === 'block-based') {
-                // Build a temporary template for block expansion
-                const tempTemplate: ProgramTemplate = {
-                    templateVersion: '1.0',
-                    id: 'temp',
-                    name: 'temp',
-                    description: '',
-                    weekConfig: { type: 'fixed', fixed: editorState.fixedWeeks },
-                    defaultSessionStyle: editorState.defaultSessionStyle,
-                    progressionMode: editorState.progressionMode,
-                    defaultSessionDurationMinutes: editorState.defaultDurationMinutes,
-                    weeks: [],
-                    structureType: 'block-based',
-                    programBlocks: editorState.programBlocks,
-                    fixedFirstWeek: editorState.fixedFirstWeek || undefined,
-                    fixedLastWeek: editorState.fixedLastWeek || undefined,
-                };
-                expandedWeeks = expandBlocksToWeeks(tempTemplate, editorState.fixedWeeks, basePower);
-            }
-
-            if (expandedWeeks.length === 0) {
-                alert('Please add week definitions or blocks before suggesting modifiers.');
-                setIsSimulating(false);
-                return;
-            }
-
-            // Run async simulation with progress callback
-            const suggestedModifiers = await suggestModifiersAsync(
-                expandedWeeks,
-                basePower,
-                100000, // 100k simulations
-                (progress) => setSimulationProgress(Math.round(progress * 100))
-            );
-
-            if (suggestedModifiers.length === 0) {
-                alert('No anomalies detected - your program appears well balanced!');
-            } else {
-                // Append suggested modifiers to existing ones
-                setEditorState(prev => ({
-                    ...prev,
-                    fatigueModifiers: [...prev.fatigueModifiers, ...suggestedModifiers]
-                }));
-            }
-        } catch (error) {
-            console.error('Error during simulation:', error);
-            alert('An error occurred during simulation. Please try again.');
-        } finally {
-            setIsSimulating(false);
-            setSimulationProgress(0);
-        }
-    }, [editorState, setEditorState]);
-
     const addModifier = () => {
         const newModifier: FatigueModifier = {
             condition: {
@@ -230,35 +162,12 @@ const FatigueModifiersStep: React.FC<FatigueModifiersStepProps> = ({ editorState
                 </h3>
                 <div className="flex flex-wrap items-center gap-2">
                     <button
-                        onClick={handleSuggestModifiers}
-                        disabled={isSimulating}
-                        className="px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border-2 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                        style={{
-                            borderColor: 'var(--accent)',
-                            color: isSimulating ? 'var(--accent)' : 'var(--accent)',
-                            backgroundColor: 'transparent'
-                        }}
-                        title="Run Monte Carlo simulation to suggest optimal modifiers"
-                    >
-                        {isSimulating ? (
-                            <>
-                                <Loader2 size={14} className="animate-spin" />
-                                {simulationProgress}%
-                            </>
-                        ) : (
-                            <>
-                                <Sparkles size={14} />
-                                Suggest
-                            </>
-                        )}
-                    </button>
-                    <button
                         onClick={addModifier}
                         className="px-3 py-2 rounded-xl text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-opacity flex items-center gap-2 shadow-lg shadow-accent/20 whitespace-nowrap"
                         style={{ backgroundColor: 'var(--accent)' }}
                     >
                         <Plus size={14} />
-                        Add
+                        Add Modifier
                     </button>
                 </div>
             </div>

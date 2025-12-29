@@ -2,7 +2,7 @@
  * useMetrics Hook
  * 
  * Calculates ATL, CTL, TSB, fatigue scores, readiness scores, and generates advice.
- * Applies fatigue modifiers from program templates.
+ * Applies fatigue modifiers from program templates and auto-adaptive adjustments.
  */
 
 import { useMemo } from 'react';
@@ -16,6 +16,8 @@ import {
 import { applyFatigueModifiers } from '../utils/templateUtils';
 import { applyQuestionnaireAdjustment } from '../utils/questionnaireConfig';
 import { parseLocalDate, getDayIndex, addDays, isDateInRange } from '../utils/dateUtils';
+import { calculateAutoAdaptiveAdjustments } from '../utils/autoAdaptiveModifiers';
+import type { AutoAdaptiveAdjustment } from '../utils/autoAdaptiveTypes';
 
 export interface MetricsResult {
     fatigue: number;
@@ -23,12 +25,16 @@ export interface MetricsResult {
     status: ReadinessState;
     tsb: number;
     advice: string | null;
+    /** Whether the current advice is from auto-adaptive system vs coach modifiers */
+    isAutoAdaptiveAdvice?: boolean;
     modifiedWeekPlan: PlanWeek | null;
     modifierMessages: string[];
     questionnaireAdjustment?: {
         readinessChange: number;
         fatigueChange: number;
     };
+    /** Auto-adaptive adjustment details (for debugging/display) */
+    autoAdaptiveAdjustment?: AutoAdaptiveAdjustment;
 }
 
 interface UseMetricsOptions {
@@ -42,6 +48,8 @@ interface UseMetricsOptions {
     activeProgram: ProgramRecord | null;
     todayQuestionnaireResponse?: QuestionnaireResponse;
     recentQuestionnaireResponses?: QuestionnaireResponse[];  // Last 7 days for trend analysis
+    /** Whether auto-adaptive modifiers are enabled in settings */
+    autoAdaptiveEnabled?: boolean;
 }
 
 /**
@@ -58,7 +66,8 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
         currentWeekPlan,
         activeProgram,
         todayQuestionnaireResponse,
-        recentQuestionnaireResponses
+        recentQuestionnaireResponses,
+        autoAdaptiveEnabled = false
     } = options;
 
     // Filter sessions to active program only (matching Chart behavior)
@@ -155,9 +164,44 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
             weekNumber: currentWeekNum,
             totalWeeks: programLength,
             phase: currentWeekPlan.focus,
-            phaseName: currentWeekPlan.phaseName
+            phaseName: currentWeekPlan.phaseName,
+            expectedCyclePhase: currentWeekPlan.expectedCyclePhase,
+            expectedPhasePosition: currentWeekPlan.expectedPhasePosition,
         };
-        const modifierResult = applyFatigueModifiers(currentWeekPlan, fatigueContext, programModifiers);
+
+        // Calculate auto-adaptive adjustment if enabled and simulation data exists
+        let autoAdaptiveAdjustment: AutoAdaptiveAdjustment | undefined;
+
+        // Debug: Log the auto-adaptive check conditions (remove before release)
+        if (autoAdaptiveEnabled) {
+            console.log('[useMetrics] Auto-adaptive check:', {
+                autoAdaptiveEnabled,
+                hasActiveProgram: !!activeProgram,
+                programId: activeProgram?.id,
+                hasSimulationData: !!activeProgram?.simulationData,
+                simulationWeekCount: activeProgram?.simulationData?.weekCount,
+                hasWeekPercentiles: !!activeProgram?.simulationData?.weekPercentiles,
+                percentilesLength: activeProgram?.simulationData?.weekPercentiles?.length,
+                currentWeekNum,
+                weekPercentileExists: !!activeProgram?.simulationData?.weekPercentiles?.[currentWeekNum - 1]
+            });
+        }
+
+        if (autoAdaptiveEnabled && activeProgram?.simulationData?.weekPercentiles?.[currentWeekNum - 1]) {
+            autoAdaptiveAdjustment = calculateAutoAdaptiveAdjustments(
+                fatigueContext,
+                activeProgram.simulationData.weekPercentiles[currentWeekNum - 1],
+                currentWeekPlan.sessionStyle || 'interval',
+                currentWeekPlan.blocks
+            );
+        }
+
+        const modifierResult = applyFatigueModifiers(
+            currentWeekPlan,
+            fatigueContext,
+            programModifiers,
+            autoAdaptiveAdjustment
+        );
         const modifierMessages = modifierResult.messages;
         const modifiedWeekPlan = modifierResult.week;
 
@@ -199,10 +243,14 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
             advice = "Training stress is balanced. Execute the session exactly as prescribed. Focus on form and breathing.";
         }
 
-        // Use modifier messages if available, otherwise use calculated advice
-        const fullAdvice = modifierMessages.length > 0
-            ? modifierMessages.join(' ')
-            : null; // Only show Coach's Advice when the program template has specific messages
+        // Use modifier messages if available, otherwise check for auto-adaptive, otherwise null
+        let fullAdvice: string | null = null;
+        const isAutoAdaptiveAdvice = modifierResult.isAutoAdaptive;
+
+        if (modifierMessages.length > 0) {
+            fullAdvice = modifierMessages.join(' ');
+        }
+        // Otherwise fullAdvice stays null (no advice shown)
 
         return {
             fatigue: fatigueScore,
@@ -210,9 +258,11 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
             status: readinessText,
             tsb: Math.round(tsb),
             advice: fullAdvice,
+            isAutoAdaptiveAdvice,
             modifiedWeekPlan,
             modifierMessages,
-            questionnaireAdjustment
+            questionnaireAdjustment,
+            autoAdaptiveAdjustment
         };
-    }, [filteredSessions, simulatedDate, startDate, basePower, currentWeekNum, programLength, currentWeekPlan, activeProgram, todayQuestionnaireResponse, recentQuestionnaireResponses]);
+    }, [filteredSessions, simulatedDate, startDate, basePower, currentWeekNum, programLength, currentWeekPlan, activeProgram, todayQuestionnaireResponse, recentQuestionnaireResponses, autoAdaptiveEnabled]);
 };

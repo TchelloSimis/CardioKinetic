@@ -2,6 +2,37 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.5.0] - 2025-12-29
+
+### Added
+
+#### Auto-Adaptive Modifier System
+A sophisticated automatic training adjustment engine that replaces the legacy suggestion system:
+
+- **Monte Carlo Simulations**: Runs 100,000 iterations per week count to establish statistical baselines (P15/P30/P70/P85)
+- **6 Adaptive States**: Defines your status as Critical, Stressed, Tired, Baseline, Fresh, or Primed based on TSB and fatigue metrics
+- **Smart Adjustments**: Modifies programs intelligently based on session type (reducing interval cycles, extending rest, maintaining warmup/cooldown in custom blocks)
+- **Coach Priority**: Coach-created modifiers always take precedence, with auto-adaptive adjustments filling the gaps
+
+#### Developer Tools
+- **Modifier Testing Lab Export**: Export comprehensive simulation results to JSON for analysis
+- **CLI Analysis Tool**: New command-line utility for verifying modifier logic and detecting contradictions
+- **Template Simulation Cache**: Pre-computed simulation data stored locally for instant program creation
+
+#### Experience Updates
+- **Version Update Toast**: Automatic notification when a new version is available on GitHub
+- **Dynamic Accent Colors**: Programming and Data settings now fully respect your chosen theme colors
+
+### Improved
+
+- **Simulation Variability**: Added ±5% duration variability to Monte Carlo simulations for more realistic modeling
+- **Chart Layout**: Optimized legend layout and forced X-axis weekly labels for better readability on small screens
+- **UI Polish**: Enhanced button states and visual hierarchy across settings and dashboard
+
+### Removed
+
+- **Legacy Suggest Modifiers**: Replaced by the new real-time Auto-Adaptive Modifier System
+
 ## [1.4.0] - 2025-12-27
 
 ### Added

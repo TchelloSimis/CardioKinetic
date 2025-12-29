@@ -187,6 +187,12 @@ const DevToolsSettings: React.FC<DevToolsSettingsProps> = ({
         }
         : ACCENT_COLORS.find(c => c.id === accentColor) || ACCENT_COLORS[0];
 
+    // Primary = readiness, Alt = fatigue
+    const readinessColor = isDarkMode ? activeColorConfig.dark : activeColorConfig.light;
+    const fatigueColor = isDarkMode
+        ? (activeColorConfig.darkAlt || activeColorConfig.dark)
+        : (activeColorConfig.lightAlt || activeColorConfig.light);
+
     const modifiers = accentModifiers[activeColorConfig.id];
 
     return (
@@ -217,13 +223,15 @@ const DevToolsSettings: React.FC<DevToolsSettingsProps> = ({
                 <div className="flex flex-col gap-3">
                     <button
                         onClick={generateSampleData}
-                        className="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider bg-neutral-900 dark:bg-white text-white dark:text-black hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                        className="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-white active:opacity-80 transition-opacity flex items-center justify-center gap-2"
+                        style={{ backgroundColor: readinessColor }}
                     >
                         <Database size={14} /> Generate Data
                     </button>
                     <button
                         onClick={clearSessions}
-                        className="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors flex items-center justify-center gap-2"
+                        className="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-white active:opacity-80 transition-opacity flex items-center justify-center gap-2"
+                        style={{ backgroundColor: fatigueColor }}
                     >
                         <Trash2 size={14} /> Clear Sessions
                     </button>
@@ -373,7 +381,7 @@ const DevToolsSettings: React.FC<DevToolsSettingsProps> = ({
 
                         {/* Simulation Results */}
                         {simulationResult && (
-                            <div className="mt-6 -mx-6">
+                            <div className="mt-6">
                                 <SimulationCharts result={simulationResult} isDarkMode={isDarkMode} />
                             </div>
                         )}
@@ -388,7 +396,7 @@ const DevToolsSettings: React.FC<DevToolsSettingsProps> = ({
                         <Zap size={14} style={{ color: 'var(--accent)' }} />
                         Modifier Testing Lab
                     </h3>
-                    <p className="text-xs text-neutral-500 mt-1">Compare baseline vs adaptive simulation to validate suggested modifiers</p>
+                    <p className="text-xs text-neutral-500 mt-1">Test coach-created modifiers + auto-adaptive engine together</p>
                 </div>
                 <ModifierTestingPanel preset={selectedPreset || null} />
             </div>
@@ -709,7 +717,8 @@ const DevToolsSettings: React.FC<DevToolsSettingsProps> = ({
                             window.location.reload();
                         }
                     }}
-                    className="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-red-500/20"
+                    className="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-white active:opacity-80 transition-opacity flex items-center justify-center gap-2"
+                    style={{ backgroundColor: fatigueColor }}
                 >
                     <Trash2 size={14} /> Factory Reset
                 </button>

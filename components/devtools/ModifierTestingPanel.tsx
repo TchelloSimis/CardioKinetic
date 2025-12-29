@@ -2,15 +2,19 @@
  * Modifier Testing Panel
  * 
  * Monte Carlo simulation comparing baseline vs adaptive execution.
+ * Uses the new auto-adaptive modifier engine + coach-created modifiers.
  * Features: zoom controls, power overlay, fatigue & readiness charts.
  */
 
 import React, { useState, useMemo, useRef, useCallback } from 'react';
-import { Play, BarChart3, Zap, ChevronDown, ChevronUp, RefreshCw, Activity } from 'lucide-react';
-import { WeekDefinition, FatigueModifier } from '../../programTemplate';
-import { ProgramPreset, PlanWeek } from '../../types';
-import { suggestModifiersAsync } from '../../utils/suggestModifiers';
+import { Play, BarChart3, Zap, ChevronDown, ChevronUp, RefreshCw, Activity, Download } from 'lucide-react';
+import { WeekDefinition, FatigueModifier, FatigueContext } from '../../programTemplate';
+import { ProgramPreset, PlanWeek, SessionStyle } from '../../types';
 import { applyFatigueModifiers, detectCyclePhase } from '../../utils/fatigueModifiers';
+import { calculateAutoAdaptiveAdjustments } from '../../utils/autoAdaptiveModifiers';
+import { WeekPercentiles, AutoAdaptiveAdjustment } from '../../utils/autoAdaptiveTypes';
+import { runSingleSimulation } from '../../utils/suggestModifiers/simulation';
+import { calculatePercentile } from '../../utils/suggestModifiers/algorithms';
 
 interface ModifierTestingPanelProps {
     preset: ProgramPreset | null;
@@ -35,6 +39,8 @@ interface WeeklySummary {
     adaptiveReadinessP30: number;
     adaptiveReadinessP70: number;
     triggers: number;
+    coachTriggers: number;
+    autoAdaptiveTriggers: number;
     triggerBreakdown: Map<string, number>; // modifier message -> count
 }
 
@@ -74,20 +80,23 @@ const planWeekToWeekDef = (pw: PlanWeek, basePower: number): WeekDefinition => (
     description: pw.description,
     powerMultiplier: pw.plannedPower / basePower,
     workRestRatio: pw.workRestRatio,
-    targetRPE: pw.targetRPE
+    targetRPE: pw.targetRPE,
+    sessionStyle: pw.sessionStyle,
 });
 
 export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ preset }) => {
     const [isRunning, setIsRunning] = useState(false);
     const [progress, setProgress] = useState(0);
     const [weeklySummaries, setWeeklySummaries] = useState<WeeklySummary[]>([]);
-    const [suggestedModifiers, setSuggestedModifiers] = useState<FatigueModifier[]>([]);
     const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
     const [showModifiers, setShowModifiers] = useState(false);
     const [basePower] = useState(150);
     const [weekCount, setWeekCount] = useState(8);
     const [iterations, setIterations] = useState(100);
     const [totalTriggers, setTotalTriggers] = useState(0);
+    const [coachModifierCount, setCoachModifierCount] = useState(0);
+    const [autoAdaptiveCount, setAutoAdaptiveCount] = useState(0);
+
     // Scroll refs for synced scrolling
     const fatigueScrollRef = useRef<HTMLDivElement>(null);
     const readinessScrollRef = useRef<HTMLDivElement>(null);
@@ -138,8 +147,21 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
         } catch { return []; }
     }, [preset, weekCount, basePower]);
 
-    // Simulation
-    const runSingleIteration = (weeks: WeekDefinition[], modifiers: FatigueModifier[], useModifiers: boolean, seed: number) => {
+    // Get coach-created modifiers from preset
+    const coachModifiers = useMemo(() => {
+        return preset?.fatigueModifiers || [];
+    }, [preset]);
+
+    /**
+     * Simulation - uses new auto-adaptive engine
+     */
+    const runSingleIteration = (
+        weeks: WeekDefinition[],
+        weekPercentiles: WeekPercentiles[],
+        coachMods: FatigueModifier[],
+        useAdaptive: boolean,
+        seed: number
+    ) => {
         let atl = 9, ctl = 10;
         const fatigueHistory: number[] = [];
         let randomIdx = 0;
@@ -148,14 +170,18 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
         const weeklyFatigue: number[] = [];
         const weeklyReadiness: number[] = [];
         const triggers: number[] = [];
-        const triggerMessages: string[][] = []; // triggered modifier messages per week
+        const coachTriggers: number[] = [];
+        const autoAdaptiveTriggers: number[] = [];
+        const triggerMessages: string[][] = [];
 
         for (let weekIdx = 0; weekIdx < weeks.length; weekIdx++) {
             const week = weeks[weekIdx];
             const numSessions = Math.floor(getRandom() * 3) + 2;
             const sessionDays = new Set<number>();
             while (sessionDays.size < numSessions) sessionDays.add(Math.floor(getRandom() * 7));
-            let weekTriggers = 0;
+            let weekTriggerCount = 0;
+            let weekCoachTriggers = 0;
+            let weekAutoAdaptiveTriggers = 0;
             const weekModMessages: string[] = [];
 
             for (let dayInWeek = 0; dayInWeek < 7; dayInWeek++) {
@@ -169,31 +195,70 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
                     let duration = 15;
                     let rpe = Math.max(1, Math.min(10, (week.targetRPE || 6) + rpeVariance));
 
-                    if (useModifiers && modifiers.length > 0) {
+                    if (useAdaptive) {
                         const fatigue = calculateFatigue(atl, ctl);
                         const readiness = calculateReadiness(ctl - atl);
-                        const cyclePhaseResult = fatigueHistory.length >= 5 ? detectCyclePhase(fatigueHistory, readiness) : { phase: undefined, confidence: 0 };
-                        const context = {
-                            fatigueScore: fatigue, readinessScore: readiness, tsbValue: ctl - atl,
-                            weekNumber: weekIdx + 1, totalWeeks: weeks.length, phaseName: week.phaseName,
-                            fatigueHistory: [...fatigueHistory]
+                        const cyclePhaseResult = fatigueHistory.length >= 5
+                            ? detectCyclePhase(fatigueHistory, readiness)
+                            : { phase: undefined, confidence: 0 };
+
+                        const context: FatigueContext = {
+                            fatigueScore: fatigue,
+                            readinessScore: readiness,
+                            tsbValue: ctl - atl,
+                            weekNumber: weekIdx + 1,
+                            totalWeeks: weeks.length,
+                            phaseName: week.phaseName,
+                            fatigueHistory: [...fatigueHistory],
+                            expectedCyclePhase: cyclePhaseResult.phase
                         };
 
-                        for (const mod of modifiers.sort((a, b) => (a.priority || 0) - (b.priority || 0))) {
-                            const { messages } = applyFatigueModifiers(
-                                { sessions: [{ targetPower: power, duration, rpe }] } as any, context, [mod]
+                        let coachModifierTriggered = false;
+
+                        // 1. First try coach-created modifiers (highest priority)
+                        if (coachMods.length > 0) {
+                            for (const mod of coachMods.sort((a, b) => (a.priority || 0) - (b.priority || 0))) {
+                                const { messages } = applyFatigueModifiers(
+                                    { sessions: [{ targetPower: power, duration, rpe }] } as any,
+                                    context,
+                                    [mod]
+                                );
+                                if (messages.length > 0) {
+                                    const adj = mod.adjustments;
+                                    if (adj.powerMultiplier) power = Math.round(power * adj.powerMultiplier);
+                                    if (adj.rpeAdjust) rpe = Math.max(1, Math.min(10, rpe + adj.rpeAdjust));
+                                    if (adj.volumeMultiplier) duration *= adj.volumeMultiplier;
+                                    weekTriggerCount++;
+                                    weekCoachTriggers++;
+                                    weekModMessages.push(`[Coach] ${adj.message || `Modifier P${mod.priority}`}`);
+                                    coachModifierTriggered = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // 2. If no coach modifier triggered, try auto-adaptive
+                        if (!coachModifierTriggered && weekPercentiles[weekIdx]) {
+                            const sessionStyle: SessionStyle = week.sessionStyle || 'interval';
+                            const autoAdj = calculateAutoAdaptiveAdjustments(
+                                context,
+                                weekPercentiles[weekIdx],
+                                sessionStyle
                             );
-                            if (messages.length > 0) {
-                                const adj = mod.adjustments;
-                                if (adj.powerMultiplier) power = Math.round(power * adj.powerMultiplier);
-                                if (adj.rpeAdjust) rpe = Math.max(1, Math.min(10, rpe + adj.rpeAdjust));
-                                if (adj.volumeMultiplier) duration *= adj.volumeMultiplier;
-                                weekTriggers++;
-                                weekModMessages.push(adj.message || `Modifier P${mod.priority}`);
-                                break;
+
+                            if (autoAdj.isActive) {
+                                power = Math.round(power * autoAdj.powerMultiplier);
+                                rpe = Math.max(1, Math.min(10, rpe + autoAdj.rpeAdjust));
+                                if (autoAdj.durationMultiplier) {
+                                    duration *= autoAdj.durationMultiplier;
+                                }
+                                weekTriggerCount++;
+                                weekAutoAdaptiveTriggers++;
+                                weekModMessages.push(`[Auto] ${autoAdj.state} - ${autoAdj.message.slice(0, 60)}...`);
                             }
                         }
                     }
+
                     load = calculateLoad(power, basePower, duration, rpe);
                     fatigueHistory.push(calculateFatigue(atl, ctl));
                 }
@@ -202,10 +267,12 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
             }
             weeklyFatigue.push(calculateFatigue(atl, ctl));
             weeklyReadiness.push(calculateReadiness(ctl - atl));
-            triggers.push(weekTriggers);
+            triggers.push(weekTriggerCount);
+            coachTriggers.push(weekCoachTriggers);
+            autoAdaptiveTriggers.push(weekAutoAdaptiveTriggers);
             triggerMessages.push(weekModMessages);
         }
-        return { weeklyFatigue, weeklyReadiness, triggers, triggerMessages };
+        return { weeklyFatigue, weeklyReadiness, triggers, coachTriggers, autoAdaptiveTriggers, triggerMessages };
     };
 
     const runFullTest = async () => {
@@ -214,24 +281,63 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
         setProgress(0);
         setWeeklySummaries([]);
         setTotalTriggers(0);
+        setCoachModifierCount(coachModifiers.length);
+        setAutoAdaptiveCount(0);
 
         try {
             setProgress(5);
-            const modifiers = await suggestModifiersAsync(expandedWeeks, basePower, 10000, p => setProgress(5 + p * 15));
-            setSuggestedModifiers(modifiers);
 
+            // Generate percentile data for auto-adaptive engine
             const numWeeks = expandedWeeks.length;
+            const fatigueData: number[][] = Array.from({ length: numWeeks }, () => []);
+            const readinessData: number[][] = Array.from({ length: numWeeks }, () => []);
+
+            // Run preliminary simulations to generate percentiles (10k iterations)
+            const percentileIterations = 10000;
+            for (let sim = 0; sim < percentileIterations; sim++) {
+                const { dailyFatigue, dailyReadiness } = runSingleSimulation(expandedWeeks, basePower);
+                for (let w = 0; w < numWeeks; w++) {
+                    const endOfWeekIndex = (w + 1) * 7 - 1;
+                    fatigueData[w].push(dailyFatigue[endOfWeekIndex]);
+                    readinessData[w].push(dailyReadiness[endOfWeekIndex]);
+                }
+                if (sim % 2000 === 0) {
+                    setProgress(5 + (sim / percentileIterations) * 15);
+                    await new Promise(r => setTimeout(r, 0));
+                }
+            }
+
+            // Calculate percentiles for each week
+            const weekPercentiles: WeekPercentiles[] = [];
+            for (let w = 0; w < numWeeks; w++) {
+                weekPercentiles.push({
+                    fatigueP15: Math.round(calculatePercentile(fatigueData[w], 15)),
+                    fatigueP30: Math.round(calculatePercentile(fatigueData[w], 30)),
+                    fatigueP70: Math.round(calculatePercentile(fatigueData[w], 70)),
+                    fatigueP85: Math.round(calculatePercentile(fatigueData[w], 85)),
+                    readinessP15: Math.round(calculatePercentile(readinessData[w], 15)),
+                    readinessP30: Math.round(calculatePercentile(readinessData[w], 30)),
+                    readinessP70: Math.round(calculatePercentile(readinessData[w], 70)),
+                    readinessP85: Math.round(calculatePercentile(readinessData[w], 85)),
+                });
+            }
+
+            setProgress(20);
+
+            // Run comparison simulations
             const baselineFatigues: number[][] = Array(numWeeks).fill(null).map(() => []);
             const baselineReadinesses: number[][] = Array(numWeeks).fill(null).map(() => []);
             const adaptiveFatigues: number[][] = Array(numWeeks).fill(null).map(() => []);
             const adaptiveReadinesses: number[][] = Array(numWeeks).fill(null).map(() => []);
             const triggerCounts: number[][] = Array(numWeeks).fill(null).map(() => []);
+            const coachTriggerCounts: number[][] = Array(numWeeks).fill(null).map(() => []);
+            const autoAdaptiveTriggerCounts: number[][] = Array(numWeeks).fill(null).map(() => []);
             const allTriggerMessages: Map<string, number>[] = Array(numWeeks).fill(null).map(() => new Map());
 
             for (let i = 0; i < iterations; i++) {
                 const seed = 42 + i * 1000;
-                const baseline = runSingleIteration(expandedWeeks, [], false, seed);
-                const adaptive = runSingleIteration(expandedWeeks, modifiers, true, seed);
+                const baseline = runSingleIteration(expandedWeeks, weekPercentiles, [], false, seed);
+                const adaptive = runSingleIteration(expandedWeeks, weekPercentiles, coachModifiers, true, seed);
 
                 for (let w = 0; w < numWeeks; w++) {
                     baselineFatigues[w].push(baseline.weeklyFatigue[w]);
@@ -239,7 +345,9 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
                     adaptiveFatigues[w].push(adaptive.weeklyFatigue[w]);
                     adaptiveReadinesses[w].push(adaptive.weeklyReadiness[w]);
                     triggerCounts[w].push(adaptive.triggers[w]);
-                    // Aggregate trigger messages
+                    coachTriggerCounts[w].push(adaptive.coachTriggers[w]);
+                    autoAdaptiveTriggerCounts[w].push(adaptive.autoAdaptiveTriggers[w]);
+
                     for (const msg of adaptive.triggerMessages[w]) {
                         allTriggerMessages[w].set(msg, (allTriggerMessages[w].get(msg) || 0) + 1);
                     }
@@ -257,6 +365,7 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
                 const idx = Math.floor(sorted.length * p);
                 return sorted[Math.min(idx, sorted.length - 1)];
             };
+
             const summaries: WeeklySummary[] = expandedWeeks.map((week, w) => ({
                 week: w + 1,
                 phaseName: week.phaseName,
@@ -274,11 +383,14 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
                 adaptiveReadinessP30: Math.round(percentile(adaptiveReadinesses[w], 0.30)),
                 adaptiveReadinessP70: Math.round(percentile(adaptiveReadinesses[w], 0.70)),
                 triggers: Math.round(avg(triggerCounts[w]) * 10) / 10,
+                coachTriggers: Math.round(avg(coachTriggerCounts[w]) * 10) / 10,
+                autoAdaptiveTriggers: Math.round(avg(autoAdaptiveTriggerCounts[w]) * 10) / 10,
                 triggerBreakdown: allTriggerMessages[w]
             }));
 
             setWeeklySummaries(summaries);
             setTotalTriggers(summaries.reduce((s, w) => s + w.triggers, 0));
+            setAutoAdaptiveCount(summaries.reduce((s, w) => s + w.autoAdaptiveTriggers, 0));
             setProgress(100);
         } finally {
             setIsRunning(false);
@@ -288,6 +400,8 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
     const overallStats = useMemo(() => {
         if (weeklySummaries.length === 0) return null;
         const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
+        const totalCoachTriggers = weeklySummaries.reduce((s, w) => s + w.coachTriggers, 0);
+        const totalAutoTriggers = weeklySummaries.reduce((s, w) => s + w.autoAdaptiveTriggers, 0);
         return {
             avgBaseFatigue: Math.round(avg(weeklySummaries.map(w => w.baselineFatigue))),
             avgAdaptFatigue: Math.round(avg(weeklySummaries.map(w => w.adaptiveFatigue))),
@@ -295,9 +409,65 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
             avgAdaptReadiness: Math.round(avg(weeklySummaries.map(w => w.adaptiveReadiness))),
             peakBaseFatigue: Math.max(...weeklySummaries.map(w => w.baselineFatigue)),
             peakAdaptFatigue: Math.max(...weeklySummaries.map(w => w.adaptiveFatigue)),
-            modifierCount: suggestedModifiers.length
+            coachModifierCount,
+            totalCoachTriggers: Math.round(totalCoachTriggers * 10) / 10,
+            totalAutoTriggers: Math.round(totalAutoTriggers * 10) / 10
         };
-    }, [weeklySummaries, suggestedModifiers]);
+    }, [weeklySummaries, coachModifierCount]);
+
+    // Export results as JSON
+    const exportResults = useCallback(() => {
+        if (weeklySummaries.length === 0) return;
+
+        const exportData = {
+            exportedAt: new Date().toISOString(),
+            preset: {
+                id: preset?.id,
+                name: preset?.name
+            },
+            testParameters: {
+                weekCount,
+                iterations,
+                basePower
+            },
+            engine: 'auto-adaptive + coach modifiers',
+            overallStats: overallStats,
+            totalTriggers,
+            weeklySummaries: weeklySummaries.map(w => ({
+                week: w.week,
+                phaseName: w.phaseName,
+                powerMultiplier: w.powerMult,
+                fatigue: {
+                    baseline: { mean: w.baselineFatigue, p30: w.baselineFatigueP30, p70: w.baselineFatigueP70 },
+                    adaptive: { mean: w.adaptiveFatigue, p30: w.adaptiveFatigueP30, p70: w.adaptiveFatigueP70 }
+                },
+                readiness: {
+                    baseline: { mean: w.baselineReadiness, p30: w.baselineReadinessP30, p70: w.baselineReadinessP70 },
+                    adaptive: { mean: w.adaptiveReadiness, p30: w.adaptiveReadinessP30, p70: w.adaptiveReadinessP70 }
+                },
+                triggers: w.triggers,
+                coachTriggers: w.coachTriggers,
+                autoAdaptiveTriggers: w.autoAdaptiveTriggers,
+                triggerBreakdown: Object.fromEntries(w.triggerBreakdown)
+            })),
+            coachModifiers: coachModifiers.map(mod => ({
+                priority: mod.priority,
+                cyclePhase: mod.cyclePhase,
+                condition: mod.condition,
+                adjustments: mod.adjustments
+            }))
+        };
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `modifier-test-${preset?.id || 'unknown'}-${weekCount}w-${iterations}iter-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, [preset, weekCount, iterations, basePower, overallStats, totalTriggers, weeklySummaries, coachModifiers]);
 
     const weekDropdownOptions = useMemo(() => {
         if (weekOptions.options) return weekOptions.options;
@@ -518,12 +688,13 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
                 {/* Program Name */}
                 <div className="text-base font-medium text-neutral-900 dark:text-white">{preset.name}</div>
 
-                {/* Controls Row: Run Button + Week/Iteration Selectors */}
-                <div className="flex flex-wrap items-center gap-3">
+                {/* Controls: Single row with Run button, params, and export */}
+                <div className="flex items-center gap-2">
+                    {/* Run Test Button */}
                     <button
                         onClick={runFullTest}
                         disabled={isRunning}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm uppercase text-white disabled:opacity-50"
+                        className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-bold text-sm uppercase text-white disabled:opacity-50 flex-1"
                         style={{ backgroundColor: 'var(--accent)' }}
                     >
                         {isRunning ? (
@@ -533,28 +704,36 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
                         )}
                     </button>
 
-                    <div className="flex items-center gap-2">
-                        <label className="text-xs text-neutral-500">Weeks:</label>
-                        <select
-                            value={weekCount}
-                            onChange={(e) => setWeekCount(Number(e.target.value))}
-                            disabled={weekOptions.isFixed}
-                            className="bg-neutral-100 dark:bg-neutral-800 border-none rounded-lg px-3 py-2 text-sm font-mono disabled:opacity-50"
-                        >
-                            {weekDropdownOptions.map(n => <option key={n} value={n}>{n}</option>)}
-                        </select>
-                    </div>
+                    {/* Parameter Controls - Compact */}
+                    <select
+                        value={weekCount}
+                        onChange={(e) => setWeekCount(Number(e.target.value))}
+                        disabled={weekOptions.isFixed}
+                        title="Weeks"
+                        className="bg-neutral-100 dark:bg-neutral-800 border-none rounded-xl px-3 py-2 text-sm font-mono disabled:opacity-50"
+                    >
+                        {weekDropdownOptions.map(n => <option key={n} value={n}>{n}w</option>)}
+                    </select>
 
-                    <div className="flex items-center gap-2">
-                        <label className="text-xs text-neutral-500">Iterations:</label>
-                        <select
-                            value={iterations}
-                            onChange={(e) => setIterations(Number(e.target.value))}
-                            className="bg-neutral-100 dark:bg-neutral-800 border-none rounded-lg px-3 py-2 text-sm font-mono"
+                    <select
+                        value={iterations}
+                        onChange={(e) => setIterations(Number(e.target.value))}
+                        title="Iterations"
+                        className="bg-neutral-100 dark:bg-neutral-800 border-none rounded-xl px-3 py-2 text-sm font-mono"
+                    >
+                        {[1, 10, 100, 1000, 10000].map(n => <option key={n} value={n}>{n >= 1000 ? `${n / 1000}k` : n}</option>)}
+                    </select>
+
+                    {/* Export Button - Icon only when results exist */}
+                    {weeklySummaries.length > 0 && (
+                        <button
+                            onClick={exportResults}
+                            title="Export Results"
+                            className="flex items-center justify-center p-2 rounded-xl bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 transition-colors"
                         >
-                            {[1, 10, 100, 1000, 10000].map(n => <option key={n} value={n}>{n.toLocaleString()}</option>)}
-                        </select>
-                    </div>
+                            <Download size={18} />
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -613,13 +792,18 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
                                     <Zap size={24} className="text-white" />
                                 </div>
                                 <div>
-                                    <div className="text-xs font-bold uppercase" style={{ color: 'var(--accent)' }}>Modifiers Active</div>
-                                    <div className="text-3xl font-bold">{overallStats.modifierCount}</div>
+                                    <div className="text-xs font-bold uppercase" style={{ color: 'var(--accent)' }}>Adaptive Engine</div>
+                                    <div className="text-sm text-neutral-500">
+                                        {overallStats.coachModifierCount} coach modifiers + auto-adaptive
+                                    </div>
                                 </div>
                             </div>
                             <div className="text-right">
-                                <div className="text-4xl font-bold">{Math.round(totalTriggers)}</div>
-                                <div className="text-xs" style={{ color: 'var(--accent)' }}>avg triggers</div>
+                                <div className="text-3xl font-bold">{Math.round(totalTriggers)}</div>
+                                <div className="text-xs text-neutral-500">
+                                    <span style={{ color: 'var(--accent)' }}>{overallStats.totalCoachTriggers}</span> coach /
+                                    <span className="text-blue-500"> {overallStats.totalAutoTriggers}</span> auto
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -701,7 +885,9 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
                                     .slice(0, 5)
                                     .map(([msg, count]) => (
                                         <div key={msg} className="flex items-start justify-between gap-2 bg-neutral-50 dark:bg-neutral-800 rounded-lg px-3 py-2">
-                                            <span className="text-sm text-neutral-600 dark:text-neutral-300 flex-1 leading-tight">{msg}</span>
+                                            <span className={`text-sm flex-1 leading-tight ${msg.startsWith('[Coach]') ? 'text-purple-600 dark:text-purple-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                                                {msg}
+                                            </span>
                                             <span className="text-xs font-mono font-bold px-2 py-0.5 rounded" style={{
                                                 backgroundColor: 'color-mix(in srgb, var(--accent) 15%, transparent)',
                                                 color: 'var(--accent)'
@@ -716,27 +902,29 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
                     )}
 
                     <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-700 text-sm text-neutral-500">
-                        Total triggers this week: <strong>{weeklySummaries[selectedWeek].triggers.toFixed(1)}</strong> (avg across {iterations} iterations)
+                        Total triggers: <strong>{weeklySummaries[selectedWeek].triggers.toFixed(1)}</strong>
+                        (<span className="text-purple-500">{weeklySummaries[selectedWeek].coachTriggers.toFixed(1)} coach</span> /
+                        <span className="text-blue-500"> {weeklySummaries[selectedWeek].autoAdaptiveTriggers.toFixed(1)} auto</span>)
                     </div>
                 </div>
             )}
 
-            {/* Modifiers List */}
-            {suggestedModifiers.length > 0 && (
+            {/* Coach Modifiers List */}
+            {coachModifiers.length > 0 && (
                 <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden">
                     <button onClick={() => setShowModifiers(!showModifiers)} className="flex items-center justify-between w-full p-5">
                         <h4 className="text-sm font-bold flex items-center gap-2">
-                            <Zap size={16} style={{ color: 'var(--accent)' }} />
-                            Generated Modifiers ({suggestedModifiers.length})
+                            <Zap size={16} className="text-purple-500" />
+                            Coach Modifiers ({coachModifiers.length})
                         </h4>
                         {showModifiers ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </button>
                     {showModifiers && (
                         <div className="px-5 pb-5 space-y-2">
-                            {suggestedModifiers.map((mod, i) => (
+                            {coachModifiers.map((mod, i) => (
                                 <div key={i} className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-3 text-sm">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <span className="font-mono bg-neutral-200 dark:bg-neutral-700 px-1.5 py-0.5 rounded text-xs">P{mod.priority}</span>
+                                        <span className="font-mono bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded text-xs">P{mod.priority}</span>
                                         {mod.cyclePhase && (
                                             <span className="px-1.5 py-0.5 rounded text-xs" style={{
                                                 backgroundColor: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--accent)'
@@ -750,6 +938,7 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
                     )}
                 </div>
             )}
+
         </div>
     );
 };

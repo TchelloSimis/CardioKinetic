@@ -155,10 +155,10 @@ describe('generateSmartModifiers', () => {
 
         const modifiers = generateSmartModifiers(analysis, weeks);
 
-        // Should have critical fatigue modifier (>85%)
+        // Should have critical fatigue modifier (>82%) - see generators.ts line 552
         const hasCriticalModifier = modifiers.some(m =>
             typeof m.condition === 'object' &&
-            (m.condition as any).fatigue === '>85'
+            (m.condition as any).fatigue === '>82'
         );
         expect(hasCriticalModifier).toBe(true);
     });

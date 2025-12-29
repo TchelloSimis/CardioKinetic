@@ -11,10 +11,13 @@ import {
     WeekConfig,
     GeneratePlanOptions,
     TemplateBlock,
+    CyclePhase,
+    PhasePosition,
 } from '../programTemplate';
 import { interpolateWeeks } from './weekInterpolation';
 import { calculateBlockMetricsFromSession } from './blockCalculations';
 import { expandBlocksToWeeks } from './blockExpansion';
+import { computeExpectedPhase } from './suggestModifiers/algorithms';
 
 // ============================================================================
 // PLAN GENERATION
@@ -87,6 +90,9 @@ function generateBlockBasedPlan(
         plan.push(planWeek);
     }
 
+    // Post-process: compute expectedCyclePhase for each week
+    computePhasesForPlan(plan, expandedWeeks);
+
     return plan;
 }
 
@@ -143,7 +149,77 @@ function generateWeekBasedPlan(
         plan.push(planWeek);
     }
 
+    // Post-process: compute expectedCyclePhase for each week
+    computePhasesForPlan(plan, weekMap);
+
     return plan;
+}
+
+/**
+ * Computes expectedCyclePhase and expectedPhasePosition for each week in the plan.
+ * This provides deterministic phase identity for modifier filtering.
+ */
+function computePhasesForPlan(
+    plan: PlanWeek[],
+    weekDefs: Map<number, WeekDefinition> | WeekDefinition[]
+): void {
+    const totalWeeks = plan.length;
+
+    // Convert weekDefs to array if it's a Map
+    const weekDefArray: (WeekDefinition | undefined)[] = [];
+    for (let i = 0; i < totalWeeks; i++) {
+        if (weekDefs instanceof Map) {
+            weekDefArray.push(weekDefs.get(i + 1));
+        } else {
+            weekDefArray.push(weekDefs[i]);
+        }
+    }
+
+    // First pass: compute expectedCyclePhase for each week
+    for (let i = 0; i < plan.length; i++) {
+        const weekDef = weekDefArray[i];
+        if (!weekDef) continue;
+
+        const prevWeek = i > 0 ? weekDefArray[i - 1] : undefined;
+        const nextWeek = i < plan.length - 1 ? weekDefArray[i + 1] : undefined;
+
+        plan[i].expectedCyclePhase = computeExpectedPhase(
+            weekDef,
+            i + 1, // weekNumber (1-indexed)
+            totalWeeks,
+            prevWeek,
+            nextWeek
+        );
+    }
+
+    // Second pass: compute expectedPhasePosition based on consecutive weeks with same phase
+    let phaseStartIndex = 0;
+    let currentPhase: CyclePhase | undefined = plan[0]?.expectedCyclePhase;
+
+    for (let i = 0; i <= plan.length; i++) {
+        const weekPhase = i < plan.length ? plan[i]?.expectedCyclePhase : undefined;
+
+        // Phase changed or reached end - assign positions to previous phase group
+        if (weekPhase !== currentPhase || i === plan.length) {
+            const phaseLength = i - phaseStartIndex;
+
+            for (let j = phaseStartIndex; j < i; j++) {
+                const positionInPhase = j - phaseStartIndex;
+                const ratio = phaseLength > 1 ? positionInPhase / (phaseLength - 1) : 0.5;
+
+                if (ratio <= 0.33) {
+                    plan[j].expectedPhasePosition = 'early';
+                } else if (ratio >= 0.67) {
+                    plan[j].expectedPhasePosition = 'late';
+                } else {
+                    plan[j].expectedPhasePosition = 'mid';
+                }
+            }
+
+            phaseStartIndex = i;
+            currentPhase = weekPhase;
+        }
+    }
 }
 
 /**

@@ -423,6 +423,25 @@ export interface FatigueModifier {
      * Example: reduce intervals more aggressively than steady-state when fatigued.
      */
     sessionType?: SessionStyle | SessionStyle[];
+
+    /**
+     * Mutex group for mutually exclusive modifiers.
+     * Modifiers in the same group compete - only the highest priority one wins.
+     * 
+     * Groups:
+     * - 'cycle_phase': Only one of ascending/peak/descending/trough modifiers applies
+     * - 'phase_position': Only one of early/mid/late modifiers applies
+     * - undefined: No mutex, can apply alongside any other modifier
+     */
+    mutexGroup?: 'cycle_phase' | 'phase_position';
+
+    /**
+     * Rank within mutex group. Higher rank = takes precedence when conditions match.
+     * When multiple modifiers in same group match, highest rank wins.
+     * Ties broken by priority field (lower priority number = higher precedence).
+     * Default: 0
+     */
+    mutexRank?: number;
 }
 
 /**
@@ -551,6 +570,18 @@ export interface FatigueContext {
 
     /** Alias for readinessScore for convenience */
     readiness?: number;
+
+    /**
+     * Pre-computed expected cycle phase (from PlanWeek).
+     * Used for deterministic modifier filtering instead of noisy runtime detection.
+     */
+    expectedCyclePhase?: CyclePhase;
+
+    /**
+     * Pre-computed position within the cycle phase (from PlanWeek).
+     * Used for deterministic position-based modifier filtering.
+     */
+    expectedPhasePosition?: PhasePosition;
 }
 
 /**

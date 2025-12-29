@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Generated artifacts (analysis, simulations, charts)
+.generated_artifacts/
+
+# Python cache
+__pycache__/
+

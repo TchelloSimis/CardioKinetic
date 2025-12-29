@@ -11,11 +11,10 @@ This guide explains how to create, customize, and share program templates for Ca
 5. [Session Types](#session-types)
 6. [Block-Based Programs](#block-based-programs)
 7. [Fatigue Modifiers](#fatigue-modifiers)
-8. [Suggested Modifiers](#suggested-modifiers)
-9. [Fatigue & Readiness Science](#fatigue--readiness-science)
-10. [Complete Examples](#complete-examples)
-11. [Import & Export](#import--export)
-12. [Quick Reference](#quick-reference)
+8. [Fatigue & Readiness Science](#fatigue--readiness-science)
+9. [Complete Examples](#complete-examples)
+10. [Import & Export](#import--export)
+11. [Quick Reference](#quick-reference)
 
 ---
 
@@ -539,59 +538,6 @@ Phase position tracks where you are within a *continuous* training phase. It's u
   "priority": 15
 }
 ```
-
----
-
-## Suggested Modifiers
-
-The **Suggest Modifiers** button in the program editor generates intelligent modifiers using Monte Carlo simulation.
-
-### How It Works
-
-1. **Simulation**: Runs 100,000 randomized program executions
-   - Varies session count (2-4 per week)
-   - Varies session days randomly
-   - Adds ±5% power variance and ±0.5 RPE variance
-
-2. **Analysis**: Calculates per-week percentiles
-   - P15, P30, P50, P70, P85 for fatigue and readiness
-   - Applies signal smoothing and derivative analysis
-
-3. **Cycle Detection**: Identifies training phases
-   - Uses fatigue velocity (rate of change) and acceleration
-   - Considers power trajectory from template
-   - Respects Recovery focus as forced trough
-
-4. **Modifier Generation**: Creates two-tier modifiers
-   - **Standard tier** (P30/P70): Moderate interventions
-   - **Extreme tier** (P15/P85): Stronger interventions
-
-### Algorithm Details
-
-**Adaptive Window Sizing:**
-```
-localWindow = max(2, min(N-1, floor(N × 0.20)))   // ~20% of program
-mesoWindow  = max(3, min(N, floor(N × 0.40)))     // ~40% of program
-```
-
-**Cycle Phase Classification:**
-1. Coach-declared `focus: "Recovery"` → Always `"trough"`
-2. Power trajectory (rising/falling) → Primary signal
-3. Fatigue velocity/acceleration → Tiebreaker
-
-**Session-Type Awareness:**
-The algorithm detects session types in your program and generates appropriate modifiers:
-- **Interval sessions**: Uses `restMultiplier` for fatigue recovery
-- **Steady-state sessions**: Uses `durationMultiplier` to shorten sessions
-- **Custom sessions**: Generates both types as needed
-
-### Generated Modifier Types
-
-1. **Per-cycle-phase modifiers**: Tailored to ascending, peak, descending, trough
-2. **Per-phase-name modifiers**: For block-based programs (e.g., "Build Phase")
-3. **Combined condition modifiers**: High fatigue + low readiness
-4. **Overload protection**: Critical safety nets (priority 1-4)
-5. **Session-type specific**: `restMultiplier` for intervals, `durationMultiplier` for steady-state
 
 ---
 

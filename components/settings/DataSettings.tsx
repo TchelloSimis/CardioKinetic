@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ProgramRecord, Session, ProgramPreset, QuestionnaireResponse } from '../../types';
-import { AccentColor, AccentModifierState } from '../../presets';
+import { AccentColor, AccentColorConfig, AccentModifierState } from '../../presets';
 import { Download, Upload, AlertCircle, Check, RefreshCw } from 'lucide-react';
+import { getMaterialYouAccentColors } from '../../utils/colorUtils';
 import {
     createBackupPayload,
     downloadBackup,
@@ -34,6 +35,12 @@ export interface DataSettingsProps {
     setModifiedDefaults: (modified: Record<string, Partial<ProgramPreset>>) => void;
     deletedDefaultIds: string[];
     setDeletedDefaultIds: (ids: string[]) => void;
+    /** Available accent color configurations */
+    ACCENT_COLORS?: AccentColorConfig[];
+    /** Material You color from system (Android only) */
+    materialYouColor?: string | null;
+    /** Whether dark mode is active */
+    isDarkMode?: boolean;
 }
 
 type ImportMode = 'replace' | 'merge';
@@ -76,7 +83,37 @@ const DataSettings: React.FC<DataSettingsProps> = ({
     setModifiedDefaults,
     deletedDefaultIds,
     setDeletedDefaultIds,
+    ACCENT_COLORS = [],
+    materialYouColor = null,
+    isDarkMode = false,
 }) => {
+    // Compute active accent color for dynamic theming
+    const activeColorConfig = useMemo(() => {
+        if (accentColor === 'material' && materialYouColor) {
+            return {
+                id: 'material',
+                name: 'Material You',
+                ...getMaterialYouAccentColors(materialYouColor)
+            };
+        }
+        return ACCENT_COLORS.find(c => c.id === accentColor) || ACCENT_COLORS[0] || {
+            id: 'emerald',
+            name: 'Emerald',
+            light: '#10b981',
+            dark: '#6ee7b7',
+            lightAlt: '#f97316',
+            darkAlt: '#fb923c',
+            displayLight: '#10b981',
+            displayDark: '#6ee7b7'
+        };
+    }, [accentColor, ACCENT_COLORS, materialYouColor]);
+
+    // Primary = readiness, Alt = fatigue
+    const readinessColor = isDarkMode ? activeColorConfig.dark : activeColorConfig.light;
+    const fatigueColor = isDarkMode
+        ? (activeColorConfig.darkAlt || activeColorConfig.dark)
+        : (activeColorConfig.lightAlt || activeColorConfig.light);
+
     const [importState, setImportState] = useState<ImportState>({ stage: 'idle', mode: 'replace' });
 
     const handleExport = () => {
@@ -210,7 +247,8 @@ const DataSettings: React.FC<DataSettingsProps> = ({
                 <h3 className="text-sm font-bold uppercase tracking-widest text-neutral-400 mb-4">Backup</h3>
                 <button
                     onClick={handleExport}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold uppercase tracking-wider bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors focus:outline-none"
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold uppercase tracking-wider text-white active:opacity-80 transition-opacity focus:outline-none"
+                    style={{ backgroundColor: readinessColor }}
                 >
                     <Download size={16} />
                     Export All Data
@@ -228,7 +266,8 @@ const DataSettings: React.FC<DataSettingsProps> = ({
                     <>
                         <button
                             onClick={handleImportClick}
-                            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold uppercase tracking-wider bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors focus:outline-none"
+                            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold uppercase tracking-wider text-white active:opacity-80 transition-opacity focus:outline-none"
+                            style={{ backgroundColor: fatigueColor }}
                         >
                             <Upload size={16} />
                             Import Backup
@@ -266,18 +305,20 @@ const DataSettings: React.FC<DataSettingsProps> = ({
                             <button
                                 onClick={() => setImportState(s => ({ ...s, mode: 'replace' }))}
                                 className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${importState.mode === 'replace'
-                                        ? 'bg-[var(--accent)] text-white'
-                                        : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
+                                    ? 'border-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white'
+                                    : 'border border-neutral-200 dark:border-neutral-700 text-neutral-500'
                                     }`}
+                                style={importState.mode === 'replace' ? { borderColor: readinessColor } : undefined}
                             >
                                 Replace All
                             </button>
                             <button
                                 onClick={() => setImportState(s => ({ ...s, mode: 'merge' }))}
                                 className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${importState.mode === 'merge'
-                                        ? 'bg-[var(--accent)] text-white'
-                                        : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
+                                    ? 'border-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white'
+                                    : 'border border-neutral-200 dark:border-neutral-700 text-neutral-500'
                                     }`}
+                                style={importState.mode === 'merge' ? { borderColor: readinessColor } : undefined}
                             >
                                 Merge
                             </button>
@@ -298,7 +339,8 @@ const DataSettings: React.FC<DataSettingsProps> = ({
                             </button>
                             <button
                                 onClick={handleConfirmImport}
-                                className="flex-1 py-3 px-4 rounded-xl text-sm font-bold uppercase tracking-wider bg-[var(--accent)] text-white hover:opacity-90 transition-opacity"
+                                className="flex-1 py-3 px-4 rounded-xl text-sm font-bold uppercase tracking-wider text-white active:opacity-80 transition-opacity"
+                                style={{ backgroundColor: readinessColor }}
                             >
                                 {importState.mode === 'replace' ? 'Replace' : 'Merge'}
                             </button>

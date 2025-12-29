@@ -72,6 +72,10 @@ export interface ProgramRecord {
   basePower: number;
   plan: PlanWeek[];
   fatigueModifiers?: import('./programTemplate').FatigueModifier[];
+  /** Pre-computed Monte Carlo simulation data for ALL possible week counts */
+  simulationDataByWeekCount?: Record<number, import('./utils/autoAdaptiveTypes').SimulationDataSet>;
+  /** Current week count's simulation data (convenience reference) */
+  simulationData?: import('./utils/autoAdaptiveTypes').SimulationDataSet;
 }
 
 export interface PlanWeek {
@@ -92,6 +96,27 @@ export interface PlanWeek {
 
   // For custom sessions (sessionStyle === 'custom')
   blocks?: SessionBlock[];              // Array of blocks for custom sessions
+
+  /**
+   * Pre-computed expected cycle phase for this week.
+   * Determined at plan generation time based on:
+   * - Coach focus (Recovery = trough)
+   * - Phase name patterns (Deload = trough, Peak = peak)
+   * - Work trajectory (power × duration × RPE)
+   * - Block structure (Builder = ascending, Deload = trough)
+   * 
+   * Used for deterministic modifier filtering instead of noisy runtime detection.
+   */
+  expectedCyclePhase?: import('./programTemplate').CyclePhase;
+
+  /**
+   * Pre-computed position within the cycle phase (0-1 ratio).
+   * Based on relative position within consecutive weeks of same phase.
+   * - 'early': First 33% of phase
+   * - 'mid': Middle 33% of phase
+   * - 'late': Last 33% of phase
+   */
+  expectedPhasePosition?: import('./programTemplate').PhasePosition;
 }
 
 export enum ReadinessState {

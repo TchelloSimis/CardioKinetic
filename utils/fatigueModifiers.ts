@@ -7,6 +7,10 @@
 
 import { PlanWeek } from '../types';
 import { FatigueModifier, FatigueCondition, FatigueContext, CyclePhase, PhasePosition } from '../programTemplate';
+import { detectCyclePhaseAdvanced, type PhaseContext, type CyclePhaseResult as AdvancedCyclePhaseResult } from './phaseDetection.ts';
+
+// Re-export advanced detection for external use
+export { detectCyclePhaseAdvanced, type PhaseContext } from './phaseDetection.ts';
 
 // ============================================================================
 // CONSTANTS
@@ -261,6 +265,8 @@ export function checkFatigueCondition(condition: FatigueCondition, context: Fati
     }
 }
 
+import { AutoAdaptiveAdjustment, BlockAdjustment } from './autoAdaptiveTypes';
+
 // ============================================================================
 // MODIFIER APPLICATION
 // ============================================================================
@@ -268,14 +274,24 @@ export function checkFatigueCondition(condition: FatigueCondition, context: Fati
 /**
  * Applies fatigue modifiers to a plan week based on current athlete state.
  * Only ONE modifier triggers per session - the highest priority (lowest number) matching modifier wins.
+ * 
+ * Auto-adaptive adjustments are applied ONLY if no coach-created modifier matches.
+ * This ensures coach modifiers always take priority.
+ * 
+ * @param week - The plan week to modify
+ * @param context - Current fatigue/readiness context
+ * @param modifiers - Coach-created fatigue modifiers
+ * @param autoAdaptiveAdjustment - Optional auto-adaptive adjustment (applied if no coach modifiers match)
  */
 export function applyFatigueModifiers(
     week: PlanWeek,
     context: FatigueContext,
-    modifiers: FatigueModifier[]
-): { week: PlanWeek; messages: string[] } {
+    modifiers: FatigueModifier[],
+    autoAdaptiveAdjustment?: AutoAdaptiveAdjustment
+): { week: PlanWeek; messages: string[]; isAutoAdaptive: boolean } {
     let modifiedWeek = { ...week };
     const messages: string[] = [];
+    let isAutoAdaptive = false;
 
     // Collect all matching modifiers with their priorities
     const matchingModifiers: { modifier: FatigueModifier; priority: number }[] = [];
@@ -302,24 +318,44 @@ export function applyFatigueModifiers(
             }
         }
 
-        // Check cyclePhase condition if specified (auto-detected from fatigue trajectory)
-        if (modifier.cyclePhase !== undefined && context.fatigueHistory && context.fatigueHistory.length >= 5) {
-            const result = detectCyclePhase(context.fatigueHistory, context.readiness);
-            if (result.phase) {
-                const phasesToMatch = Array.isArray(modifier.cyclePhase) ? modifier.cyclePhase : [modifier.cyclePhase];
-                if (!phasesToMatch.includes(result.phase)) {
-                    continue; // Skip if current cycle phase doesn't match
+        // Check cyclePhase condition if specified
+        // DETERMINISTIC: Use pre-computed expectedCyclePhase instead of noisy runtime detection
+        if (modifier.cyclePhase !== undefined) {
+            // Prefer stored expectedCyclePhase (deterministic) 
+            // Fallback to runtime detection only if not available
+            let phaseToCheck: CyclePhase | undefined = context.expectedCyclePhase;
+
+            // Fallback to runtime detection if no stored phase
+            if (!phaseToCheck && context.fatigueHistory && context.fatigueHistory.length >= 5) {
+                const result = detectCyclePhase(context.fatigueHistory, context.readiness);
+                phaseToCheck = result.phase;
+            }
+
+            if (!phaseToCheck) {
+                continue; // No phase available - skip this modifier
+            }
+
+            const phasesToMatch = Array.isArray(modifier.cyclePhase) ? modifier.cyclePhase : [modifier.cyclePhase];
+
+            if (!phasesToMatch.includes(phaseToCheck)) {
+                continue; // Skip if phase doesn't match
+            }
+
+            // Check phasePosition within the cycle phase
+            // DETERMINISTIC: Use pre-computed expectedPhasePosition
+            if (modifier.phasePosition !== undefined) {
+                let positionToCheck: PhasePosition | undefined = context.expectedPhasePosition;
+
+                // Fallback to runtime calculation if no stored position
+                if (!positionToCheck && context.fatigueHistory) {
+                    positionToCheck = calculatePhasePositionFromHistory(context.fatigueHistory, phaseToCheck);
                 }
 
-                // Check phasePosition within the detected cycle phase
-                if (modifier.phasePosition !== undefined && context.fatigueHistory) {
-                    const phasePosition = calculatePhasePositionFromHistory(context.fatigueHistory, result.phase);
-                    if (phasePosition) {
-                        const positionsToMatch = Array.isArray(modifier.phasePosition)
-                            ? modifier.phasePosition : [modifier.phasePosition];
-                        if (!positionsToMatch.includes(phasePosition)) {
-                            continue; // Skip if phase position doesn't match
-                        }
+                if (positionToCheck) {
+                    const positionsToMatch = Array.isArray(modifier.phasePosition)
+                        ? modifier.phasePosition : [modifier.phasePosition];
+                    if (!positionsToMatch.includes(positionToCheck)) {
+                        continue; // Skip if phase position doesn't match
                     }
                 }
             }
@@ -420,109 +456,227 @@ export function applyFatigueModifiers(
         const priority = modifier.priority ?? 0;
         matchingModifiers.push({ modifier, priority });
     }
+    // MUTEX-AWARE SELECTION:
+    // - For each mutex group (cycle_phase, phase_position), only the highest priority wins
+    // - Non-mutex modifiers compete globally (only one wins across all non-mutex)
+    // - This prevents contradictions like ascending+descending or early+late
 
-    // Sort by priority (lower number = higher priority) and pick only the first one
     if (matchingModifiers.length > 0) {
-        matchingModifiers.sort((a, b) => a.priority - b.priority);
-        const bestMatch = matchingModifiers[0];
-        const adj = bestMatch.modifier.adjustments;
+        // Sort all by priority (lower number = higher priority)
+        matchingModifiers.sort((a, b) => {
+            // First by mutexRank (higher rank wins within same group)
+            const rankA = a.modifier.mutexRank ?? 0;
+            const rankB = b.modifier.mutexRank ?? 0;
+            if (rankB !== rankA) return rankB - rankA;
+            // Then by priority (lower = higher priority)
+            return a.priority - b.priority;
+        });
 
-        // Apply adjustments from the single highest-priority modifier
-        if (adj.powerMultiplier !== undefined) {
+        // Track which mutex groups have been satisfied
+        const mutexWinners = new Map<string, typeof matchingModifiers[0]>();
+        let globalWinner: typeof matchingModifiers[0] | null = null;
+
+        for (const match of matchingModifiers) {
+            const group = match.modifier.mutexGroup;
+
+            if (group) {
+                // Mutex modifier - only one per group
+                if (!mutexWinners.has(group)) {
+                    mutexWinners.set(group, match);
+                }
+                // Skip if group already has a winner
+            } else {
+                // Non-mutex modifier - only first one wins
+                if (!globalWinner) {
+                    globalWinner = match;
+                }
+            }
+        }
+
+        // Collect all modifiers to apply:
+        // - One winner per mutex group
+        // - One global winner for non-mutex (if any)
+        const toApply: typeof matchingModifiers = [];
+        for (const winner of mutexWinners.values()) {
+            toApply.push(winner);
+        }
+        if (globalWinner) {
+            toApply.push(globalWinner);
+        }
+
+        // Apply all winners (typically 1-3 modifiers max)
+        for (const { modifier: bestMatch } of toApply) {
+            const adj = bestMatch.adjustments;
+
+            // Apply adjustments from the single highest-priority modifier
+            if (adj.powerMultiplier !== undefined) {
+                modifiedWeek.plannedPower = Math.round(modifiedWeek.plannedPower * adj.powerMultiplier);
+            }
+
+            if (adj.rpeAdjust !== undefined) {
+                modifiedWeek.targetRPE = Math.max(1, Math.min(10, modifiedWeek.targetRPE + adj.rpeAdjust));
+            }
+
+            // REST MULTIPLIER: Only for interval-based sessions (which have rest periods)
+            if (adj.restMultiplier !== undefined) {
+                // For interval sessions at the week level
+                if (modifiedWeek.restDurationSeconds) {
+                    modifiedWeek.restDurationSeconds = Math.round(modifiedWeek.restDurationSeconds * adj.restMultiplier);
+                }
+                // For custom sessions with interval blocks
+                if (modifiedWeek.blocks && modifiedWeek.blocks.length > 0) {
+                    modifiedWeek.blocks = modifiedWeek.blocks.map(block => {
+                        if (block.type === 'interval' && block.restDurationSeconds) {
+                            return {
+                                ...block,
+                                restDurationSeconds: Math.round(block.restDurationSeconds * adj.restMultiplier!)
+                            };
+                        }
+                        return block;
+                    });
+                }
+            }
+
+            // DURATION MULTIPLIER: For steady-state sessions/blocks (no rest periods)
+            if (adj.durationMultiplier !== undefined) {
+                if (modifiedWeek.sessionStyle === 'steady-state' && modifiedWeek.targetDurationMinutes) {
+                    modifiedWeek.targetDurationMinutes = modifiedWeek.targetDurationMinutes * adj.durationMultiplier;
+                }
+                // For custom sessions with steady-state blocks
+                if (modifiedWeek.blocks && modifiedWeek.blocks.length > 0) {
+                    modifiedWeek.blocks = modifiedWeek.blocks.map(block => {
+                        if (block.type === 'steady-state') {
+                            return {
+                                ...block,
+                                durationMinutes: block.durationMinutes * adj.durationMultiplier!
+                            };
+                        }
+                        return block;
+                    });
+                    // Recalculate total duration from blocks
+                    modifiedWeek.targetDurationMinutes = modifiedWeek.blocks.reduce(
+                        (total, block) => total + block.durationMinutes, 0
+                    );
+                }
+            }
+
+            // VOLUME MULTIPLIER: Affects cycle count for intervals, duration for steady-state
+            if (adj.volumeMultiplier !== undefined) {
+                // Handle custom session blocks
+                if (modifiedWeek.blocks && modifiedWeek.blocks.length > 0) {
+                    modifiedWeek.blocks = modifiedWeek.blocks.map(block => {
+                        const modifiedBlock = { ...block };
+
+                        if (block.type === 'interval' && block.cycles !== undefined) {
+                            // For interval blocks: round cycles to nearest integer
+                            modifiedBlock.cycles = Math.round(block.cycles * adj.volumeMultiplier!);
+                            // Recalculate durationMinutes based on new cycles
+                            const workSeconds = block.workDurationSeconds || 30;
+                            const restSeconds = block.restDurationSeconds || 30;
+                            modifiedBlock.durationMinutes = (modifiedBlock.cycles * (workSeconds + restSeconds)) / 60;
+                        } else {
+                            // For steady-state blocks: apply multiplier without rounding
+                            modifiedBlock.durationMinutes = block.durationMinutes * adj.volumeMultiplier!;
+                        }
+
+                        return modifiedBlock;
+                    });
+
+                    // Recalculate targetDurationMinutes based on modified blocks
+                    modifiedWeek.targetDurationMinutes = modifiedWeek.blocks.reduce(
+                        (total, block) => total + block.durationMinutes, 0
+                    );
+                } else if (modifiedWeek.sessionStyle === 'interval' && modifiedWeek.cycles !== undefined) {
+                    // For interval sessions with explicit cycles: round cycles to nearest integer
+                    const originalCycles = modifiedWeek.cycles;
+                    modifiedWeek.cycles = Math.round(originalCycles * adj.volumeMultiplier);
+                    // Recalculate duration from modified cycles
+                    const workSeconds = modifiedWeek.workDurationSeconds || 30;
+                    const restSeconds = modifiedWeek.restDurationSeconds || 30;
+                    modifiedWeek.targetDurationMinutes = (modifiedWeek.cycles * (workSeconds + restSeconds)) / 60;
+                } else if (modifiedWeek.targetDurationMinutes) {
+                    // Non-custom sessions without cycles: apply to targetDurationMinutes directly
+                    modifiedWeek.targetDurationMinutes = Math.round(modifiedWeek.targetDurationMinutes * adj.volumeMultiplier);
+                }
+            }
+
+            if (adj.message) {
+                messages.push(adj.message);
+            }
+        }
+
+        return { week: modifiedWeek, messages, isAutoAdaptive: false };
+    }
+
+    // No coach modifiers matched - apply auto-adaptive adjustment if available
+    if (autoAdaptiveAdjustment && autoAdaptiveAdjustment.isActive) {
+        const adj = autoAdaptiveAdjustment;
+
+        // Apply session-level adjustments
+        if (adj.powerMultiplier !== 1.0) {
             modifiedWeek.plannedPower = Math.round(modifiedWeek.plannedPower * adj.powerMultiplier);
         }
 
-        if (adj.rpeAdjust !== undefined) {
+        if (adj.rpeAdjust !== 0) {
             modifiedWeek.targetRPE = Math.max(1, Math.min(10, modifiedWeek.targetRPE + adj.rpeAdjust));
         }
 
-        // REST MULTIPLIER: Only for interval-based sessions (which have rest periods)
-        if (adj.restMultiplier !== undefined) {
-            // For interval sessions at the week level
+        // Apply rest multiplier for interval sessions
+        if (adj.restMultiplier !== undefined && adj.restMultiplier !== 1.0) {
             if (modifiedWeek.restDurationSeconds) {
                 modifiedWeek.restDurationSeconds = Math.round(modifiedWeek.restDurationSeconds * adj.restMultiplier);
             }
-            // For custom sessions with interval blocks
-            if (modifiedWeek.blocks && modifiedWeek.blocks.length > 0) {
-                modifiedWeek.blocks = modifiedWeek.blocks.map(block => {
-                    if (block.type === 'interval' && block.restDurationSeconds) {
-                        return {
-                            ...block,
-                            restDurationSeconds: Math.round(block.restDurationSeconds * adj.restMultiplier!)
-                        };
-                    }
-                    return block;
-                });
-            }
         }
 
-        // DURATION MULTIPLIER: For steady-state sessions/blocks (no rest periods)
-        if (adj.durationMultiplier !== undefined) {
+        // Apply duration multiplier for steady-state sessions
+        if (adj.durationMultiplier !== undefined && adj.durationMultiplier !== 1.0) {
             if (modifiedWeek.sessionStyle === 'steady-state' && modifiedWeek.targetDurationMinutes) {
                 modifiedWeek.targetDurationMinutes = modifiedWeek.targetDurationMinutes * adj.durationMultiplier;
             }
-            // For custom sessions with steady-state blocks
-            if (modifiedWeek.blocks && modifiedWeek.blocks.length > 0) {
-                modifiedWeek.blocks = modifiedWeek.blocks.map(block => {
-                    if (block.type === 'steady-state') {
-                        return {
-                            ...block,
-                            durationMinutes: block.durationMinutes * adj.durationMultiplier!
-                        };
-                    }
-                    return block;
-                });
-                // Recalculate total duration from blocks
-                modifiedWeek.targetDurationMinutes = modifiedWeek.blocks.reduce(
-                    (total, block) => total + block.durationMinutes, 0
-                );
-            }
         }
 
-        // VOLUME MULTIPLIER: Affects cycle count for intervals, duration for steady-state
-        if (adj.volumeMultiplier !== undefined) {
-            // Handle custom session blocks
-            if (modifiedWeek.blocks && modifiedWeek.blocks.length > 0) {
-                modifiedWeek.blocks = modifiedWeek.blocks.map(block => {
-                    const modifiedBlock = { ...block };
+        // Apply block-level adjustments for custom sessions
+        if (adj.blockAdjustments && adj.blockAdjustments.length > 0 && modifiedWeek.blocks) {
+            modifiedWeek.blocks = modifiedWeek.blocks.map((block, index) => {
+                const blockAdj = adj.blockAdjustments!.find(ba => ba.blockIndex === index);
+                if (!blockAdj || blockAdj.role === 'warmup' || blockAdj.role === 'cooldown') {
+                    return block; // Preserve warmup/cooldown blocks
+                }
 
-                    if (block.type === 'interval' && block.cycles !== undefined) {
-                        // For interval blocks: round cycles to nearest integer
-                        modifiedBlock.cycles = Math.round(block.cycles * adj.volumeMultiplier!);
-                        // Recalculate durationMinutes based on new cycles
-                        const workSeconds = block.workDurationSeconds || 30;
-                        const restSeconds = block.restDurationSeconds || 30;
-                        modifiedBlock.durationMinutes = (modifiedBlock.cycles * (workSeconds + restSeconds)) / 60;
-                    } else {
-                        // For steady-state blocks: apply multiplier without rounding
-                        modifiedBlock.durationMinutes = block.durationMinutes * adj.volumeMultiplier!;
+                const modifiedBlock = { ...block };
+
+                // Apply power adjustment
+                if (blockAdj.powerMultiplier !== 1.0) {
+                    modifiedBlock.powerMultiplier = block.powerMultiplier * blockAdj.powerMultiplier;
+                }
+
+                // Apply rest multiplier for interval blocks
+                if (block.type === 'interval' && blockAdj.restMultiplier && blockAdj.restMultiplier !== 1.0) {
+                    if (modifiedBlock.restDurationSeconds) {
+                        modifiedBlock.restDurationSeconds = Math.round(block.restDurationSeconds! * blockAdj.restMultiplier);
                     }
+                }
 
-                    return modifiedBlock;
-                });
+                // Apply duration multiplier for steady-state blocks
+                if (block.type === 'steady-state' && blockAdj.durationMultiplier && blockAdj.durationMultiplier !== 1.0) {
+                    modifiedBlock.durationMinutes = block.durationMinutes * blockAdj.durationMultiplier;
+                }
 
-                // Recalculate targetDurationMinutes based on modified blocks
-                modifiedWeek.targetDurationMinutes = modifiedWeek.blocks.reduce(
-                    (total, block) => total + block.durationMinutes, 0
-                );
-            } else if (modifiedWeek.sessionStyle === 'interval' && modifiedWeek.cycles !== undefined) {
-                // For interval sessions with explicit cycles: round cycles to nearest integer
-                const originalCycles = modifiedWeek.cycles;
-                modifiedWeek.cycles = Math.round(originalCycles * adj.volumeMultiplier);
-                // Recalculate duration from modified cycles
-                const workSeconds = modifiedWeek.workDurationSeconds || 30;
-                const restSeconds = modifiedWeek.restDurationSeconds || 30;
-                modifiedWeek.targetDurationMinutes = (modifiedWeek.cycles * (workSeconds + restSeconds)) / 60;
-            } else if (modifiedWeek.targetDurationMinutes) {
-                // Non-custom sessions without cycles: apply to targetDurationMinutes directly
-                modifiedWeek.targetDurationMinutes = Math.round(modifiedWeek.targetDurationMinutes * adj.volumeMultiplier);
-            }
+                return modifiedBlock;
+            });
+
+            // Recalculate total duration from blocks
+            modifiedWeek.targetDurationMinutes = modifiedWeek.blocks.reduce(
+                (total, block) => total + block.durationMinutes, 0
+            );
         }
 
+        // Add the auto-adaptive message to Coach's Advice
         if (adj.message) {
             messages.push(adj.message);
+            isAutoAdaptive = true;
         }
     }
 
-    return { week: modifiedWeek, messages };
+    return { week: modifiedWeek, messages, isAutoAdaptive };
 }

@@ -6,7 +6,7 @@
 
 import { WeekDefinition, FatigueModifier, FlexibleCondition, CyclePhase, PhasePosition } from '../../programTemplate';
 import { TrendAnalysis, WeekAnalysis } from './types';
-import { adjustThresholdsForPosition } from './algorithms';
+import { adjustThresholdsForPosition, computeExpectedPhase } from './algorithms';
 
 // ============================================================================
 // HELPERS
@@ -177,18 +177,35 @@ export function generateSmartModifiers(analysis: TrendAnalysis, weeks: WeekDefin
     const hasSteadyState = sessionTypes.has('steady-state');
     const hasCustom = sessionTypes.has('custom');
 
-    // Group by cycle phase
-    const phaseGroups = new Map<CyclePhase, WeekAnalysis[]>();
-    for (const week of weekAnalyses) {
-        if (!phaseGroups.has(week.cyclePhase)) {
-            phaseGroups.set(week.cyclePhase, []);
+    // Compute expected phase for each week using DETERMINISTIC signals
+    // This replaces noisy fatigue-based phase detection
+    interface WeekWithExpectedPhase extends WeekAnalysis {
+        expectedPhase: CyclePhase;
+    }
+
+    const assessedWeeks: WeekWithExpectedPhase[] = weekAnalyses.map((wa, i) => ({
+        ...wa,
+        expectedPhase: computeExpectedPhase(
+            weeks[i],
+            wa.weekNumber,
+            weeks.length,
+            weeks[i - 1],
+            weeks[i + 1]
+        )
+    }));
+
+    // Group by EXPECTED phase (deterministic, not noisy detected phase)
+    const phaseGroups = new Map<CyclePhase, WeekWithExpectedPhase[]>();
+    for (const week of assessedWeeks) {
+        if (!phaseGroups.has(week.expectedPhase)) {
+            phaseGroups.set(week.expectedPhase, []);
         }
-        phaseGroups.get(week.cyclePhase)!.push(week);
+        phaseGroups.get(week.expectedPhase)!.push(week);
     }
 
     // Also group by phaseName for block-based programs
-    const nameGroups = new Map<string, WeekAnalysis[]>();
-    for (const week of weekAnalyses) {
+    const nameGroups = new Map<string, WeekWithExpectedPhase[]>();
+    for (const week of assessedWeeks) {
         if (week.phaseName) {
             if (!nameGroups.has(week.phaseName)) {
                 nameGroups.set(week.phaseName, []);
@@ -223,7 +240,8 @@ export function generateSmartModifiers(analysis: TrendAnalysis, weeks: WeekDefin
                     message: `Very high fatigue for ${phaseLabel} (>${avgP85Fatigue}%). ${formatAdjustments(adj)}`
                 },
                 priority: priority++,
-                cyclePhase: phase
+                cyclePhase: phase,
+                mutexGroup: 'cycle_phase'
             });
         }
 
@@ -236,7 +254,8 @@ export function generateSmartModifiers(analysis: TrendAnalysis, weeks: WeekDefin
                     message: `Very low readiness for ${phaseLabel} (<${avgP15Readiness}%). ${formatAdjustments(adj)}`
                 },
                 priority: priority++,
-                cyclePhase: phase
+                cyclePhase: phase,
+                mutexGroup: 'cycle_phase'
             });
         }
 
@@ -251,7 +270,8 @@ export function generateSmartModifiers(analysis: TrendAnalysis, weeks: WeekDefin
                         message: `Very low fatigue for ${phaseLabel} (<${avgP15Fatigue}%). ${adjStr}`
                     },
                     priority: priority++,
-                    cyclePhase: phase
+                    cyclePhase: phase,
+                    mutexGroup: 'cycle_phase'
                 });
             }
         }
@@ -267,7 +287,8 @@ export function generateSmartModifiers(analysis: TrendAnalysis, weeks: WeekDefin
                         message: `Very high readiness for ${phaseLabel} (>${avgP85Readiness}%). ${adjStr}`
                     },
                     priority: priority++,
-                    cyclePhase: phase
+                    cyclePhase: phase,
+                    mutexGroup: 'cycle_phase'
                 });
             }
         }
@@ -282,7 +303,8 @@ export function generateSmartModifiers(analysis: TrendAnalysis, weeks: WeekDefin
                     message: `High fatigue for ${phaseLabel} (>${avgP70Fatigue}%). ${formatAdjustments(adj)}`
                 },
                 priority: priority++,
-                cyclePhase: phase
+                cyclePhase: phase,
+                mutexGroup: 'cycle_phase'
             });
         }
 
@@ -297,7 +319,8 @@ export function generateSmartModifiers(analysis: TrendAnalysis, weeks: WeekDefin
                         message: `Low fatigue for ${phaseLabel} (<${avgP30Fatigue}%). ${adjStr}`
                     },
                     priority: priority++,
-                    cyclePhase: phase
+                    cyclePhase: phase,
+                    mutexGroup: 'cycle_phase'
                 });
             }
         }
@@ -311,7 +334,8 @@ export function generateSmartModifiers(analysis: TrendAnalysis, weeks: WeekDefin
                     message: `Low readiness for ${phaseLabel} (<${avgP30Readiness}%). ${formatAdjustments(adj)}`
                 },
                 priority: priority++,
-                cyclePhase: phase
+                cyclePhase: phase,
+                mutexGroup: 'cycle_phase'
             });
         }
 
@@ -326,7 +350,8 @@ export function generateSmartModifiers(analysis: TrendAnalysis, weeks: WeekDefin
                         message: `High readiness for ${phaseLabel} (>${avgP70Readiness}%). ${adjStr}`
                     },
                     priority: priority++,
-                    cyclePhase: phase
+                    cyclePhase: phase,
+                    mutexGroup: 'cycle_phase'
                 });
             }
         }
@@ -418,7 +443,8 @@ export function generateSmartModifiers(analysis: TrendAnalysis, weeks: WeekDefin
                 },
                 priority: priority++,
                 cyclePhase: 'ascending',
-                phasePosition: 'early'
+                phasePosition: 'early',
+                mutexGroup: 'phase_position'
             });
 
             if (Math.round(adjustedP70) <= 95) {
@@ -431,7 +457,8 @@ export function generateSmartModifiers(analysis: TrendAnalysis, weeks: WeekDefin
                     },
                     priority: priority++,
                     cyclePhase: 'ascending',
-                    phasePosition: 'early'
+                    phasePosition: 'early',
+                    mutexGroup: 'phase_position'
                 });
             }
         }
@@ -452,7 +479,8 @@ export function generateSmartModifiers(analysis: TrendAnalysis, weeks: WeekDefin
                 },
                 priority: priority++,
                 cyclePhase: 'ascending',
-                phasePosition: 'late'
+                phasePosition: 'late',
+                mutexGroup: 'phase_position'
             });
 
             if (Math.round(adjustedP70) <= 95) {
@@ -465,7 +493,8 @@ export function generateSmartModifiers(analysis: TrendAnalysis, weeks: WeekDefin
                     },
                     priority: priority++,
                     cyclePhase: 'ascending',
-                    phasePosition: 'late'
+                    phasePosition: 'late',
+                    mutexGroup: 'phase_position'
                 });
             }
         }
@@ -476,7 +505,7 @@ export function generateSmartModifiers(analysis: TrendAnalysis, weeks: WeekDefin
     const avgReadiness = Math.round(weekAnalyses.reduce((s, w) => s + w.readinessP50, 0) / weekAnalyses.length);
 
     modifiers.push({
-        condition: { fatigue: `>${Math.max(60, avgFatigue + 15)}`, readiness: `<${Math.min(40, avgReadiness - 10)}`, logic: 'and' } as FlexibleCondition,
+        condition: { fatigue: `>${Math.max(55, avgFatigue + 12)}`, readiness: `<${Math.min(45, avgReadiness - 8)}`, logic: 'and' } as FlexibleCondition,
         adjustments: {
             powerMultiplier: 0.75,
             rpeAdjust: -2,
@@ -519,38 +548,37 @@ export function generateSmartModifiers(analysis: TrendAnalysis, weeks: WeekDefin
         cyclePhase: ['ascending', 'peak']
     });
 
-    // Overload protection modifiers
     modifiers.push({
-        condition: { fatigue: '>85', logic: 'and' } as FlexibleCondition,
+        condition: { fatigue: '>82', logic: 'and' } as FlexibleCondition,
         adjustments: {
             powerMultiplier: 0.70,
             rpeAdjust: -3,
             volumeMultiplier: 0.50,
             restMultiplier: 2.0,
-            message: `Critical fatigue level detected (>85%). Mandatory deload: power at 70%, volume halved, double rest. Consider taking a complete rest day.`
+            message: `Critical fatigue level detected (>82%). Mandatory deload: power at 70%, volume halved, double rest. Consider taking a complete rest day.`
         },
         priority: 1
     });
 
     modifiers.push({
-        condition: { readiness: '<25', logic: 'and' } as FlexibleCondition,
+        condition: { readiness: '<28', logic: 'and' } as FlexibleCondition,
         adjustments: {
             powerMultiplier: 0.60,
             rpeAdjust: -3,
             volumeMultiplier: 0.40,
-            message: `Very low readiness (<25%). Active recovery only: power at 60%, RPE should feel easy. Skip any high-intensity work today.`
+            message: `Very low readiness (<28%). Active recovery only: power at 60%, RPE should feel easy. Skip any high-intensity work today.`
         },
         priority: 1
     });
 
     modifiers.push({
-        condition: { fatigue: '>75', logic: 'and' } as FlexibleCondition,
+        condition: { fatigue: '>73', logic: 'and' } as FlexibleCondition,
         adjustments: {
             powerMultiplier: 0.82,
             rpeAdjust: -2,
             volumeMultiplier: 0.75,
             restMultiplier: 1.5,
-            message: `Sustained high fatigue (>75%). Pre-emptive load reduction: power at 82%, volume at 75%. Monitor recovery closely.`
+            message: `Sustained high fatigue (>73%). Pre-emptive load reduction: power at 82%, volume at 75%. Monitor recovery closely.`
         },
         priority: 4
     });

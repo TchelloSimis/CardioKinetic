@@ -53,6 +53,7 @@ const App: React.FC = () => {
         isDefaultPreset, isDefaultModified, moveTemplate,
         accentModifiers, setAccentModifiers,
         questionnaireResponses, setQuestionnaireResponses, getTodayQuestionnaireResponse,
+        autoAdaptiveEnabled, setAutoAdaptiveEnabled,
     } = appState;
 
     const theme = useTheme(accentColor, accentModifiers);
@@ -161,7 +162,8 @@ const App: React.FC = () => {
         currentWeekPlan,
         activeProgram,
         todayQuestionnaireResponse: getTodayQuestionnaireResponse(),
-        recentQuestionnaireResponses
+        recentQuestionnaireResponses,
+        autoAdaptiveEnabled
     });
 
     // Android back button handler
@@ -400,6 +402,31 @@ const App: React.FC = () => {
             }
             return p;
         }));
+    };
+
+    /**
+     * Handle simulation data generated for a program.
+     * Updates the program with the new simulation data.
+     */
+    const handleProgramSimulationGenerated = (programId: string, simulationData: any) => {
+        console.log('[App] handleProgramSimulationGenerated called:', programId, {
+            weekCount: simulationData?.weekCount,
+            percentilesLength: simulationData?.weekPercentiles?.length
+        });
+        setPrograms(prev => {
+            const updated = prev.map(p => {
+                if (p.id === programId) {
+                    console.log('[App] Updating program with simulation data:', p.name);
+                    return {
+                        ...p,
+                        simulationData: simulationData
+                    };
+                }
+                return p;
+            });
+            console.log('[App] Programs after update:', updated.map(p => ({ id: p.id, hasSimData: !!p.simulationData })));
+            return updated;
+        });
     };
 
     const generateSampleData = () => {
@@ -804,6 +831,8 @@ const App: React.FC = () => {
                                         activeCategory={programCategory}
                                         setActiveCategory={setProgramCategory}
                                         onApplyPlanToProgram={handleApplyPlanToProgram}
+                                        readinessColor={isDarkMode ? currentAccent.dark : currentAccent.light}
+                                        fatigueColor={isDarkMode ? (currentAccent.darkAlt || currentAccent.dark) : (currentAccent.lightAlt || currentAccent.light)}
                                     />
                                 </div>
                             )}
@@ -859,6 +888,9 @@ const App: React.FC = () => {
                                     jumpToLastSession={jumpToLastSession}
                                     generateSampleData={generateSampleData}
                                     clearSessions={() => setSessions([])}
+                                    autoAdaptiveEnabled={autoAdaptiveEnabled}
+                                    setAutoAdaptiveEnabled={setAutoAdaptiveEnabled}
+                                    onProgramSimulationGenerated={handleProgramSimulationGenerated}
                                 />
                             )}
                         </div>

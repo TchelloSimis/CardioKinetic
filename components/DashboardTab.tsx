@@ -11,6 +11,7 @@ interface DashboardMetrics {
     tsb: number;
     status: ReadinessState;
     advice: string | null;
+    isAutoAdaptiveAdvice?: boolean;
     questionnaireAdjustment?: {
         readinessChange: number;
         fatigueChange: number;
@@ -70,7 +71,9 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                 <div className="mb-6 bg-white/60 dark:bg-neutral-900/60 backdrop-blur-md border border-neutral-200 dark:border-neutral-800 p-5 rounded-3xl shadow-sm flex gap-4 items-start">
                     <Info size={20} style={{ color: accentColor }} className="mt-0.5 flex-shrink-0" />
                     <div>
-                        <div className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-1">Coach's Advice</div>
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-1">
+                            {metrics.isAutoAdaptiveAdvice ? 'Auto-generated Modifier' : "Coach's Advice"}
+                        </div>
                         <p className="text-sm text-neutral-900 dark:text-neutral-200 leading-relaxed">{metrics.advice}</p>
                     </div>
                 </div>

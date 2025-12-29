@@ -6,6 +6,7 @@ import AppearanceSettings from './settings/AppearanceSettings';
 import ProgrammingSettings from './settings/ProgrammingSettings';
 import DataSettings from './settings/DataSettings';
 import DevToolsSettings from './settings/DevToolsSettings';
+import UpdateAvailableToast from './settings/UpdateAvailableToast';
 
 export type SettingsCategory = 'main' | 'appearance' | 'programming' | 'data' | 'devtools';
 
@@ -73,6 +74,11 @@ interface SettingsTabProps {
     jumpToLastSession: () => void;
     generateSampleData: () => void;
     clearSessions: () => void;
+
+    // Auto-Adaptive Training props
+    autoAdaptiveEnabled: boolean;
+    setAutoAdaptiveEnabled: (enabled: boolean) => void;
+    onProgramSimulationGenerated: (programId: string, simulationData: any) => void;
 }
 
 const SettingsTab: React.FC<SettingsTabProps> = ({
@@ -88,7 +94,8 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
     templateOrder, setTemplateOrder,
     sampleWeeks, setSampleWeeks, programLength, simulatedCurrentDate, setSimulatedCurrentDate,
     autoUpdateSimDate, setAutoUpdateSimDate, jumpToLastSession, generateSampleData, clearSessions,
-    accentModifiers, setAccentModifiers
+    accentModifiers, setAccentModifiers,
+    autoAdaptiveEnabled, setAutoAdaptiveEnabled, onProgramSimulationGenerated
 }) => {
     // Category navigation items
     const categories = [
@@ -119,6 +126,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             {/* Main category selection */}
             {activeCategory === 'main' && (
                 <div className="space-y-3">
+                    <UpdateAvailableToast />
                     {categories.map(cat => (
                         <button
                             key={cat.id}
@@ -175,6 +183,14 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                     isDefaultModified={isDefaultModified}
                     moveTemplate={moveTemplate}
                     PRESETS={PRESETS}
+                    autoAdaptiveEnabled={autoAdaptiveEnabled}
+                    setAutoAdaptiveEnabled={setAutoAdaptiveEnabled}
+                    allPrograms={programs}
+                    onProgramSimulationGenerated={onProgramSimulationGenerated}
+                    accentColor={accentColor}
+                    ACCENT_COLORS={ACCENT_COLORS}
+                    materialYouColor={materialYouColor}
+                    isDarkMode={isDarkMode}
                 />
             )}
 
@@ -199,6 +215,9 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                     setModifiedDefaults={setModifiedDefaults}
                     deletedDefaultIds={deletedDefaultIds}
                     setDeletedDefaultIds={setDeletedDefaultIds}
+                    ACCENT_COLORS={ACCENT_COLORS}
+                    materialYouColor={materialYouColor}
+                    isDarkMode={isDarkMode}
                 />
             )}
 

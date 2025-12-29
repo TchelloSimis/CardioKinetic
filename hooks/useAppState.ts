@@ -45,6 +45,10 @@ export interface AppStateReturn {
     setQuestionnaireResponses: React.Dispatch<React.SetStateAction<QuestionnaireResponse[]>>;
     getTodayQuestionnaireResponse: () => QuestionnaireResponse | undefined;
 
+    // Auto-Adaptive Training
+    autoAdaptiveEnabled: boolean;
+    setAutoAdaptiveEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+
     // Computed values
     activePresets: ProgramPreset[];
     activeProgram: ProgramRecord | undefined;
@@ -81,6 +85,8 @@ export function useAppState(): AppStateReturn {
     const [accentModifiers, setAccentModifiers] = useState<AccentModifierState>({});
     // Questionnaire responses
     const [questionnaireResponses, setQuestionnaireResponses] = useState<QuestionnaireResponse[]>([]);
+    // Auto-adaptive training enabled
+    const [autoAdaptiveEnabled, setAutoAdaptiveEnabled] = useState(false);
 
     // Get today's questionnaire response
     const getTodayQuestionnaireResponse = () => {
@@ -257,6 +263,12 @@ export function useAppState(): AppStateReturn {
                     }
                 }
 
+                // Load auto-adaptive setting
+                const savedAutoAdaptive = localStorage.getItem('ck_auto_adaptive_enabled');
+                if (savedAutoAdaptive === 'true') {
+                    setAutoAdaptiveEnabled(true);
+                }
+
                 setLoadingStatus("Ready.");
                 setIsLoading(false);
 
@@ -327,7 +339,14 @@ export function useAppState(): AppStateReturn {
         }
     }, [questionnaireResponses, isLoading]);
 
-    const activeProgram = programs.find(p => p.status === 'active');
+    // Save auto-adaptive setting
+    useEffect(() => {
+        if (!isLoading) {
+            localStorage.setItem('ck_auto_adaptive_enabled', autoAdaptiveEnabled ? 'true' : 'false');
+        }
+    }, [autoAdaptiveEnabled, isLoading]);
+
+    const activeProgram = useMemo(() => programs.find(p => p.status === 'active'), [programs]);
 
     return {
         programs,
@@ -358,6 +377,8 @@ export function useAppState(): AppStateReturn {
         questionnaireResponses,
         setQuestionnaireResponses,
         getTodayQuestionnaireResponse,
+        autoAdaptiveEnabled,
+        setAutoAdaptiveEnabled,
         activePresets,
         activeProgram,
         isDefaultPreset,

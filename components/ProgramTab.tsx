@@ -43,9 +43,12 @@ interface ProgramTabProps {
     isDefaultPreset: (id: string) => boolean;
     PRESETS: ProgramPreset[];
 
-    // Navigation state (lifted from internal state for back button handling)
     activeCategory: ProgramCategory;
     setActiveCategory: (category: ProgramCategory) => void;
+
+    // Theme colors
+    readinessColor?: string;
+    fatigueColor?: string;
 }
 
 // ============================================================================
@@ -57,7 +60,8 @@ const ProgramTab: React.FC<ProgramTabProps> = ({
     onApplyPlanToProgram,
     activePresets, customTemplates, setCustomTemplates, modifiedDefaults, setModifiedDefaults,
     deletedDefaultIds, setDeletedDefaultIds, isDefaultPreset, PRESETS,
-    activeCategory, setActiveCategory
+    activeCategory, setActiveCategory,
+    readinessColor, fatigueColor
 }) => {
     const [editorState, setEditorState] = useState<EditorState>(INITIAL_EDITOR_STATE);
     const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
@@ -250,6 +254,7 @@ const ProgramTab: React.FC<ProgramTabProps> = ({
      * Validate template and apply directly to the active program.
      * This generates a plan from the template using current settings
      * and updates the active program while preserving logged sessions.
+     * Also overwrites the template.
      */
     const validateAndApplyToProgram = (): boolean => {
         if (!onApplyPlanToProgram || !activeProgram) {
@@ -263,8 +268,26 @@ const ProgramTab: React.FC<ProgramTabProps> = ({
             return false;
         }
 
-        // Generate plan from template using current program settings
+        // Convert to preset and save the template (overwrite)
         const newPreset = templateToPreset(template);
+
+        // Save/update the template
+        if (editingTemplateId) {
+            if (isDefaultPreset(editingTemplateId)) {
+                // When modifying a default preset, create a custom template that takes precedence
+                const customizedPreset = {
+                    ...newPreset,
+                    id: `${editingTemplateId}-custom-${Date.now()}`
+                };
+                setCustomTemplates(prev => [...prev, customizedPreset]);
+                setDeletedDefaultIds(prev => prev.includes(editingTemplateId) ? prev : [...prev, editingTemplateId]);
+            } else {
+                // Update existing custom template
+                setCustomTemplates(prev => prev.map(p => p.id === editingTemplateId ? newPreset : p));
+            }
+        }
+
+        // Generate plan from template using current program settings
         const weekCount = activeProgram.plan.length || 12;
         const generatedPlan = newPreset.generator(settings.basePower, weekCount);
 
@@ -396,9 +419,11 @@ const ProgramTab: React.FC<ProgramTabProps> = ({
                     previewWeekCount={previewWeekCount}
                     setPreviewWeekCount={setPreviewWeekCount}
                     onSave={validateAndSave}
-                    onApplyToProgram={onApplyPlanToProgram ? validateAndApplyToProgram : undefined}
+                    onApplyToProgram={onApplyPlanToProgram && editingTemplateId === activeProgram?.presetId ? validateAndApplyToProgram : undefined}
                     onBack={handleBackFromEditor}
                     onExport={exportCurrentTemplate}
+                    readinessColor={readinessColor}
+                    fatigueColor={fatigueColor}
                 />
             );
         }
@@ -451,9 +476,11 @@ const ProgramTab: React.FC<ProgramTabProps> = ({
             previewWeekCount={previewWeekCount}
             setPreviewWeekCount={setPreviewWeekCount}
             onSave={validateAndSave}
-            onApplyToProgram={onApplyPlanToProgram ? validateAndApplyToProgram : undefined}
+            onApplyToProgram={onApplyPlanToProgram && editingTemplateId === activeProgram?.presetId ? validateAndApplyToProgram : undefined}
             onBack={handleBackFromEditor}
             onExport={exportCurrentTemplate}
+            readinessColor={readinessColor}
+            fatigueColor={fatigueColor}
         />
     );
 

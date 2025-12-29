@@ -90,7 +90,7 @@ const SimulationCharts: React.FC<SimulationChartsProps> = ({ result, isDarkMode 
     return (
         <div className="space-y-6">
             {/* Fatigue Chart */}
-            <div className="bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden">
+            <div className="bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden pb-4">
                 <h4 className="text-sm font-bold uppercase tracking-widest text-neutral-400 p-4 pb-2 flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--accent-alt)' }}></div>
                     Fatigue Projection
@@ -115,7 +115,7 @@ const SimulationCharts: React.FC<SimulationChartsProps> = ({ result, isDarkMode 
                                 tick={{ fill: colors.text, fontSize: 10 }}
                                 axisLine={false}
                                 tickLine={false}
-                                interval="preserveStartEnd"
+                                interval={0}
                             />
                             <YAxis
                                 yAxisId="power"
@@ -205,24 +205,24 @@ const SimulationCharts: React.FC<SimulationChartsProps> = ({ result, isDarkMode 
                         </ComposedChart>
                     </ResponsiveContainer>
                 </div>
-                <div className="flex items-center justify-center gap-6 mt-3 text-[10px] uppercase tracking-widest">
+                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-3 text-[9px] uppercase tracking-wider">
                     <div className="flex items-center gap-2">
                         <div className="w-4 h-0.5" style={{ backgroundColor: 'var(--accent-alt)' }}></div>
-                        <span className="text-neutral-500">Fatigue (median)</span>
+                        <span className="text-neutral-500 whitespace-nowrap">Fatigue</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-4 h-0.5 border-t-2 border-dashed" style={{ borderColor: colors.powerLine }}></div>
-                        <span className="text-neutral-500">Power (W)</span>
+                        <span className="text-neutral-500 whitespace-nowrap">Power (W)</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-sm opacity-30" style={{ backgroundColor: 'var(--accent-alt)' }}></div>
-                        <span className="text-neutral-500">25-75%</span>
+                        <span className="text-neutral-500 whitespace-nowrap">25-75%</span>
                     </div>
                 </div>
             </div>
 
             {/* Readiness Chart */}
-            <div className="bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden">
+            <div className="bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden pb-4">
                 <h4 className="text-sm font-bold uppercase tracking-widest text-neutral-400 p-4 pb-2 flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--accent)' }}></div>
                     Readiness Projection
@@ -247,7 +247,7 @@ const SimulationCharts: React.FC<SimulationChartsProps> = ({ result, isDarkMode 
                                 tick={{ fill: colors.text, fontSize: 10 }}
                                 axisLine={false}
                                 tickLine={false}
-                                interval="preserveStartEnd"
+                                interval={0}
                             />
                             <YAxis
                                 yAxisId="power"
@@ -337,18 +337,18 @@ const SimulationCharts: React.FC<SimulationChartsProps> = ({ result, isDarkMode 
                         </ComposedChart>
                     </ResponsiveContainer>
                 </div>
-                <div className="flex items-center justify-center gap-6 mt-3 text-[10px] uppercase tracking-widest">
+                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-3 text-[9px] uppercase tracking-wider">
                     <div className="flex items-center gap-2">
                         <div className="w-4 h-0.5" style={{ backgroundColor: 'var(--accent)' }}></div>
-                        <span className="text-neutral-500">Readiness (median)</span>
+                        <span className="text-neutral-500 whitespace-nowrap">Readiness</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-4 h-0.5 border-t-2 border-dashed" style={{ borderColor: colors.powerLine }}></div>
-                        <span className="text-neutral-500">Power (W)</span>
+                        <span className="text-neutral-500 whitespace-nowrap">Power (W)</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-sm opacity-30" style={{ backgroundColor: 'var(--accent)' }}></div>
-                        <span className="text-neutral-500">25-75%</span>
+                        <span className="text-neutral-500 whitespace-nowrap">25-75%</span>
                     </div>
                 </div>
             </div>

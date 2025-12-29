@@ -74,15 +74,17 @@ export function runSingleSimulation(
             const dayIdx = weekStart + day;
             const powerMult = week.powerMultiplier || 1.0;
             const rpe = week.targetRPE || 6;
-            const duration = typeof week.durationMinutes === 'number'
+            const baseDuration = typeof week.durationMinutes === 'number'
                 ? week.durationMinutes : DEFAULT_SESSION_DURATION;
 
+            // Apply variability: ±5% power, ±0.5 RPE, ±5% duration
             const actualPower = basePower * powerMult * (1.0 + (Math.random() - 0.5) * 0.1);
             const actualRPE = Math.max(1, Math.min(10, rpe + (Math.random() - 0.5)));
+            const actualDuration = baseDuration * (1.0 + (Math.random() - 0.5) * 0.1);
 
             const powerRatio = actualPower / basePower;
             const clampedRatio = Math.max(0.25, Math.min(4.0, powerRatio));
-            const load = Math.pow(actualRPE, 1.5) * Math.pow(duration, 0.75) *
+            const load = Math.pow(actualRPE, 1.5) * Math.pow(actualDuration, 0.75) *
                 Math.pow(clampedRatio, 0.5) * 0.3;
 
             dailyLoads[dayIdx] += load;

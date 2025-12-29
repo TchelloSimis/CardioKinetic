@@ -70,6 +70,9 @@ export interface ProgramEditorProps {
     onApplyToProgram?: () => boolean;  // Apply directly to active program
     onBack: () => void;
     onExport: () => void;
+    // Dynamic accent colors for save buttons
+    readinessColor?: string;
+    fatigueColor?: string;
 }
 
 // ============================================================================
@@ -138,7 +141,9 @@ const ProgramEditor: React.FC<ProgramEditorProps> = ({
     onSave,
     onApplyToProgram,
     onBack,
-    onExport
+    onExport,
+    readinessColor,
+    fatigueColor
 }) => {
     // Step state for multi-step workflow
     const [currentStep, setCurrentStep] = useState(1);
@@ -322,8 +327,8 @@ const ProgramEditor: React.FC<ProgramEditorProps> = ({
                                         setShowSaveDialog(false);
                                         onSave(false);
                                     }}
-                                    className="w-full px-4 py-3 rounded-xl text-sm font-medium text-white flex items-center justify-center gap-2"
-                                    style={{ backgroundColor: 'var(--accent)' }}
+                                    className="w-full px-4 py-3 rounded-xl text-sm font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                                    style={{ backgroundColor: fatigueColor || 'var(--accent-alt)' }}
                                 >
                                     <Save size={16} />
                                     Overwrite Existing
@@ -334,7 +339,8 @@ const ProgramEditor: React.FC<ProgramEditorProps> = ({
                                     setShowSaveDialog(false);
                                     onSave(true);
                                 }}
-                                className="w-full px-4 py-3 rounded-xl text-sm font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 flex items-center justify-center gap-2 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                                className="w-full px-4 py-3 rounded-xl text-sm font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                                style={{ backgroundColor: readinessColor || 'var(--accent)' }}
                             >
                                 <Copy size={16} />
                                 Save as New Template
@@ -345,10 +351,10 @@ const ProgramEditor: React.FC<ProgramEditorProps> = ({
                                         setShowSaveDialog(false);
                                         onApplyToProgram();
                                     }}
-                                    className="w-full px-4 py-3 rounded-xl text-sm font-medium bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-2 transition-colors"
+                                    className="w-full px-4 py-3 rounded-xl text-sm font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 flex items-center justify-center gap-2 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
                                 >
                                     <Activity size={16} />
-                                    Apply to Current Program
+                                    Overwrite &amp; Apply to Current
                                 </button>
                             )}
                             <button

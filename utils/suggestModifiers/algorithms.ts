@@ -254,3 +254,201 @@ export function adjustThresholdsForPosition(
     };
 }
 
+// ============================================================================
+// EXPECTED PHASE COMPUTATION (DETERMINISTIC)
+// ============================================================================
+
+import { WeekDefinition } from '../../programTemplate';
+
+/**
+ * Compute effective work capacity for a week.
+ * Combines power, duration, and RPE to get a single "load" metric.
+ * Higher value = more demanding week.
+ */
+function computeWorkCapacity(week: WeekDefinition): number {
+    const power = week.powerMultiplier || 1;
+
+    // Handle duration - could be number or percentage string
+    let durationFactor = 1;
+    if (typeof week.durationMinutes === 'number') {
+        durationFactor = week.durationMinutes / 15; // Normalize to 15min baseline
+    } else if (typeof week.durationMinutes === 'string') {
+        // Parse percentage like "110%"
+        const match = week.durationMinutes.match(/(\d+)%/);
+        if (match) durationFactor = parseFloat(match[1]) / 100;
+    }
+
+    // RPE factor - higher RPE = more work
+    const rpe = week.targetRPE || 7;
+    const rpeFactor = rpe / 7; // Normalize to RPE 7 baseline
+
+    // Work = power × duration × RPE
+    return power * durationFactor * rpeFactor;
+}
+
+/**
+ * Check if phase name or description indicates a recovery/deload week.
+ * Uses pattern matching instead of exact keywords for robustness.
+ */
+function isRecoveryIndicator(text: string | undefined): boolean {
+    if (!text) return false;
+    const lower = text.toLowerCase();
+
+    // Recovery patterns
+    const recoveryPatterns = [
+        /\brecov/,     // recover, recovery, recovering
+        /\bdeload/,    // deload, deloading
+        /\brest\b/,    // rest (word boundary to avoid "restore")
+        /\bease/,      // ease, easy, easing
+        /\blight/,     // light, lighter
+        /\bactive\s*rec/, // active recovery
+        /\bdown\s*week/,  // down week
+        /\btaper/,     // taper, tapering
+        /\bunload/,    // unload, unloading
+        /\bback\s*off/,   // back off
+        /\brestore/,   // restore, restoration
+        /\brefresh/,   // refresh
+    ];
+
+    return recoveryPatterns.some(pattern => pattern.test(lower));
+}
+
+/**
+ * Check if phase name or description indicates a peak/intensity week.
+ */
+function isPeakIndicator(text: string | undefined): boolean {
+    if (!text) return false;
+    const lower = text.toLowerCase();
+
+    const peakPatterns = [
+        /\bpeak/,      // peak, peaking
+        /\bmax/,       // max, maximum, maximal
+        /\btest/,      // test, testing (fitness test)
+        /\bfinal/,     // final week
+        /\bcompet/,    // compete, competition
+        /\brace/,      // race day
+        /\bpr\b/,      // PR attempt
+        /\bculmina/,   // culmination
+        /\bclimax/,    // climax
+    ];
+
+    return peakPatterns.some(pattern => pattern.test(lower));
+}
+
+/**
+ * Check if phase name indicates a build/ascending phase.
+ */
+function isBuildIndicator(text: string | undefined): boolean {
+    if (!text) return false;
+    const lower = text.toLowerCase();
+
+    const buildPatterns = [
+        /\bbuild/,     // build, building, builder
+        /\bbase/,      // base, baseline
+        /\bfound/,     // foundation, foundational
+        /\baccumul/,   // accumulate, accumulation
+        /\bload/,      // load, loading (but not deload)
+        /\bprogress/,  // progress, progressive
+        /\bintensif/,  // intensify, intensification
+        /\boverload/,  // overload (stimulus)
+        /\bstress/,    // stress week
+    ];
+
+    // Make sure it's not a deload
+    if (/\bdeload/.test(lower)) return false;
+
+    return buildPatterns.some(pattern => pattern.test(lower));
+}
+
+/**
+ * Compute expected phase for a week using DETERMINISTIC signals.
+ * 
+ * Uses a robust multi-signal approach:
+ * 1. Coach-declared focus (Recovery = trough, 100% reliable)
+ * 2. Pattern matching on phase name and description
+ * 3. Work trajectory (power × duration × RPE)
+ * 4. Week position relative to program length
+ * 
+ * @param week - The week definition from template
+ * @param weekNumber - Current week number (1-indexed)
+ * @param totalWeeks - Total weeks in program
+ * @param prevWeek - Previous week definition (if available)
+ * @param nextWeek - Next week definition (if available)
+ * @returns Deterministic expected phase
+ */
+export function computeExpectedPhase(
+    week: WeekDefinition,
+    weekNumber: number,
+    totalWeeks: number,
+    prevWeek?: WeekDefinition,
+    nextWeek?: WeekDefinition
+): CyclePhase {
+    // Priority 1: Coach-declared focus (100% reliable)
+    if (week.focus === 'Recovery') return 'trough';
+
+    // Priority 2: Pattern matching on phase name and description
+    const textToCheck = `${week.phaseName || ''} ${week.description || ''}`;
+
+    if (isRecoveryIndicator(textToCheck)) {
+        return 'trough';
+    }
+    if (isPeakIndicator(textToCheck)) {
+        return 'peak';
+    }
+
+    // Priority 3: Work trajectory analysis
+    const currentWork = computeWorkCapacity(week);
+    const prevWork = prevWeek ? computeWorkCapacity(prevWeek) : undefined;
+    const nextWork = nextWeek ? computeWorkCapacity(nextWeek) : undefined;
+
+    // Calculate relative changes
+    const workChangePrev = prevWork !== undefined ? (currentWork - prevWork) / prevWork : 0;
+    const workChangeNext = nextWork !== undefined ? (nextWork - currentWork) / currentWork : 0;
+
+    // Significant work drop from previous = recovery phase
+    if (workChangePrev < -0.15) {
+        // We dropped significantly - are we recovering or continuing down?
+        return workChangeNext >= 0 ? 'trough' : 'descending';
+    }
+
+    // Significant work increase = ascending
+    if (workChangePrev > 0.10) {
+        return 'ascending';
+    }
+
+    // Work about to drop significantly = peak
+    if (workChangeNext < -0.15 && currentWork >= 1.0) {
+        return 'peak';
+    }
+
+    // Priority 4: Focus-based inference
+    if (week.focus === 'Intensity' || week.focus === 'Density') {
+        // High intensity focus near end = peak, otherwise ascending
+        const isNearEnd = weekNumber / totalWeeks > 0.7;
+        return isNearEnd && workChangeNext <= 0 ? 'peak' : 'ascending';
+    }
+
+    // Priority 5: Week position in program
+    const progress = weekNumber / totalWeeks;
+
+    if (progress <= 0.25) {
+        // First quarter: ascending (build phase)
+        return 'ascending';
+    }
+    if (progress >= 0.9) {
+        // Final 10%: likely peak or end
+        return 'peak';
+    }
+
+    // Priority 6: Building phase indicator
+    if (isBuildIndicator(textToCheck)) {
+        return 'ascending';
+    }
+
+    // Default: ascending (most programs are progressive)
+    return 'ascending';
+}
+
+
+
+

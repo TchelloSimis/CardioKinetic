@@ -21,7 +21,7 @@
 
 ## Download
 
-**[Download APK (Latest)](https://github.com/TchelloSimis/CardioKinetic/releases/latest/download/CardioKinetic.apk)** — Install directly on your Android device.
+**[Download APK (v1.5.0)](https://github.com/TchelloSimis/CardioKinetic/releases/latest/download/CardioKinetic.apk)** — Install directly on your Android device.
 
 > To install, enable "Install from unknown sources" in your Android settings when prompted.
 
@@ -57,14 +57,14 @@ Fine-tune your training with a daily wellness check-in that adjusts fatigue and 
 - **Asymmetric Safety Bias** — Feeling worse than expected carries greater weight than feeling better, prioritizing injury prevention
 - **Optional and Editable** — Complete when you want, skip with no penalty, and edit previous responses anytime
 
-### Intelligent Modifier Suggestions
+### Auto-Adaptive Modifier System
 
-Let CardioKinetic automatically generate fatigue modifiers for your program using advanced signal processing:
+The new heart of CardioKinetic's training intelligence:
 
-- **Automatic Cycle Detection** — Uses Savitzky-Golay smoothing and CUSUM change-point detection to identify training phases
-- **Two-Tier Suggestions** — Standard tier for moderate deviations, Extreme tier for significant ones requiring stronger adjustments
-- **Session-Type Awareness** — Generates appropriate modifiers based on your program's session types (intervals, steady-state, custom)
-- **Monte Carlo Validation** — Test modifier effectiveness with simulation before committing to changes
+- **Monte Carlo Analysis** — Runs 100k simulations to determine your optimal training zones
+- **6-State Adaptation** — Automatically identifies if you are Critical, Stressed, Tired, Baseline, Fresh, or Primed
+- **Smart Session Adjustments** — Intelligently modifies interval sets, rest periods, and steady-state duration based on your state
+- **Coach Priority** — Respects manual overrides while keeping your training safe and effective
 
 ### Comprehensive Analytics
 
