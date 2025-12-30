@@ -2,6 +2,17 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.5.1] - 2025-12-29
+
+### Fixed
+
+- **Program Overwrite Fatigue Modifiers**: Resolved an issue where deleting all fatigue modifiers from a template and applying changes to the current program would incorrectly preserve the original modifiers instead of removing them
+- **Version Configuration Sync**: Corrected the APP_VERSION in config.ts to match the actual release version, ensuring the settings toast update checker functions correctly
+
+### Improved
+
+- **Simulation Chart Readability**: X-axis labels on fatigue and readiness projection charts now display at consistent intervals based on program length, preventing cramped labels for longer programs (every 2nd label for 9-16 weeks, every 3rd for 17-24 weeks, etc.)
+
 ## [1.5.0] - 2025-12-29
 
 ### Added

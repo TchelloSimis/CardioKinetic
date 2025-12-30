@@ -151,3 +151,4 @@ Before incrementing the version, you MUST analyze the contents of `UNCOMMITTED_C
 > - Match the writing style, tone, and structure of existing changelog entries
 > - No emojis anywhere in release notes or changelog
 > - Verify the release was created successfully before clearing UNCOMMITTED_CHANGES.md
+> - **Update `APP_VERSION` in `config.ts`** to match the new version number - this is required for the settings toast update checker to work correctly

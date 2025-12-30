@@ -87,6 +87,11 @@ const SimulationCharts: React.FC<SimulationChartsProps> = ({ result, isDarkMode 
         powerLine: isDarkMode ? '#ffffff' : '#171717',
     };
 
+    // Calculate consistent tick interval for X-axis labels
+    // Shows all labels for ≤8 weeks, otherwise shows every 2nd, 3rd, etc. label consistently
+    const weekCount = chartData.length;
+    const tickInterval = weekCount <= 8 ? 0 : weekCount <= 16 ? 1 : weekCount <= 24 ? 2 : Math.floor(weekCount / 8) - 1;
+
     return (
         <div className="space-y-6">
             {/* Fatigue Chart */}
@@ -112,10 +117,10 @@ const SimulationCharts: React.FC<SimulationChartsProps> = ({ result, isDarkMode 
                             <XAxis
                                 dataKey="name"
                                 stroke={colors.text}
-                                tick={{ fill: colors.text, fontSize: 10 }}
+                                tick={{ fill: colors.text, fontSize: 9 }}
                                 axisLine={false}
                                 tickLine={false}
-                                interval={0}
+                                interval={tickInterval}
                             />
                             <YAxis
                                 yAxisId="power"
@@ -244,10 +249,10 @@ const SimulationCharts: React.FC<SimulationChartsProps> = ({ result, isDarkMode 
                             <XAxis
                                 dataKey="name"
                                 stroke={colors.text}
-                                tick={{ fill: colors.text, fontSize: 10 }}
+                                tick={{ fill: colors.text, fontSize: 9 }}
                                 axisLine={false}
                                 tickLine={false}
-                                interval={0}
+                                interval={tickInterval}
                             />
                             <YAxis
                                 yAxisId="power"

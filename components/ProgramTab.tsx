@@ -292,7 +292,7 @@ const ProgramTab: React.FC<ProgramTabProps> = ({
         const generatedPlan = newPreset.generator(settings.basePower, weekCount);
 
         // Apply to active program (preserves sessions via App handler)
-        onApplyPlanToProgram(generatedPlan, newPreset.fatigueModifiers);
+        onApplyPlanToProgram(generatedPlan, newPreset.fatigueModifiers ?? []);
 
         setValidationErrors([]);
         setEditingTemplateId(null);
