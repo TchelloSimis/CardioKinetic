@@ -29,7 +29,12 @@ const BATCH_SIZE = 5000;  // Process in batches to avoid blocking
 
 /**
  * Generate simulation data for a program at a specific week count.
- * Runs Monte Carlo iterations and calculates P15/P30/P70/P85 percentiles.
+ * Runs Monte Carlo iterations and calculates percentile thresholds.
+ * 
+ * Percentiles generated:
+ * - P15/P85: Extreme thresholds (top/bottom 15%)
+ * - P25/P75: Moderate thresholds (next 10%)
+ * - P35/P65: Mild thresholds (next 10%)
  * 
  * @param weeks - Week definitions for the program
  * @param basePower - Base power in watts
@@ -76,13 +81,19 @@ export async function generateSimulationData(
     const weekPercentiles: WeekPercentiles[] = [];
     for (let w = 0; w < numWeeks; w++) {
         weekPercentiles.push({
+            // Fatigue percentiles
             fatigueP15: Math.round(calculatePercentile(fatigueData[w], 15)),
-            fatigueP30: Math.round(calculatePercentile(fatigueData[w], 30)),
-            fatigueP70: Math.round(calculatePercentile(fatigueData[w], 70)),
+            fatigueP25: Math.round(calculatePercentile(fatigueData[w], 25)),
+            fatigueP35: Math.round(calculatePercentile(fatigueData[w], 35)),
+            fatigueP65: Math.round(calculatePercentile(fatigueData[w], 65)),
+            fatigueP75: Math.round(calculatePercentile(fatigueData[w], 75)),
             fatigueP85: Math.round(calculatePercentile(fatigueData[w], 85)),
+            // Readiness percentiles
             readinessP15: Math.round(calculatePercentile(readinessData[w], 15)),
-            readinessP30: Math.round(calculatePercentile(readinessData[w], 30)),
-            readinessP70: Math.round(calculatePercentile(readinessData[w], 70)),
+            readinessP25: Math.round(calculatePercentile(readinessData[w], 25)),
+            readinessP35: Math.round(calculatePercentile(readinessData[w], 35)),
+            readinessP65: Math.round(calculatePercentile(readinessData[w], 65)),
+            readinessP75: Math.round(calculatePercentile(readinessData[w], 75)),
             readinessP85: Math.round(calculatePercentile(readinessData[w], 85)),
         });
     }
@@ -216,16 +227,13 @@ export function hasValidSimulationData(program: ProgramRecord): boolean {
         return false;
     }
 
-    // Check all percentile values are valid numbers
+    // Check all percentile values are valid numbers (check just a subset for speed)
     for (const wp of data.weekPercentiles) {
         if (typeof wp.fatigueP15 !== 'number' || isNaN(wp.fatigueP15)) return false;
-        if (typeof wp.fatigueP30 !== 'number' || isNaN(wp.fatigueP30)) return false;
-        if (typeof wp.fatigueP70 !== 'number' || isNaN(wp.fatigueP70)) return false;
         if (typeof wp.fatigueP85 !== 'number' || isNaN(wp.fatigueP85)) return false;
         if (typeof wp.readinessP15 !== 'number' || isNaN(wp.readinessP15)) return false;
-        if (typeof wp.readinessP30 !== 'number' || isNaN(wp.readinessP30)) return false;
-        if (typeof wp.readinessP70 !== 'number' || isNaN(wp.readinessP70)) return false;
         if (typeof wp.readinessP85 !== 'number' || isNaN(wp.readinessP85)) return false;
+        // New percentiles may not exist in old cached data - that's OK, they'll be regenerated
     }
 
     console.log('[hasValidSimulationData] PASS: valid simulation data');

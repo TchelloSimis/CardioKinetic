@@ -2,6 +2,30 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.5.4] - 2025-12-30
+
+### Improved
+
+#### Analytics Chart Performance
+Significant performance optimizations to the analytics chart for smoother interactions:
+
+- **Gesture Handling Refactor**: Extracted pan and zoom logic into a dedicated `useChartGestures` hook with optimized event handling
+- **Frame-Rate Throttling**: Touch and pan events now throttled via requestAnimationFrame for consistent 60fps updates
+- **Reduced Re-renders**: Gesture state tracked in refs during active interactions, committed to React state only on gesture end
+- **Memoized Computations**: Chart colors, render data, and tooltip components now properly memoized to prevent unnecessary recalculations
+
+#### Auto-Adaptive Training Accuracy
+Refined the automatic training adjustment engine for better detection and more meaningful interventions:
+
+- **Expanded Detection Thresholds**: Widened percentile bands from P30/P70 to P25/P35/P65/P75 for more sensitive detection of fatigue and readiness deviations
+- **New Mild Adjustment Tier**: Added a subtle tier for edge-of-normal values that applies conservative adjustments before escalating to stronger interventions
+- **Stronger Critical State Response**: Critical fatigue states now reduce power more aggressively (70% vs. previous 80%) for better overtraining prevention
+- **Capped Positive Adjustments**: Fresh and primed states now limited to modest power increases to avoid counteracting the benefits of accumulated rest
+
+### Developer Tools
+
+- **Modifier CLI Compatibility**: Updated the command-line modifier analysis tool to use the current auto-adaptive engine, replacing legacy system calls and ensuring test results match production behavior
+
 ## [1.5.3] - 2025-12-30
 
 ### Added

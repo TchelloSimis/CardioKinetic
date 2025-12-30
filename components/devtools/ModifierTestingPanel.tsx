@@ -311,13 +311,19 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
             const weekPercentiles: WeekPercentiles[] = [];
             for (let w = 0; w < numWeeks; w++) {
                 weekPercentiles.push({
+                    // Fatigue percentiles
                     fatigueP15: Math.round(calculatePercentile(fatigueData[w], 15)),
-                    fatigueP30: Math.round(calculatePercentile(fatigueData[w], 30)),
-                    fatigueP70: Math.round(calculatePercentile(fatigueData[w], 70)),
+                    fatigueP25: Math.round(calculatePercentile(fatigueData[w], 25)),
+                    fatigueP35: Math.round(calculatePercentile(fatigueData[w], 35)),
+                    fatigueP65: Math.round(calculatePercentile(fatigueData[w], 65)),
+                    fatigueP75: Math.round(calculatePercentile(fatigueData[w], 75)),
                     fatigueP85: Math.round(calculatePercentile(fatigueData[w], 85)),
+                    // Readiness percentiles
                     readinessP15: Math.round(calculatePercentile(readinessData[w], 15)),
-                    readinessP30: Math.round(calculatePercentile(readinessData[w], 30)),
-                    readinessP70: Math.round(calculatePercentile(readinessData[w], 70)),
+                    readinessP25: Math.round(calculatePercentile(readinessData[w], 25)),
+                    readinessP35: Math.round(calculatePercentile(readinessData[w], 35)),
+                    readinessP65: Math.round(calculatePercentile(readinessData[w], 65)),
+                    readinessP75: Math.round(calculatePercentile(readinessData[w], 75)),
                     readinessP85: Math.round(calculatePercentile(readinessData[w], 85)),
                 });
             }

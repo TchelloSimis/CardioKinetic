@@ -23,12 +23,23 @@ import {
 
 /**
  * Classify deviation direction based on current value vs percentiles.
+ * 
+ * Zones (for fatigue, higher = worse):
+ * - >= P85: high, extreme
+ * - >= P75: high, moderate  
+ * - >= P65: high, mild
+ * - P35-P65: normal
+ * - <= P35: low, mild
+ * - <= P25: low, moderate
+ * - <= P15: low, extreme
  */
 function classifyDeviation(
     value: number,
     p15: number,
-    p30: number,
-    p70: number,
+    p25: number,
+    p35: number,
+    p65: number,
+    p75: number,
     p85: number,
     invert: boolean = false
 ): { direction: DeviationDirection; tier: DeviationTier } {
@@ -39,15 +50,19 @@ function classifyDeviation(
     if (!invert) {
         // Fatigue-style: higher values mean worse condition
         if (value >= p85) return { direction: 'high', tier: 'extreme' };
-        if (value >= p70) return { direction: 'high', tier: 'moderate' };
+        if (value >= p75) return { direction: 'high', tier: 'moderate' };
+        if (value >= p65) return { direction: 'high', tier: 'mild' };
         if (value <= p15) return { direction: 'low', tier: 'extreme' };
-        if (value <= p30) return { direction: 'low', tier: 'moderate' };
+        if (value <= p25) return { direction: 'low', tier: 'moderate' };
+        if (value <= p35) return { direction: 'low', tier: 'mild' };
     } else {
         // Readiness-style: lower values mean worse condition  
         if (value <= p15) return { direction: 'low', tier: 'extreme' };
-        if (value <= p30) return { direction: 'low', tier: 'moderate' };
+        if (value <= p25) return { direction: 'low', tier: 'moderate' };
+        if (value <= p35) return { direction: 'low', tier: 'mild' };
         if (value >= p85) return { direction: 'high', tier: 'extreme' };
-        if (value >= p70) return { direction: 'high', tier: 'moderate' };
+        if (value >= p75) return { direction: 'high', tier: 'moderate' };
+        if (value >= p65) return { direction: 'high', tier: 'mild' };
     }
 
     return { direction: 'normal', tier: 'none' };
@@ -129,40 +144,44 @@ interface AdjustmentParams {
 
 /**
  * Get adjustments for interval sessions.
+ * Magnitudes increased for greater statistical effect.
  */
 function getIntervalAdjustments(state: AdaptiveState, tier: DeviationTier): AdjustmentParams {
     const isExtreme = tier === 'extreme';
+    const isMild = tier === 'mild';
 
     switch (state) {
         case 'critical':
             return {
-                powerMultiplier: isExtreme ? 0.80 : 0.85,
-                rpeAdjust: isExtreme ? -2 : -1.5,
-                restMultiplier: isExtreme ? 2.0 : 1.75,
+                powerMultiplier: isExtreme ? 0.70 : 0.78,
+                rpeAdjust: isExtreme ? -2.5 : -2,
+                restMultiplier: isExtreme ? 2.5 : 2.0,
             };
         case 'stressed':
             return {
-                powerMultiplier: isExtreme ? 0.85 : 0.90,
-                rpeAdjust: isExtreme ? -1.5 : -1,
-                restMultiplier: isExtreme ? 1.75 : 1.5,
+                powerMultiplier: isExtreme ? 0.78 : 0.85,
+                rpeAdjust: isExtreme ? -2 : -1.5,
+                restMultiplier: isExtreme ? 2.0 : 1.75,
             };
         case 'tired':
             return {
-                powerMultiplier: 0.95,
-                rpeAdjust: -0.5,
-                restMultiplier: 1.25,
+                powerMultiplier: isMild ? 0.95 : 0.90,
+                rpeAdjust: isMild ? -0.5 : -1,
+                restMultiplier: isMild ? 1.25 : 1.5,
             };
         case 'fresh':
+            // Capped positive adjustment to avoid counteracting fatigue savings
             return {
                 powerMultiplier: 1.05,
                 rpeAdjust: 0,
                 restMultiplier: 0.9,
             };
         case 'primed':
+            // Capped positive adjustment
             return {
-                powerMultiplier: isExtreme ? 1.12 : 1.10,
+                powerMultiplier: isExtreme ? 1.08 : 1.05,
                 rpeAdjust: 0.5,
-                restMultiplier: isExtreme ? 0.7 : 0.75,
+                restMultiplier: 0.85,
             };
         default: // baseline
             return {
@@ -174,39 +193,43 @@ function getIntervalAdjustments(state: AdaptiveState, tier: DeviationTier): Adju
 
 /**
  * Get adjustments for steady-state sessions.
+ * Magnitudes increased for greater statistical effect.
  */
 function getSteadyStateAdjustments(state: AdaptiveState, tier: DeviationTier): AdjustmentParams {
     const isExtreme = tier === 'extreme';
+    const isMild = tier === 'mild';
 
     switch (state) {
         case 'critical':
             return {
-                powerMultiplier: isExtreme ? 0.80 : 0.85,
-                rpeAdjust: isExtreme ? -2 : -1.5,
-                durationMultiplier: isExtreme ? 0.6 : 0.7,
+                powerMultiplier: isExtreme ? 0.70 : 0.78,
+                rpeAdjust: isExtreme ? -2.5 : -2,
+                durationMultiplier: isExtreme ? 0.5 : 0.6,
             };
         case 'stressed':
             return {
-                powerMultiplier: isExtreme ? 0.85 : 0.90,
-                rpeAdjust: isExtreme ? -1.5 : -1,
-                durationMultiplier: isExtreme ? 0.75 : 0.8,
+                powerMultiplier: isExtreme ? 0.78 : 0.85,
+                rpeAdjust: isExtreme ? -2 : -1.5,
+                durationMultiplier: isExtreme ? 0.65 : 0.75,
             };
         case 'tired':
             return {
-                powerMultiplier: 0.95,
-                rpeAdjust: -0.5,
-                durationMultiplier: 0.85,
+                powerMultiplier: isMild ? 0.95 : 0.90,
+                rpeAdjust: isMild ? -0.5 : -1,
+                durationMultiplier: isMild ? 0.90 : 0.80,
             };
         case 'fresh':
+            // Capped positive adjustment
             return {
                 powerMultiplier: 1.05,
                 rpeAdjust: 0,
             };
         case 'primed':
+            // Capped positive adjustment
             return {
-                powerMultiplier: isExtreme ? 1.12 : 1.10,
+                powerMultiplier: isExtreme ? 1.08 : 1.05,
                 rpeAdjust: 0.5,
-                durationMultiplier: isExtreme ? 1.2 : 1.15,
+                durationMultiplier: 1.10,
             };
         default: // baseline
             return {
@@ -270,26 +293,30 @@ function generateMessage(
     adjustment: AdjustmentParams,
     msgContext: MessageContext
 ): string {
-    const tierWord = tier === 'extreme' ? 'significantly' : 'moderately';
+    const tierWord = tier === 'extreme' ? 'significantly'
+        : tier === 'moderate' ? 'moderately'
+            : 'slightly';
     const { currentFatigue, currentReadiness, fatigueThreshold, readinessThreshold } = msgContext;
 
     // Helper to generate session-type-specific adjustment details
     const getAdjustmentDetails = (): string => {
-        if (sessionType === 'interval') {
-            return `, rest intervals extended by ${Math.round((adjustment.restMultiplier! - 1) * 100)}%`;
+        if (sessionType === 'interval' && adjustment.restMultiplier) {
+            const restPct = Math.round((adjustment.restMultiplier - 1) * 100);
+            return restPct > 0 ? `, rest intervals extended by ${restPct}%` : '';
         } else if (sessionType === 'custom') {
             return `. Main blocks adjusted, warmup and cooldown preserved`;
-        } else {
-            return `, duration reduced by ${Math.round((1 - (adjustment.durationMultiplier || 1)) * 100)}%`;
+        } else if (adjustment.durationMultiplier && adjustment.durationMultiplier < 1) {
+            return `, duration reduced by ${Math.round((1 - adjustment.durationMultiplier) * 100)}%`;
         }
+        return '';
     };
 
     const getPositiveAdjustmentDetails = (): string => {
-        if (sessionType === 'interval' && adjustment.restMultiplier) {
+        if (sessionType === 'interval' && adjustment.restMultiplier && adjustment.restMultiplier < 1) {
             return `, rest intervals shortened by ${Math.round((1 - adjustment.restMultiplier) * 100)}%`;
         } else if (sessionType === 'custom') {
             return `. Main blocks boosted, warmup and cooldown preserved`;
-        } else if (adjustment.durationMultiplier) {
+        } else if (adjustment.durationMultiplier && adjustment.durationMultiplier > 1) {
             return `, duration extended by ${Math.round((adjustment.durationMultiplier - 1) * 100)}%`;
         }
         return '';
@@ -365,8 +392,10 @@ export function calculateAutoAdaptiveAdjustments(
     const fatigueResult = classifyDeviation(
         context.fatigueScore,
         weekPercentiles.fatigueP15,
-        weekPercentiles.fatigueP30,
-        weekPercentiles.fatigueP70,
+        weekPercentiles.fatigueP25,
+        weekPercentiles.fatigueP35,
+        weekPercentiles.fatigueP65,
+        weekPercentiles.fatigueP75,
         weekPercentiles.fatigueP85,
         false // fatigue: high is bad
     );
@@ -374,17 +403,22 @@ export function calculateAutoAdaptiveAdjustments(
     const readinessResult = classifyDeviation(
         context.readinessScore,
         weekPercentiles.readinessP15,
-        weekPercentiles.readinessP30,
-        weekPercentiles.readinessP70,
+        weekPercentiles.readinessP25,
+        weekPercentiles.readinessP35,
+        weekPercentiles.readinessP65,
+        weekPercentiles.readinessP75,
         weekPercentiles.readinessP85,
         true // readiness: low is bad
     );
 
-    // Determine overall state and tier
+    // Determine overall state and tier (use highest tier from either metric)
     const state = classifyState(fatigueResult.direction, readinessResult.direction);
-    const tier: DeviationTier = fatigueResult.tier === 'extreme' || readinessResult.tier === 'extreme'
-        ? 'extreme'
-        : (fatigueResult.tier === 'moderate' || readinessResult.tier === 'moderate' ? 'moderate' : 'none');
+    const tierPriority = { 'extreme': 3, 'moderate': 2, 'mild': 1, 'none': 0 };
+    const maxTierValue = Math.max(tierPriority[fatigueResult.tier], tierPriority[readinessResult.tier]);
+    const tier: DeviationTier = maxTierValue === 3 ? 'extreme'
+        : maxTierValue === 2 ? 'moderate'
+            : maxTierValue === 1 ? 'mild'
+                : 'none';
 
     // No adjustment needed for baseline state
     if (state === 'baseline') {
@@ -436,14 +470,22 @@ export function calculateAutoAdaptiveAdjustments(
         adjustment = getSteadyStateAdjustments(state, tier);
     }
 
-    // Determine threshold values for message context
+    // Determine threshold values for message context (use appropriate percentile based on tier)
     const fatigueThreshold = fatigueResult.direction === 'high'
-        ? (fatigueResult.tier === 'extreme' ? weekPercentiles.fatigueP85 : weekPercentiles.fatigueP70)
-        : (fatigueResult.tier === 'extreme' ? weekPercentiles.fatigueP15 : weekPercentiles.fatigueP30);
+        ? (fatigueResult.tier === 'extreme' ? weekPercentiles.fatigueP85
+            : fatigueResult.tier === 'moderate' ? weekPercentiles.fatigueP75
+                : weekPercentiles.fatigueP65)
+        : (fatigueResult.tier === 'extreme' ? weekPercentiles.fatigueP15
+            : fatigueResult.tier === 'moderate' ? weekPercentiles.fatigueP25
+                : weekPercentiles.fatigueP35);
 
     const readinessThreshold = readinessResult.direction === 'low'
-        ? (readinessResult.tier === 'extreme' ? weekPercentiles.readinessP15 : weekPercentiles.readinessP30)
-        : (readinessResult.tier === 'extreme' ? weekPercentiles.readinessP85 : weekPercentiles.readinessP70);
+        ? (readinessResult.tier === 'extreme' ? weekPercentiles.readinessP15
+            : readinessResult.tier === 'moderate' ? weekPercentiles.readinessP25
+                : weekPercentiles.readinessP35)
+        : (readinessResult.tier === 'extreme' ? weekPercentiles.readinessP85
+            : readinessResult.tier === 'moderate' ? weekPercentiles.readinessP75
+                : weekPercentiles.readinessP65);
 
     const message = generateMessage(state, tier, sessionType, adjustment, {
         currentFatigue: context.fatigueScore,

@@ -1,43 +1,44 @@
 #!/usr/bin/env node
 /**
- * Modifier Analysis CLI Tool v2.0
+ * Modifier Analysis CLI Tool v3.0
  * 
- * RIGOROUS Analysis Using ACTUAL App Engine
+ * RIGOROUS Analysis Using Auto-Adaptive Modifier Engine
  * 
- * This version imports the REAL app functions to ensure parity with browser behavior.
+ * This version uses the new auto-adaptive modifier system that was introduced in v1.5.0.
+ * The legacy suggestModifiers() system has been removed in favor of the percentile-based
+ * auto-adaptive engine.
  * 
  * Usage: npx tsx utils/modifierAnalysisCli.ts [options]
  * 
- * Key improvements over v1:
- * - Uses actual suggestModifiers() from ./suggestModifiers
+ * Key features:
+ * - Uses calculateAutoAdaptiveAdjustments() for real-time adaptive modifications
+ * - Generates Monte Carlo percentile data to power the auto-adaptive engine
  * - Uses actual applyFatigueModifiers() from ./fatigueModifiers
- * - Uses actual detectCyclePhase() from ./fatigueModifiers
  * - Runs 10,000+ iterations for statistical significance
  * - Reports full percentile distributions (P5, P25, P50, P75, P95)
  * - Computes effect sizes (Cohen's d) for meaningful comparisons
  * - Generates 20+ diverse program configurations
  */
 
-import { suggestModifiers } from './suggestModifiers/index.ts';
-import { applyFatigueModifiers, detectCyclePhaseAdvanced, type PhaseContext } from './fatigueModifiers.ts';
-import { runSingleSimulation, calculateFatigueScore, calculateReadinessScore } from './suggestModifiers/simulation.ts';
-import { computeExpectedPhase } from './suggestModifiers/algorithms.ts';
-import type { WeekDefinition, FatigueModifier, FatigueContext, CyclePhase } from '../programTemplate.ts';
+import { applyFatigueModifiers, detectCyclePhase } from './fatigueModifiers.ts';
+import { runSingleSimulation } from './suggestModifiers/simulation.ts';
+import { calculatePercentile } from './suggestModifiers/algorithms.ts';
+import { calculateAutoAdaptiveAdjustments } from './autoAdaptiveModifiers.ts';
+import type { WeekPercentiles } from './autoAdaptiveTypes.ts';
+import type { WeekDefinition, FatigueModifier, FatigueContext } from '../programTemplate.ts';
+import type { SessionStyle } from '../types.ts';
 import * as fs from 'fs';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-// Note: WeekDefinition and FatigueModifier are imported from programTemplate.ts
-
-
 interface CliOptions {
     iterations: number;
     basePower: number;
     outputFile?: string;
     verbose: boolean;
-    modifierSimulations: number;
+    percentileSimulations: number;  // Renamed from modifierSimulations
 }
 
 interface PercentileStats {
@@ -60,8 +61,8 @@ interface WeeklyStats {
     baselineReadiness: PercentileStats;
     adaptiveReadiness: PercentileStats;
     triggerCount: PercentileStats;
-    detectedPhaseCounts: Record<string, number>;
-    modifierTriggerCounts: Map<string, number>;
+    autoAdaptiveStates: Record<string, number>;  // State -> count
+    triggerMessages: Map<string, number>;
 }
 
 interface ProgramConfig {
@@ -79,7 +80,7 @@ interface EffectSize {
 interface AnalysisResult {
     timestamp: string;
     programConfig: { name: string; weekCount: number; description: string };
-    simulationParams: { iterations: number; basePower: number; modifierSimulations: number };
+    simulationParams: { iterations: number; basePower: number; percentileSimulations: number };
 
     // Core metrics with full distributions
     fatigueEffect: EffectSize;
@@ -88,13 +89,7 @@ interface AnalysisResult {
 
     // Trigger statistics
     avgTriggersPerWeek: PercentileStats;
-    totalModifiers: number;
-    activeModifiers: number;
-    deadModifiers: string[];
-
-    // Phase detection accuracy
-    phaseAccuracy: number;  // % of weeks where detected phase matches expected
-    phaseMismatchWeeks: number[];
+    autoAdaptiveTriggerRate: number;  // % of sessions that triggered auto-adaptive
 
     // Weekly breakdown
     weeklyStats: WeeklyStats[];
@@ -182,14 +177,8 @@ function tTest(group1: number[], group2: number[]): number {
 
     const t = (m1 - m2) / se;
 
-    // Approximate p-value using normal distribution (valid for large n)
-    // For rigorous analysis, we'd use t-distribution with Welch-Satterthwaite df
-    const df = Math.pow((s1 * s1 / n1 + s2 * s2 / n2), 2) /
-        (Math.pow(s1 * s1 / n1, 2) / (n1 - 1) + Math.pow(s2 * s2 / n2, 2) / (n2 - 1));
-
     // Simplified: use z-approximation for large samples
     const z = Math.abs(t);
-    // Standard normal CDF approximation
     const pValue = 2 * (1 - 0.5 * (1 + Math.tanh(z * Math.sqrt(Math.PI) / 2)));
 
     return Math.round(pValue * 10000) / 10000;
@@ -199,7 +188,7 @@ function tTest(group1: number[], group2: number[]): number {
 // PROGRAM GENERATORS (Extensive library for diverse testing)
 // ============================================================================
 
-function generateProgramLibrary(basePower: number): ProgramConfig[] {
+function generateProgramLibrary(_basePower: number): ProgramConfig[] {
     const programs: ProgramConfig[] = [];
 
     // 1. LINEAR PROGRAMS (various lengths)
@@ -287,7 +276,8 @@ function generateLinearProgram(weekCount: number): WeekDefinition[] {
             description: `Week ${i + 1} of linear progression`,
             powerMultiplier: 1.0 + progress * 0.20,
             workRestRatio: progress < 0.5 ? '1:2' : '2:1',
-            targetRPE: Math.min(9, 5 + Math.floor(progress * 4))
+            targetRPE: Math.min(9, 5 + Math.floor(progress * 4)),
+            sessionStyle: 'interval' as SessionStyle
         });
     }
     return weeks;
@@ -311,7 +301,8 @@ function generateBlockProgram(buildWeeks: number, deloadWeeks: number, cycles: n
                     description: `Deload week ${w - buildWeeks + 1} of cycle ${c + 1}`,
                     powerMultiplier: basePowerMult * 0.75,
                     workRestRatio: '1:3',
-                    targetRPE: 4
+                    targetRPE: 4,
+                    sessionStyle: 'steady-state' as SessionStyle
                 });
             } else {
                 const buildProgress = w / Math.max(1, buildWeeks - 1);
@@ -322,7 +313,8 @@ function generateBlockProgram(buildWeeks: number, deloadWeeks: number, cycles: n
                     description: `Build week ${w + 1} of cycle ${c + 1}`,
                     powerMultiplier: basePowerMult * (1.0 + buildProgress * 0.15),
                     workRestRatio: '2:1',
-                    targetRPE: 6 + Math.floor(buildProgress * 2)
+                    targetRPE: 6 + Math.floor(buildProgress * 2),
+                    sessionStyle: 'interval' as SessionStyle
                 });
             }
         }
@@ -342,7 +334,8 @@ function generateUndulatingProgram(weekCount: number): WeekDefinition[] {
             description: `${isHard ? 'Hard' : 'Easy'} week ${Math.floor(i / 2) + 1}`,
             powerMultiplier: isHard ? 1.10 + progress * 0.15 : 0.85,
             workRestRatio: isHard ? '2:1' : '1:2',
-            targetRPE: isHard ? 8 : 5
+            targetRPE: isHard ? 8 : 5,
+            sessionStyle: isHard ? 'interval' as SessionStyle : 'steady-state' as SessionStyle
         });
     }
     return weeks;
@@ -359,7 +352,8 @@ function generateAggressiveProgram(weekCount: number, totalProgressionPercent: n
             description: `Aggressive week ${i + 1}`,
             powerMultiplier: 1.0 + progress * totalProgressionPercent,
             workRestRatio: '3:1',
-            targetRPE: Math.min(10, 7 + Math.floor(progress * 3))
+            targetRPE: Math.min(10, 7 + Math.floor(progress * 3)),
+            sessionStyle: 'interval' as SessionStyle
         });
     }
     return weeks;
@@ -379,7 +373,8 @@ function generateRecoveryProgram(workWeeks: number, recoveryWeeks: number, cycle
                 description: `${isRecovery ? 'Recovery' : 'Work'} week of cycle ${c + 1}`,
                 powerMultiplier: isRecovery ? 0.70 : 1.0,
                 workRestRatio: isRecovery ? '1:3' : '1:1',
-                targetRPE: isRecovery ? 3 : 6
+                targetRPE: isRecovery ? 3 : 6,
+                sessionStyle: isRecovery ? 'steady-state' as SessionStyle : 'interval' as SessionStyle
             });
         }
     }
@@ -401,7 +396,8 @@ function generatePeakingProgram(weekCount: number): WeekDefinition[] {
             description: `${isTaper ? 'Taper' : isPeakPhase ? 'Peak' : 'Build'} week ${i + 1}`,
             powerMultiplier: isTaper ? 0.85 : isPeakPhase ? 1.25 : 1.0 + progress * 0.3,
             workRestRatio: isTaper ? '1:2' : isPeakPhase ? '3:1' : '2:1',
-            targetRPE: isTaper ? 6 : isPeakPhase ? 9 : 7 + Math.floor(progress * 2)
+            targetRPE: isTaper ? 6 : isPeakPhase ? 9 : 7 + Math.floor(progress * 2),
+            sessionStyle: isPeakPhase ? 'interval' as SessionStyle : 'steady-state' as SessionStyle
         });
     }
     return weeks;
@@ -418,14 +414,67 @@ function generateBaseProgram(weekCount: number): WeekDefinition[] {
             description: `Base building week ${i + 1}`,
             powerMultiplier: 0.85 + progress * 0.15,  // 85% → 100%
             workRestRatio: '1:1',
-            targetRPE: 5 + Math.floor(progress * 2)
+            targetRPE: 5 + Math.floor(progress * 2),
+            sessionStyle: 'steady-state' as SessionStyle
         });
     }
     return weeks;
 }
 
 // ============================================================================
-// SIMULATION ENGINE (Using actual app functions)
+// PERCENTILE DATA GENERATION
+// ============================================================================
+
+/**
+ * Generate WeekPercentiles data using Monte Carlo simulation.
+ * This is identical to how the app generates percentile data for auto-adaptive modifiers.
+ */
+function generateWeekPercentiles(
+    weeks: WeekDefinition[],
+    basePower: number,
+    numSimulations: number
+): WeekPercentiles[] {
+    const numWeeks = weeks.length;
+    const fatigueData: number[][] = Array.from({ length: numWeeks }, () => []);
+    const readinessData: number[][] = Array.from({ length: numWeeks }, () => []);
+
+    // Run Monte Carlo simulations
+    for (let sim = 0; sim < numSimulations; sim++) {
+        const { dailyFatigue, dailyReadiness } = runSingleSimulation(weeks, basePower);
+
+        for (let w = 0; w < numWeeks; w++) {
+            const endOfWeekIndex = (w + 1) * 7 - 1;
+            fatigueData[w].push(dailyFatigue[endOfWeekIndex]);
+            readinessData[w].push(dailyReadiness[endOfWeekIndex]);
+        }
+    }
+
+    // Calculate percentiles for each week (P15/P25/P35/P65/P75/P85)
+    const weekPercentiles: WeekPercentiles[] = [];
+    for (let w = 0; w < numWeeks; w++) {
+        weekPercentiles.push({
+            // Fatigue percentiles
+            fatigueP15: Math.round(calculatePercentile(fatigueData[w], 15)),
+            fatigueP25: Math.round(calculatePercentile(fatigueData[w], 25)),
+            fatigueP35: Math.round(calculatePercentile(fatigueData[w], 35)),
+            fatigueP65: Math.round(calculatePercentile(fatigueData[w], 65)),
+            fatigueP75: Math.round(calculatePercentile(fatigueData[w], 75)),
+            fatigueP85: Math.round(calculatePercentile(fatigueData[w], 85)),
+            // Readiness percentiles
+            readinessP15: Math.round(calculatePercentile(readinessData[w], 15)),
+            readinessP25: Math.round(calculatePercentile(readinessData[w], 25)),
+            readinessP35: Math.round(calculatePercentile(readinessData[w], 35)),
+            readinessP65: Math.round(calculatePercentile(readinessData[w], 65)),
+            readinessP75: Math.round(calculatePercentile(readinessData[w], 75)),
+            readinessP85: Math.round(calculatePercentile(readinessData[w], 85)),
+        });
+    }
+
+    return weekPercentiles;
+}
+
+// ============================================================================
+// SIMULATION ENGINE (Using Auto-Adaptive Modifier System)
 // ============================================================================
 
 const ATL_ALPHA = 2.0 / 8;
@@ -454,7 +503,7 @@ function calculateLoad(power: number, basePower: number, duration: number, rpe: 
 
 function runSimulationIteration(
     weeks: WeekDefinition[],
-    modifiers: FatigueModifier[],
+    weekPercentiles: WeekPercentiles[],
     useModifiers: boolean,
     basePower: number,
     seed: number
@@ -463,12 +512,10 @@ function runSimulationIteration(
     weeklyReadiness: number[];
     triggers: number[];
     triggerMessages: string[][];
-    detectedPhases: (string | undefined)[];
+    autoAdaptiveStates: string[][];
 } {
     let atl = 9, ctl = 10;
     const fatigueHistory: number[] = [];
-    const ctlHistory: number[] = [];
-    const atlHistory: number[] = [];
     let randomIdx = 0;
     const getRandom = () => seededRandom(seed + randomIdx++);
 
@@ -476,7 +523,7 @@ function runSimulationIteration(
     const weeklyReadiness: number[] = [];
     const triggers: number[] = [];
     const triggerMessages: string[][] = [];
-    const detectedPhases: (string | undefined)[] = [];
+    const autoAdaptiveStates: string[][] = [];
 
     for (let weekIdx = 0; weekIdx < weeks.length; weekIdx++) {
         const week = weeks[weekIdx];
@@ -486,7 +533,7 @@ function runSimulationIteration(
 
         let weekTriggers = 0;
         const weekModMessages: string[] = [];
-        let lastDetectedPhase: CyclePhase | undefined;
+        const weekStates: string[] = [];
 
         for (let dayInWeek = 0; dayInWeek < 7; dayInWeek++) {
             const isSession = sessionDays.has(dayInWeek);
@@ -499,28 +546,14 @@ function runSimulationIteration(
                 let duration = 15;
                 let rpe = Math.max(1, Math.min(10, (week.targetRPE || 6) + rpeVariance));
 
-                if (useModifiers && modifiers.length > 0) {
+                if (useModifiers && weekPercentiles[weekIdx]) {
                     const fatigue = calculateFatigue(atl, ctl);
                     const readiness = calculateReadiness(ctl - atl);
-
-                    // Build full context for advanced phase detection
-                    const phaseContext: PhaseContext = {
-                        fatigueHistory: [...fatigueHistory],
-                        readinessHistory: fatigueHistory.map((_, i) => calculateReadiness(ctlHistory[i] - atlHistory[i])),
-                        ctlHistory: [...ctlHistory],
-                        powerHistory: weeks.slice(0, weekIdx + 1).map(w => w.powerMultiplier || 1.0),
-                        weekNumber: weekIdx + 1,
-                        totalWeeks: weeks.length,
-                        previousPhase: lastDetectedPhase
-                    };
-
                     const cyclePhaseResult = fatigueHistory.length >= 5
-                        ? detectCyclePhaseAdvanced(phaseContext)
+                        ? detectCyclePhase(fatigueHistory, readiness)
                         : { phase: undefined, confidence: 0 };
 
-                    lastDetectedPhase = cyclePhaseResult.phase;
-
-                    const context = {
+                    const context: FatigueContext = {
                         fatigueScore: fatigue,
                         readinessScore: readiness,
                         tsbValue: ctl - atl,
@@ -528,55 +561,30 @@ function runSimulationIteration(
                         totalWeeks: weeks.length,
                         phaseName: week.phaseName,
                         fatigueHistory: [...fatigueHistory],
-                        // DETERMINISTIC phase identity - computed from week definition
-                        expectedCyclePhase: computeExpectedPhase(
-                            week,
-                            weekIdx + 1,
-                            weeks.length,
-                            weekIdx > 0 ? weeks[weekIdx - 1] : undefined,
-                            weekIdx < weeks.length - 1 ? weeks[weekIdx + 1] : undefined
-                        ),
-                        // Compute position within phase (simplified for CLI)
-                        expectedPhasePosition: weekIdx / weeks.length <= 0.33 ? 'early' as const
-                            : weekIdx / weeks.length >= 0.67 ? 'late' as const
-                                : 'mid' as const
+                        expectedCyclePhase: cyclePhaseResult.phase
                     };
 
-                    // CRITICAL: Use actual applyFatigueModifiers from the app
-                    for (const mod of modifiers.sort((a: FatigueModifier, b: FatigueModifier) => (a.priority || 0) - (b.priority || 0))) {
-                        try {
-                            const { messages } = applyFatigueModifiers(
-                                // Create a minimal PlanWeek mock for CLI testing
-                                {
-                                    week: weekIdx + 1,
-                                    phaseName: week.phaseName,
-                                    focus: week.focus as 'Density' | 'Intensity' | 'Volume' | 'Recovery',
-                                    workRestRatio: week.workRestRatio || '1:1',
-                                    targetRPE: rpe,
-                                    plannedPower: power,
-                                    description: week.description || ''
-                                },
-                                context,
-                                [mod]
-                            );
-                            if (messages && messages.length > 0) {
-                                const adj = mod.adjustments;
-                                if (adj.powerMultiplier) power = Math.round(power * adj.powerMultiplier);
-                                if (adj.rpeAdjust) rpe = Math.max(1, Math.min(10, rpe + adj.rpeAdjust));
-                                if (adj.volumeMultiplier) duration *= adj.volumeMultiplier;
-                                weekTriggers++;
-                                weekModMessages.push(adj.message || `Modifier P${mod.priority}`);
-                                break;
-                            }
-                        } catch (e) {
-                            // If applyFatigueModifiers fails, skip this modifier
+                    // Use auto-adaptive engine
+                    const sessionStyle: SessionStyle = week.sessionStyle || 'interval';
+                    const autoAdj = calculateAutoAdaptiveAdjustments(
+                        context,
+                        weekPercentiles[weekIdx],
+                        sessionStyle
+                    );
+
+                    if (autoAdj.isActive) {
+                        power = Math.round(power * autoAdj.powerMultiplier);
+                        rpe = Math.max(1, Math.min(10, rpe + autoAdj.rpeAdjust));
+                        if (autoAdj.durationMultiplier) {
+                            duration *= autoAdj.durationMultiplier;
                         }
+                        weekTriggers++;
+                        weekModMessages.push(`[${autoAdj.state}] ${autoAdj.message.slice(0, 60)}...`);
+                        weekStates.push(autoAdj.state);
                     }
                 }
                 load = calculateLoad(power, basePower, duration, rpe);
                 fatigueHistory.push(calculateFatigue(atl, ctl));
-                ctlHistory.push(ctl);
-                atlHistory.push(atl);
             }
             atl = atl * (1 - ATL_ALPHA) + load * ATL_ALPHA;
             ctl = ctl * (1 - CTL_ALPHA) + load * CTL_ALPHA;
@@ -586,10 +594,10 @@ function runSimulationIteration(
         weeklyReadiness.push(calculateReadiness(ctl - atl));
         triggers.push(weekTriggers);
         triggerMessages.push(weekModMessages);
-        detectedPhases.push(lastDetectedPhase);
+        autoAdaptiveStates.push(weekStates);
     }
 
-    return { weeklyFatigue, weeklyReadiness, triggers, triggerMessages, detectedPhases };
+    return { weeklyFatigue, weeklyReadiness, triggers, triggerMessages, autoAdaptiveStates };
 }
 
 // ============================================================================
@@ -608,11 +616,11 @@ function runRigorousAnalysis(
         console.log(`   ${program.description}`);
     }
 
-    // Step 1: Generate modifiers using ACTUAL app function
-    if (options.verbose) console.log(`   🔧 Generating modifiers (${options.modifierSimulations} simulations)...`);
-    const modifiers: FatigueModifier[] = suggestModifiers(weeks, options.basePower, options.modifierSimulations);
+    // Step 1: Generate percentile data for auto-adaptive engine
+    if (options.verbose) console.log(`   🔧 Generating percentile data (${options.percentileSimulations} simulations)...`);
+    const weekPercentiles = generateWeekPercentiles(weeks, options.basePower, options.percentileSimulations);
 
-    if (options.verbose) console.log(`   ⚡ Generated ${modifiers.length} modifiers`);
+    if (options.verbose) console.log(`   ⚡ Generated percentile data for ${numWeeks} weeks`);
 
     // Step 2: Run Monte Carlo simulations
     if (options.verbose) console.log(`   🔄 Running ${options.iterations} simulation iterations...`);
@@ -623,16 +631,19 @@ function runRigorousAnalysis(
     const adaptiveReadinesses: number[][] = Array(numWeeks).fill(null).map(() => []);
     const triggerCounts: number[][] = Array(numWeeks).fill(null).map(() => []);
     const allTriggerMessages: Map<string, number>[] = Array(numWeeks).fill(null).map(() => new Map());
-    const allDetectedPhases: (string | undefined)[][] = Array(numWeeks).fill(null).map(() => []);
+    const allAutoAdaptiveStates: Record<string, number>[] = Array(numWeeks).fill(null).map(() => ({}));
 
     // Peak fatigue across entire program (per iteration)
     const peakBaselineFatigues: number[] = [];
     const peakAdaptiveFatigues: number[] = [];
 
+    let totalAutoAdaptiveTriggers = 0;
+    let totalSessions = 0;
+
     for (let i = 0; i < options.iterations; i++) {
         const seed = 42 + i * 1000;
-        const baseline = runSimulationIteration(weeks, [], false, options.basePower, seed);
-        const adaptive = runSimulationIteration(weeks, modifiers, true, options.basePower, seed);
+        const baseline = runSimulationIteration(weeks, weekPercentiles, false, options.basePower, seed);
+        const adaptive = runSimulationIteration(weeks, weekPercentiles, true, options.basePower, seed);
 
         peakBaselineFatigues.push(Math.max(...baseline.weeklyFatigue));
         peakAdaptiveFatigues.push(Math.max(...adaptive.weeklyFatigue));
@@ -643,11 +654,18 @@ function runRigorousAnalysis(
             adaptiveFatigues[w].push(adaptive.weeklyFatigue[w]);
             adaptiveReadinesses[w].push(adaptive.weeklyReadiness[w]);
             triggerCounts[w].push(adaptive.triggers[w]);
-            allDetectedPhases[w].push(adaptive.detectedPhases[w]);
 
             for (const msg of adaptive.triggerMessages[w]) {
                 allTriggerMessages[w].set(msg, (allTriggerMessages[w].get(msg) || 0) + 1);
             }
+
+            for (const state of adaptive.autoAdaptiveStates[w]) {
+                allAutoAdaptiveStates[w][state] = (allAutoAdaptiveStates[w][state] || 0) + 1;
+            }
+
+            totalAutoAdaptiveTriggers += adaptive.triggers[w];
+            // Estimate sessions per week (2-4 on average)
+            totalSessions += 3;  // Rough average
         }
 
         if (options.verbose && i % Math.max(1, Math.floor(options.iterations / 10)) === 0) {
@@ -669,68 +687,28 @@ function runRigorousAnalysis(
 
     const pValue = tTest(allBaselineFatigue, allAdaptiveFatigue);
 
-    // Step 4: Phase accuracy analysis
-    const expectedPhase = (week: WeekDefinition): string => {
-        if (week.focus === 'Recovery') return 'trough';
-        if (week.phaseName.toLowerCase().includes('deload')) return 'trough';
-        if (week.phaseName.toLowerCase().includes('recovery')) return 'trough';
-        if (week.phaseName.toLowerCase().includes('taper')) return 'descending';
-        if (week.focus === 'Intensity' || week.focus === 'Density') return 'ascending';
-        return 'ascending';
-    };
-
-    const modeFn = (arr: (string | undefined)[]): string => {
-        const counts = new Map<string, number>();
-        arr.forEach(v => { if (v) counts.set(v, (counts.get(v) || 0) + 1); });
-        const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
-        return sorted[0]?.[0] || 'unknown';
-    };
-
-    let phaseMatches = 0;
-    const phaseMismatchWeeks: number[] = [];
+    // Step 4: Build weekly stats
     const weeklyStats: WeeklyStats[] = [];
 
     for (let w = 0; w < numWeeks; w++) {
-        const expected = expectedPhase(weeks[w]);
-        const detected = modeFn(allDetectedPhases[w]);
-
-        // Count phase occurrences
-        const phaseCounts: Record<string, number> = {};
-        allDetectedPhases[w].forEach(p => {
-            if (p) phaseCounts[p] = (phaseCounts[p] || 0) + 1;
-        });
-
-        const matches = detected === expected || detected === 'unknown';
-        if (matches) phaseMatches++;
-        else phaseMismatchWeeks.push(w + 1);
-
         weeklyStats.push({
             weekNumber: w + 1,
             phaseName: weeks[w].phaseName,
-            powerMultiplier: weeks[w].powerMultiplier,
+            powerMultiplier: weeks[w].powerMultiplier || 1.0,
             focus: weeks[w].focus,
             baselineFatigue: computePercentileStats(baselineFatigues[w]),
             adaptiveFatigue: computePercentileStats(adaptiveFatigues[w]),
             baselineReadiness: computePercentileStats(baselineReadinesses[w]),
             adaptiveReadiness: computePercentileStats(adaptiveReadinesses[w]),
             triggerCount: computePercentileStats(triggerCounts[w]),
-            detectedPhaseCounts: phaseCounts,
-            modifierTriggerCounts: allTriggerMessages[w]
+            autoAdaptiveStates: allAutoAdaptiveStates[w],
+            triggerMessages: allTriggerMessages[w]
         });
     }
 
-    const phaseAccuracy = Math.round((phaseMatches / numWeeks) * 100);
-
-    // Step 5: Modifier effectiveness analysis
-    const modifierTotalTriggers = new Map<string, number>();
-    for (const weekMap of allTriggerMessages) {
-        weekMap.forEach((count, msg) => {
-            modifierTotalTriggers.set(msg, (modifierTotalTriggers.get(msg) || 0) + count);
-        });
-    }
-    const deadModifiers = modifiers
-        .map(m => m.adjustments.message)
-        .filter(msg => !modifierTotalTriggers.has(msg) || modifierTotalTriggers.get(msg)! === 0);
+    const autoAdaptiveTriggerRate = totalSessions > 0
+        ? Math.round((totalAutoAdaptiveTriggers / totalSessions) * 1000) / 10
+        : 0;
 
     return {
         timestamp: new Date().toISOString(),
@@ -738,17 +716,13 @@ function runRigorousAnalysis(
         simulationParams: {
             iterations: options.iterations,
             basePower: options.basePower,
-            modifierSimulations: options.modifierSimulations
+            percentileSimulations: options.percentileSimulations
         },
         fatigueEffect,
         readinessEffect,
         peakFatigueEffect,
         avgTriggersPerWeek: computePercentileStats(allTriggers),
-        totalModifiers: modifiers.length,
-        activeModifiers: modifiers.length - deadModifiers.length,
-        deadModifiers,
-        phaseAccuracy,
-        phaseMismatchWeeks,
+        autoAdaptiveTriggerRate,
         weeklyStats,
         pValue,
         isSignificant: pValue < 0.05
@@ -762,14 +736,14 @@ function runRigorousAnalysis(
 function printUsage(): void {
     console.log(`
 ╔══════════════════════════════════════════════════════════════╗
-║       RIGOROUS MODIFIER ANALYSIS CLI v2.0                   ║
+║       AUTO-ADAPTIVE MODIFIER ANALYSIS CLI v3.0               ║
 ╚══════════════════════════════════════════════════════════════╝
 
-Usage: npx ts-node --transpile-only utils/modifierAnalysisCli.ts [options]
+Usage: npx tsx utils/modifierAnalysisCli.ts [options]
 
 Options:
   --iterations=N      Simulation iterations per program (default: 10000)
-  --mod-sims=N        Monte Carlo runs for modifier generation (default: 100000)  
+  --percentile-sims=N Monte Carlo runs for percentile generation (default: 10000)  
   --power=N           Base power in watts (default: 150)
   --output=FILE       Output JSON file (required for full results)
   --verbose           Show progress (default: true)
@@ -779,21 +753,21 @@ Statistical Features:
   - Full percentile distributions (P5, P25, P50, P75, P95)
   - Cohen's d effect sizes with interpretation
   - Welch's t-test for statistical significance
-  - Phase detection accuracy metrics
-  - Dead modifier identification
+  - Auto-adaptive state distribution tracking
+  - Trigger rate analysis
 
 Example:
-  npx ts-node --transpile-only utils/modifierAnalysisCli.ts --iterations=10000 --output=results.json
+  npx tsx utils/modifierAnalysisCli.ts --iterations=10000 --output=results.json
 `);
 }
 
 function parseArgs(): CliOptions {
     const args = process.argv.slice(2);
     const options: CliOptions = {
-        iterations: 10000,         // Much higher default
+        iterations: 10000,
         basePower: 150,
         verbose: true,
-        modifierSimulations: 100000  // Match app default
+        percentileSimulations: 10000
     };
 
     for (const arg of args) {
@@ -804,8 +778,8 @@ function parseArgs(): CliOptions {
         if (arg.startsWith('--iterations=')) {
             options.iterations = parseInt(arg.split('=')[1], 10);
         }
-        if (arg.startsWith('--mod-sims=')) {
-            options.modifierSimulations = parseInt(arg.split('=')[1], 10);
+        if (arg.startsWith('--percentile-sims=')) {
+            options.percentileSimulations = parseInt(arg.split('=')[1], 10);
         }
         if (arg.startsWith('--power=')) {
             options.basePower = parseInt(arg.split('=')[1], 10);
@@ -830,9 +804,9 @@ function printSummary(results: AnalysisResult[]): void {
 
     console.log(`Programs analyzed: ${results.length}`);
     console.log(`Iterations per program: ${results[0]?.simulationParams.iterations || 'N/A'}`);
-    console.log(`Modifier generation simulations: ${results[0]?.simulationParams.modifierSimulations || 'N/A'}\n`);
+    console.log(`Percentile simulations: ${results[0]?.simulationParams.percentileSimulations || 'N/A'}\n`);
 
-    console.log('Program                         Weeks  Fatigue Δ  Effect Size    Peak Δ  Phase Acc  Sig?');
+    console.log('Program                         Weeks  Fatigue Δ  Effect Size    Peak Δ  Trigger%  Sig?');
     console.log('─'.repeat(95));
 
     for (const r of results) {
@@ -844,7 +818,7 @@ function printSummary(results: AnalysisResult[]): void {
         console.log(
             `${r.programConfig.name.padEnd(31)} ${String(r.programConfig.weekCount).padStart(5)}  ` +
             `${fatigueDelta.padStart(9)}  ${effectLabel.padStart(13)}  ${peakDelta.padStart(6)}  ` +
-            `${String(r.phaseAccuracy).padStart(6)}%  ${sig}`
+            `${String(r.autoAdaptiveTriggerRate).padStart(6)}%  ${sig}`
         );
     }
 
@@ -853,14 +827,12 @@ function printSummary(results: AnalysisResult[]): void {
     // Aggregate statistics
     const sigCount = results.filter(r => r.isSignificant).length;
     const avgEffectSize = mean(results.map(r => r.fatigueEffect.cohensD));
-    const avgPhaseAcc = mean(results.map(r => r.phaseAccuracy));
-    const avgDeadModifiers = mean(results.map(r => r.deadModifiers.length));
+    const avgTriggerRate = mean(results.map(r => r.autoAdaptiveTriggerRate));
 
     console.log(`\nAggregate Statistics:`);
     console.log(`  Statistically significant improvements: ${sigCount}/${results.length} (${Math.round(sigCount / results.length * 100)}%)`);
     console.log(`  Average effect size (Cohen's d): ${avgEffectSize.toFixed(3)}`);
-    console.log(`  Average phase detection accuracy: ${avgPhaseAcc.toFixed(1)}%`);
-    console.log(`  Average dead modifiers per program: ${avgDeadModifiers.toFixed(1)}`);
+    console.log(`  Average auto-adaptive trigger rate: ${avgTriggerRate.toFixed(1)}%`);
 }
 
 // ============================================================================
@@ -872,8 +844,8 @@ async function main(): Promise<void> {
 
     console.log(`
 ╔══════════════════════════════════════════════════════════════╗
-║       RIGOROUS MODIFIER ANALYSIS CLI v2.0                   ║
-║         Using ACTUAL App Engine Functions                    ║
+║       AUTO-ADAPTIVE MODIFIER ANALYSIS CLI v3.0               ║
+║         Using Real Auto-Adaptive Engine                      ║
 ╚══════════════════════════════════════════════════════════════╝
 `);
 
@@ -905,7 +877,7 @@ async function main(): Promise<void> {
             ...r,
             weeklyStats: r.weeklyStats.map(ws => ({
                 ...ws,
-                modifierTriggerCounts: Object.fromEntries(ws.modifierTriggerCounts)
+                triggerMessages: Object.fromEntries(ws.triggerMessages)
             }))
         }));
 

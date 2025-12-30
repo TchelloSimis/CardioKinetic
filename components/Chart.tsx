@@ -1,5 +1,6 @@
 
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
+import { useChartGestures } from '../hooks/useChartGestures';
 import {
   ComposedChart,
   Line,
@@ -42,7 +43,7 @@ interface ChartProps {
 }
 
 
-const CustomTooltip = ({ active, payload, label, viewMode }: any) => {
+const CustomTooltip = React.memo(({ active, payload, label, viewMode }: any) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 shadow-xl z-50 pointer-events-none">
@@ -68,7 +69,7 @@ const CustomTooltip = ({ active, payload, label, viewMode }: any) => {
     );
   }
   return null;
-};
+});
 
 const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentColor, accentAltColor, currentDate: currentDateProp, todayQuestionnaireResponse, recentQuestionnaireResponses }) => {
   // Use ref to track if we've initialized from localStorage to prevent re-init on re-renders
@@ -423,105 +424,16 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
   }, [filteredSessions, filteredPrograms, currentDateProp, todayQuestionnaireResponse, recentQuestionnaireResponses]);
 
   const currentData = viewMode === 'week' ? timelineData.weekly : timelineData.daily;
-  const [zoomDomain, setZoomDomain] = useState({ start: 0, end: Math.max(0, currentData.length - 1) });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    setZoomDomain({ start: 0, end: Math.max(0, currentData.length - 1) });
-  }, [viewMode, currentData.length]);
+  // Use optimized gesture handling hook (RAF throttling, ref-based state, passive listeners)
+  const { zoomDomain, handlers, resetZoom, zoomIn, zoomOut } = useChartGestures({
+    dataLength: currentData.length,
+    containerRef,
+  });
 
-  const isDragging = useRef(false);
-  const lastX = useRef(0);
-  const lastDist = useRef<number | null>(null);
-
-  const handleMouseDown = (e: React.MouseEvent) => { isDragging.current = true; lastX.current = e.clientX; };
-  const handleMouseUp = () => { isDragging.current = false; };
-  const handleMouseMove = (e: React.MouseEvent) => { if (!isDragging.current) return; e.preventDefault(); const deltaX = lastX.current - e.clientX; lastX.current = e.clientX; pan(deltaX); };
-
-  // Track touch state to determine if gesture is horizontal or vertical
-  const touchStartY = useRef(0);
-  const isHorizontalPan = useRef(false);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
-      isDragging.current = true;
-      lastX.current = e.touches[0].clientX;
-      touchStartY.current = e.touches[0].clientY;
-      isHorizontalPan.current = false; // Reset on new touch
-    } else if (e.touches.length === 2) {
-      isDragging.current = false;
-      lastDist.current = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 1 && isDragging.current) {
-      const deltaX = lastX.current - e.touches[0].clientX;
-      const deltaY = touchStartY.current - e.touches[0].clientY;
-
-      // Determine if this is a horizontal or vertical gesture on first significant move
-      if (!isHorizontalPan.current && Math.abs(deltaX) > 10) {
-        // If horizontal movement is dominant, it's a pan
-        if (Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
-          isHorizontalPan.current = true;
-        }
-      }
-
-      // Only pan horizontally if we've determined this is a horizontal gesture
-      if (isHorizontalPan.current) {
-        e.preventDefault(); // Only prevent default for horizontal pan
-        lastX.current = e.touches[0].clientX;
-        pan(deltaX * 2);
-      }
-      // If not horizontal pan, let the browser handle vertical scroll naturally
-    } else if (e.touches.length === 2 && lastDist.current !== null) {
-      // Pinch to zoom - prevent scrolling during this gesture
-      e.preventDefault();
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      const delta = dist - lastDist.current;
-      lastDist.current = dist;
-      zoom(delta * 0.1);
-    }
-  };
-
-  const handleTouchEnd = () => { isDragging.current = false; lastDist.current = null; isHorizontalPan.current = false; };
-  const handleWheel = (e: React.WheelEvent) => { e.stopPropagation(); zoom(e.deltaY > 0 ? -1 : 1); };
-  const pan = (deltaPixels: number) => { const chartWidth = containerRef.current?.clientWidth || 500; const totalPoints = zoomDomain.end - zoomDomain.start; const sensitivity = totalPoints / chartWidth; let deltaIndex = Math.round(deltaPixels * sensitivity * 3); if (deltaIndex === 0) return; let newStart = zoomDomain.start + deltaIndex; let newEnd = zoomDomain.end + deltaIndex; if (newStart < 0) { newEnd -= newStart; newStart = 0; } if (newEnd >= currentData.length) { const diff = newEnd - (currentData.length - 1); newStart -= diff; newEnd = currentData.length - 1; } if (newStart < 0) newStart = 0; setZoomDomain({ start: newStart, end: newEnd }); };
-  const zoom = (factor: number) => {
-    const currentRange = zoomDomain.end - zoomDomain.start;
-    const minRange = Math.min(3, Math.max(1, currentData.length - 1));
-    const maxRange = currentData.length - 1;
-
-    // factor > 0 = zoom in (shrink range), factor < 0 = zoom out (expand range)
-    const changeAmount = Math.max(1, Math.round(currentRange * 0.2));
-    let newRange = factor > 0
-      ? Math.max(minRange, currentRange - changeAmount)
-      : Math.min(maxRange, currentRange + changeAmount);
-
-    const mid = Math.floor((zoomDomain.start + zoomDomain.end) / 2);
-    let newStart = Math.max(0, mid - Math.floor(newRange / 2));
-    let newEnd = newStart + newRange;
-
-    // Clamp to data bounds
-    if (newEnd >= currentData.length) {
-      newEnd = currentData.length - 1;
-      newStart = Math.max(0, newEnd - newRange);
-    }
-
-    setZoomDomain({ start: newStart, end: newEnd });
-  };
-  const resetZoom = () => { setZoomDomain({ start: 0, end: Math.max(0, currentData.length - 1) }); };
-  const handleZoomIn = () => zoom(1);
-  const handleZoomOut = () => zoom(-1);
-
-  // Use accent colors for readiness/fatigue lines
-  const colors = {
+  // Memoize colors to prevent unnecessary re-renders
+  const colors = useMemo(() => ({
     grid: isDarkMode ? '#262626' : '#e5e5e5',
     text: isDarkMode ? '#737373' : '#a3a3a3',
     plannedFill: isDarkMode ? '#262626' : '#f5f5f5',
@@ -529,11 +441,13 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
     actualStroke: isDarkMode ? '#ffffff' : '#171717',
     readiness: accentColor || (isDarkMode ? '#6ee7b7' : '#10b981'),
     fatigue: accentAltColor || (isDarkMode ? '#a7f3d0' : '#047857'),
-  };
+  }), [isDarkMode, accentColor, accentAltColor]);
 
-  // Ensure renderData has data - fallback to full dataset if slice is empty
-  const slicedData = currentData.slice(zoomDomain.start, zoomDomain.end + 1);
-  const renderData = slicedData.length > 0 ? slicedData : currentData;
+  // Memoize renderData to prevent recomputation on every render
+  const renderData = useMemo(() => {
+    const sliced = currentData.slice(zoomDomain.start, zoomDomain.end + 1);
+    return sliced.length > 0 ? sliced : currentData;
+  }, [currentData, zoomDomain.start, zoomDomain.end]);
 
   return (
     <div className="h-full flex flex-col pb-16 md:pb-4">
@@ -559,14 +473,14 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
 
           {/* Zoom Controls */}
           <div className="flex items-center gap-1 ml-auto md:ml-0">
-            <button onClick={handleZoomIn} className="p-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg text-neutral-500 active:text-neutral-900 dark:active:text-white transition-colors focus:outline-none" title="Zoom In"><ZoomIn size={14} /></button>
-            <button onClick={handleZoomOut} className="p-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg text-neutral-500 active:text-neutral-900 dark:active:text-white transition-colors focus:outline-none" title="Zoom Out"><ZoomOut size={14} /></button>
+            <button onClick={zoomIn} className="p-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg text-neutral-500 active:text-neutral-900 dark:active:text-white transition-colors focus:outline-none" title="Zoom In"><ZoomIn size={14} /></button>
+            <button onClick={zoomOut} className="p-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg text-neutral-500 active:text-neutral-900 dark:active:text-white transition-colors focus:outline-none" title="Zoom Out"><ZoomOut size={14} /></button>
             <button onClick={resetZoom} className="p-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg text-neutral-500 active:text-neutral-900 dark:active:text-white transition-colors focus:outline-none" title="Reset Zoom"><RefreshCcw size={14} /></button>
           </div>
         </div>
       </div>
 
-      <div ref={containerRef} className="flex-1 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm rounded-3xl border border-neutral-200 dark:border-neutral-800 p-4 md:p-6 shadow-sm min-h-[calc(100vh-320px)] md:min-h-[calc(100vh-240px)] outline-none focus:outline-none focus:ring-0 ring-0 relative flex flex-col overflow-hidden touch-pan-y cursor-crosshair" style={{ WebkitTapHighlightColor: 'transparent' }} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onWheel={handleWheel} tabIndex={-1}>
+      <div ref={containerRef} className="flex-1 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm rounded-3xl border border-neutral-200 dark:border-neutral-800 p-4 md:p-6 shadow-sm min-h-[calc(100vh-320px)] md:min-h-[calc(100vh-240px)] outline-none focus:outline-none focus:ring-0 ring-0 relative flex flex-col overflow-hidden touch-pan-y cursor-crosshair" style={{ WebkitTapHighlightColor: 'transparent' }} {...handlers} tabIndex={-1}>
         {/* Chart container with absolute positioning for ResponsiveContainer to fill space */}
         <div className="flex-1 min-h-[300px] relative">
           <div className="absolute inset-0">

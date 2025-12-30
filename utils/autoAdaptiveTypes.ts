@@ -13,17 +13,29 @@ import { SessionBlock, SessionStyle } from '../types';
 
 /**
  * Simulation percentile data for a single week.
- * Stores P15/P30/P70/P85 for both fatigue and readiness.
+ * Stores percentile thresholds for fatigue and readiness.
+ * 
+ * Threshold zones:
+ * - P15/P85: Extreme deviation (top/bottom 15%)
+ * - P25/P75: Moderate deviation (next 10%)
+ * - P35/P65: Mild deviation (next 10%)
+ * - P35-P65: Normal zone (middle 30%)
  */
 export interface WeekPercentiles {
-    fatigueP15: number;  // 15th percentile - significantly lower than expected
-    fatigueP30: number;  // 30th percentile - moderately lower than expected
-    fatigueP70: number;  // 70th percentile - moderately higher than expected
-    fatigueP85: number;  // 85th percentile - significantly higher than expected
-    readinessP15: number;
-    readinessP30: number;
-    readinessP70: number;
-    readinessP85: number;
+    // Fatigue percentiles (high = worse)
+    fatigueP15: number;  // 15th percentile - extremely low fatigue (very good)
+    fatigueP25: number;  // 25th percentile - moderately low fatigue
+    fatigueP35: number;  // 35th percentile - mildly low fatigue
+    fatigueP65: number;  // 65th percentile - mildly high fatigue
+    fatigueP75: number;  // 75th percentile - moderately high fatigue
+    fatigueP85: number;  // 85th percentile - extremely high fatigue (very bad)
+    // Readiness percentiles (low = worse)
+    readinessP15: number;  // 15th percentile - extremely low readiness (very bad)
+    readinessP25: number;  // 25th percentile - moderately low readiness
+    readinessP35: number;  // 35th percentile - mildly low readiness
+    readinessP65: number;  // 65th percentile - mildly high readiness
+    readinessP75: number;  // 75th percentile - moderately high readiness
+    readinessP85: number;  // 85th percentile - extremely high readiness (very good)
 }
 
 /**
@@ -84,7 +96,7 @@ export type AdaptiveState =
 /**
  * Deviation tier based on percentile comparison.
  */
-export type DeviationTier = 'extreme' | 'moderate' | 'none';
+export type DeviationTier = 'extreme' | 'moderate' | 'mild' | 'none';
 
 /**
  * Deviation direction for a metric.
