@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Battery, Zap, Info, ClipboardCheck, TrendingUp } from 'lucide-react';
+import { Activity, Battery, Zap, Info, ClipboardCheck, TrendingUp, ChevronRight } from 'lucide-react';
 import { PlanWeek, ReadinessState, Session, ProgramRecord, QuestionnaireResponse } from '../types';
 import { AccentColorConfig } from '../presets';
 import ProgramHistory from './ProgramHistory';
@@ -9,6 +9,7 @@ interface DashboardMetrics {
     readiness: number;
     fatigue: number;
     tsb: number;
+    acwr: number;
     status: ReadinessState;
     advice: string | null;
     isAutoAdaptiveAdvice?: boolean;
@@ -125,6 +126,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                     <div className="bg-white/60 dark:bg-neutral-900/60 backdrop-blur-md p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm flex flex-col justify-between">
                         <div className="flex justify-between items-start mb-2">
                             <Battery size={20} style={{ color: isDarkMode ? currentAccent.darkAlt : currentAccent.lightAlt }} />
+                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${metrics.acwr > 1.3 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : metrics.acwr >= 0.8 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}`}>ACWR {metrics.acwr.toFixed(2)}</span>
                         </div>
                         <div>
                             <div className="text-3xl font-medium text-neutral-900 dark:text-white mb-1">{metrics.fatigue}%</div>
@@ -166,6 +168,9 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                                     </span>
                                 </div>
                             )}
+                            {!hasCompletedToday && (
+                                <ChevronRight size={16} className="text-neutral-400" />
+                            )}
                         </div>
                         <div className="mt-auto">
                             {hasCompletedToday ? (
@@ -200,6 +205,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                                 size={20}
                                 style={{ color: isDarkMode ? currentAccent.darkAlt : currentAccent.lightAlt }}
                             />
+                            <ChevronRight size={16} className="text-neutral-400" />
                         </div>
                         <div className="mt-auto">
                             <div className="text-2xl font-medium text-neutral-900 dark:text-white mb-1">

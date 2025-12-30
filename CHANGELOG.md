@@ -2,6 +2,21 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.5.3] - 2025-12-30
+
+### Added
+
+- **ACWR Badge on Fatigue Tile**: The dashboard fatigue tile now displays an ACWR (Acute:Chronic Workload Ratio) badge matching the TSB badge style. Color-coded indicators show green for optimal training zone (0.8-1.3), gray for potential undertraining (<0.8), and red for elevated injury risk (>1.3)
+- **Tile Interactivity Indicators**: Tappable dashboard tiles now display a subtle chevron indicator in the top-right corner, providing visual feedback that they open detailed views
+
+### Fixed
+
+- **Training Insights Timezone Handling**: Session dates in the "Last 7 Days" section now display correctly regardless of timezone by using the date-agnostic parsing system
+
+### Changed
+
+- **Portrait Orientation Lock**: Android app is now locked to portrait mode, preventing unintended landscape rotation
+
 ## [1.5.2] - 2025-12-30
 
 ### Fixed

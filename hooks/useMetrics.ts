@@ -24,6 +24,7 @@ export interface MetricsResult {
     readiness: number;
     status: ReadinessState;
     tsb: number;
+    acwr: number;
     advice: string | null;
     /** Whether the current advice is from auto-adaptive system vs coach modifiers */
     isAutoAdaptiveAdvice?: boolean;
@@ -121,6 +122,7 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
         }
 
         const tsb = ctl - atl;
+        const acwr = ctl > 0 ? atl / ctl : 0;
         let fatigueScore = calculateFatigueScore(atl, ctl);
         let readinessScore = calculateReadinessScore(tsb);
 
@@ -148,6 +150,7 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
                 readiness: readinessScore,
                 status: ReadinessState.MAINTAIN,
                 tsb: Math.round(tsb),
+                acwr: Math.round(acwr * 100) / 100,
                 advice: null,
                 modifiedWeekPlan: null,
                 modifierMessages: [],
@@ -257,6 +260,7 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
             readiness: readinessScore,
             status: readinessText,
             tsb: Math.round(tsb),
+            acwr: Math.round(acwr * 100) / 100,
             advice: fullAdvice,
             isAutoAdaptiveAdvice,
             modifiedWeekPlan,

@@ -334,7 +334,7 @@ const InsightsPage: React.FC<InsightsPageProps> = ({
                                 {recentActivity.sessions.slice(0, 7).map((session, idx) => (
                                     <div key={idx} className="flex items-center justify-between px-4 py-3">
                                         <div className="text-xs text-neutral-600 dark:text-neutral-400">
-                                            {new Date(session.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                                            {parseLocalDate(session.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                                         </div>
                                         <div className="flex items-center gap-3 text-xs">
                                             <span className="text-neutral-900 dark:text-white font-medium">{session.power}W</span>
