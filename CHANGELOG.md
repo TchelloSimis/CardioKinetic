@@ -2,6 +2,13 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.5.2] - 2025-12-30
+
+### Fixed
+
+- **Update Workflow and Version Config**: Corrected a timing issue in the release workflow that could cause version mismatches. The config file is now properly updated before building to ensure the update checker toast displays the correct version
+- **Auto-Adaptive Modifier Messages**: Fixed modifier messages to accurately describe all applied adjustments. Messages now correctly report RPE changes for stressed, tired, and primed states, duration and rest interval modifications for steady-state and interval sessions, and proper percentage calculations for custom sessions
+
 ## [1.5.1] - 2025-12-29
 
 ### Fixed

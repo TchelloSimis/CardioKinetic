@@ -263,10 +263,6 @@ interface MessageContext {
     readinessThreshold: number; // The P30 or P15 that was not met (for low readiness)
 }
 
-/**
- * Generate a Coach's Advice message for the adjustment.
- * Includes specific threshold values for transparency.
- */
 function generateMessage(
     state: AdaptiveState,
     tier: DeviationTier,
@@ -277,47 +273,75 @@ function generateMessage(
     const tierWord = tier === 'extreme' ? 'significantly' : 'moderately';
     const { currentFatigue, currentReadiness, fatigueThreshold, readinessThreshold } = msgContext;
 
+    // Helper to generate session-type-specific adjustment details
+    const getAdjustmentDetails = (): string => {
+        if (sessionType === 'interval') {
+            return `, rest intervals extended by ${Math.round((adjustment.restMultiplier! - 1) * 100)}%`;
+        } else if (sessionType === 'custom') {
+            return `. Main blocks adjusted, warmup and cooldown preserved`;
+        } else {
+            return `, duration reduced by ${Math.round((1 - (adjustment.durationMultiplier || 1)) * 100)}%`;
+        }
+    };
+
+    const getPositiveAdjustmentDetails = (): string => {
+        if (sessionType === 'interval' && adjustment.restMultiplier) {
+            return `, rest intervals shortened by ${Math.round((1 - adjustment.restMultiplier) * 100)}%`;
+        } else if (sessionType === 'custom') {
+            return `. Main blocks boosted, warmup and cooldown preserved`;
+        } else if (adjustment.durationMultiplier) {
+            return `, duration extended by ${Math.round((adjustment.durationMultiplier - 1) * 100)}%`;
+        }
+        return '';
+    };
+
     switch (state) {
         case 'critical':
             return `Your fatigue is ${tierWord} above expected ` +
                 `(${Math.round(currentFatigue)}% vs expected <${Math.round(fatigueThreshold)}%) ` +
                 `and readiness is low (${Math.round(currentReadiness)}% vs expected >${Math.round(readinessThreshold)}%). ` +
                 `Power reduced to ${Math.round(adjustment.powerMultiplier * 100)}%, ` +
-                `RPE target lowered by ${Math.abs(adjustment.rpeAdjust).toFixed(1)}. ` +
-                `${sessionType === 'interval' ? `Rest intervals extended by ${Math.round((adjustment.restMultiplier! - 1) * 100)}%.` :
-                    `Duration reduced by ${Math.round((1 - (adjustment.durationMultiplier || 1)) * 100)}%.`} ` +
+                `RPE target lowered by ${Math.abs(adjustment.rpeAdjust).toFixed(1)}` +
+                `${getAdjustmentDetails()}. ` +
                 `Focus on form and recovery.`;
 
         case 'stressed':
             return `Fatigue is ${tierWord} elevated ` +
                 `(${Math.round(currentFatigue)}% vs expected <${Math.round(fatigueThreshold)}%). ` +
-                `Power adjusted to ${Math.round(adjustment.powerMultiplier * 100)}% with extended recovery. ` +
+                `Power adjusted to ${Math.round(adjustment.powerMultiplier * 100)}%, ` +
+                `RPE target lowered by ${Math.abs(adjustment.rpeAdjust).toFixed(1)}` +
+                `${getAdjustmentDetails()}. ` +
                 `Don't push beyond the adjusted targets.`;
 
         case 'tired':
             return `Readiness is lower than expected ` +
                 `(${Math.round(currentReadiness)}% vs expected >${Math.round(readinessThreshold)}%). ` +
-                `Slight power reduction to ${Math.round(adjustment.powerMultiplier * 100)}%. ` +
+                `Power reduced to ${Math.round(adjustment.powerMultiplier * 100)}%, ` +
+                `RPE target lowered by ${Math.abs(adjustment.rpeAdjust).toFixed(1)}` +
+                `${getAdjustmentDetails()}. ` +
                 `Complete the workout but avoid extra work.`;
 
         case 'fresh':
             return `You're fresher than typical at this point ` +
                 `(readiness ${Math.round(currentReadiness)}% vs expected <${Math.round(readinessThreshold)}%). ` +
-                `Power increased to ${Math.round(adjustment.powerMultiplier * 100)}%. ` +
+                `Power increased to ${Math.round(adjustment.powerMultiplier * 100)}%` +
+                `${getPositiveAdjustmentDetails()}. ` +
                 `Take advantage of your good recovery.`;
 
         case 'primed':
             return `Excellent condition - ${tierWord} better than expected! ` +
                 `Fatigue ${Math.round(currentFatigue)}% (expected >${Math.round(fatigueThreshold)}%), ` +
                 `readiness ${Math.round(currentReadiness)}% (expected <${Math.round(readinessThreshold)}%). ` +
-                `Power boosted to ${Math.round(adjustment.powerMultiplier * 100)}%` +
-                `${sessionType === 'interval' ? `, rest shortened by ${Math.round((1 - (adjustment.restMultiplier || 1)) * 100)}%` : ''}. ` +
+                `Power boosted to ${Math.round(adjustment.powerMultiplier * 100)}%, ` +
+                `RPE target raised by ${adjustment.rpeAdjust.toFixed(1)}` +
+                `${getPositiveAdjustmentDetails()}. ` +
                 `Great opportunity for a breakthrough session.`;
 
         default:
             return '';
     }
 }
+
 
 // ============================================================================
 // MAIN CALCULATION FUNCTION
