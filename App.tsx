@@ -15,6 +15,7 @@ import SessionSetupModal from './components/modals/SessionSetupModal';
 import ReadinessQuestionnaireModal from './components/modals/ReadinessQuestionnaireModal';
 import QuestionnaireHistory from './components/QuestionnaireHistory';
 import LiveSessionGuide from './components/LiveSessionGuide';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Session, PlanWeek, ReadinessState, ProgramPreset, ProgramRecord, SessionSetupParams, SessionResult, QuestionnaireResponse } from './types';
 import { FatigueModifier } from './programTemplate';
 import { DEFAULT_PRESETS, ACCENT_COLORS, Tab } from './presets';
@@ -34,6 +35,7 @@ import {
 import { useMetrics } from './hooks/useMetrics';
 import { requestNotificationPermission, isAndroid as isAndroidPlatform } from './utils/foregroundService';
 import { getLocalDateString, getWeekNumber as getWeekNumberUtil, addDays } from './utils/dateUtils';
+import { SimulationDataSet } from './utils/autoAdaptiveTypes';
 
 const App: React.FC = () => {
     // Use extracted hooks
@@ -265,9 +267,7 @@ const App: React.FC = () => {
     // Request notification permission on Android app startup (Android 13+ requires runtime permission)
     useEffect(() => {
         if (isAndroidPlatform()) {
-            requestNotificationPermission().then(granted => {
-                console.log('Notification permission:', granted ? 'granted' : 'denied');
-            });
+            requestNotificationPermission();
         }
     }, []);
 
@@ -363,7 +363,7 @@ const App: React.FC = () => {
         setShowLogModal(true);
     };
 
-    const handleUpdatePlan = (week: number, field: keyof PlanWeek, value: any) => {
+    const handleUpdatePlan = (week: number, field: keyof PlanWeek, value: PlanWeek[keyof PlanWeek]) => {
         if (!activeProgram) return;
         setPrograms(prev => prev.map(p => {
             if (p.id === activeProgram.id) {
@@ -418,25 +418,16 @@ const App: React.FC = () => {
      * Handle simulation data generated for a program.
      * Updates the program with the new simulation data.
      */
-    const handleProgramSimulationGenerated = (programId: string, simulationData: any) => {
-        console.log('[App] handleProgramSimulationGenerated called:', programId, {
-            weekCount: simulationData?.weekCount,
-            percentilesLength: simulationData?.weekPercentiles?.length
-        });
-        setPrograms(prev => {
-            const updated = prev.map(p => {
-                if (p.id === programId) {
-                    console.log('[App] Updating program with simulation data:', p.name);
-                    return {
-                        ...p,
-                        simulationData: simulationData
-                    };
-                }
-                return p;
-            });
-            console.log('[App] Programs after update:', updated.map(p => ({ id: p.id, hasSimData: !!p.simulationData })));
-            return updated;
-        });
+    const handleProgramSimulationGenerated = (programId: string, simulationData: SimulationDataSet) => {
+        setPrograms(prev => prev.map(p => {
+            if (p.id === programId) {
+                return {
+                    ...p,
+                    simulationData: simulationData
+                };
+            }
+            return p;
+        }));
     };
 
     const generateSampleData = () => {
@@ -602,10 +593,16 @@ const App: React.FC = () => {
         lastScrollY.current = currentScrollY;
     };
 
-    const handleUpdateSettings = (newSettings: any) => {
+    type ProgramSettings = {
+        startDate: string;
+        basePower: number;
+        restRecoveryPercentage?: number;
+    };
+
+    const handleUpdateSettings = (newSettings: ProgramSettings | ((prev: ProgramSettings) => ProgramSettings)) => {
         if (!activeProgram) return;
 
-        const currentSettings = {
+        const currentSettings: ProgramSettings = {
             startDate: activeProgram.startDate,
             basePower: activeProgram.basePower,
             restRecoveryPercentage: 50
@@ -821,41 +818,84 @@ const App: React.FC = () => {
 
                             {/* DASHBOARD */}
                             <div style={{ display: activeTab === 'dashboard' ? 'block' : 'none' }}>
-                                <DashboardTab
-                                    currentWeekNum={currentWeekNum}
-                                    currentWeekPlan={metrics.modifiedWeekPlan || currentWeekPlan}
-                                    metrics={metrics}
-                                    programs={programs}
-                                    sessions={sessions}
-                                    isDarkMode={isDarkMode}
-                                    currentAccent={currentAccent}
-                                    onEditSession={handleEditSession}
-                                    onDeleteSession={handleDeleteSession}
-                                    onRenameProgram={handleRenameProgram}
-                                    onDeleteProgram={handleDeleteProgram}
-                                    onStartSession={handleStartSessionClick}
-                                    todayQuestionnaireResponse={getTodayQuestionnaireResponse()}
-                                    onOpenQuestionnaire={() => setShowQuestionnaireModal(true)}
-                                    onOpenInsights={() => setShowInsightsPage(true)}
-                                />
+                                <ErrorBoundary name="Dashboard">
+                                    <DashboardTab
+                                        currentWeekNum={currentWeekNum}
+                                        currentWeekPlan={metrics.modifiedWeekPlan || currentWeekPlan}
+                                        metrics={metrics}
+                                        programs={programs}
+                                        sessions={sessions}
+                                        isDarkMode={isDarkMode}
+                                        currentAccent={currentAccent}
+                                        onEditSession={handleEditSession}
+                                        onDeleteSession={handleDeleteSession}
+                                        onRenameProgram={handleRenameProgram}
+                                        onDeleteProgram={handleDeleteProgram}
+                                        onStartSession={handleStartSessionClick}
+                                        todayQuestionnaireResponse={getTodayQuestionnaireResponse()}
+                                        onOpenQuestionnaire={() => setShowQuestionnaireModal(true)}
+                                        onOpenInsights={() => setShowInsightsPage(true)}
+                                    />
+                                </ErrorBoundary>
                             </div>
 
                             {activeTab === 'chart' && (
                                 <div className="h-full animate-in fade-in duration-500">
-                                    <Chart sessions={sessions} programs={programs} isDarkMode={isDarkMode} accentColor={accentValue} accentAltColor={accentAltValue} currentDate={simulatedCurrentDate} todayQuestionnaireResponse={getTodayQuestionnaireResponse()} recentQuestionnaireResponses={recentQuestionnaireResponses} />
+                                    <ErrorBoundary name="Analytics Chart">
+                                        <Chart sessions={sessions} programs={programs} isDarkMode={isDarkMode} accentColor={accentValue} accentAltColor={accentAltValue} currentDate={simulatedCurrentDate} todayQuestionnaireResponse={getTodayQuestionnaireResponse()} recentQuestionnaireResponses={recentQuestionnaireResponses} />
+                                    </ErrorBoundary>
                                 </div>
                             )}
                             {activeTab === 'plan' && (
                                 <div className="h-full animate-in fade-in duration-500">
-                                    <ProgramTab
+                                    <ErrorBoundary name="Program">
+                                        <ProgramTab
+                                            activeProgram={activeProgram}
+                                            plan={adaptedPlan}
+                                            basePlan={basePlan}
+                                            settings={settings}
+                                            onUpdateSettings={handleUpdateSettings}
+                                            onUpdatePlan={handleUpdatePlan}
+                                            onLoadPreset={handleLoadPreset}
+                                            onFinishProgram={handleFinishProgram}
+                                            activePresets={activePresets}
+                                            customTemplates={customTemplates}
+                                            setCustomTemplates={setCustomTemplates}
+                                            modifiedDefaults={modifiedDefaults}
+                                            setModifiedDefaults={setModifiedDefaults}
+                                            deletedDefaultIds={deletedDefaultIds}
+                                            setDeletedDefaultIds={setDeletedDefaultIds}
+                                            isDefaultPreset={isDefaultPreset}
+                                            PRESETS={PRESETS}
+                                            activeCategory={programCategory}
+                                            setActiveCategory={setProgramCategory}
+                                            onApplyPlanToProgram={handleApplyPlanToProgram}
+                                            readinessColor={isDarkMode ? currentAccent.dark : currentAccent.light}
+                                            fatigueColor={isDarkMode ? (currentAccent.darkAlt || currentAccent.dark) : (currentAccent.lightAlt || currentAccent.light)}
+                                        />
+                                    </ErrorBoundary>
+                                </div>
+                            )}
+                            {activeTab === 'settings' && (
+                                <ErrorBoundary name="Settings">
+                                    <SettingsTab
+                                        themePreference={themePreference}
+                                        setThemePreference={setThemePreference}
+                                        isDarkMode={isDarkMode}
+                                        accentColor={accentColor}
+                                        setAccentColor={setAccentColor}
+                                        accentModifiers={accentModifiers}
+                                        setAccentModifiers={setAccentModifiers}
+                                        ACCENT_COLORS={ACCENT_COLORS}
+                                        isAndroid={isAndroid}
+                                        materialYouColor={materialYouColor}
                                         activeProgram={activeProgram}
-                                        plan={adaptedPlan}
-                                        basePlan={basePlan}
-                                        settings={settings}
-                                        onUpdateSettings={handleUpdateSettings}
-                                        onUpdatePlan={handleUpdatePlan}
-                                        onLoadPreset={handleLoadPreset}
-                                        onFinishProgram={handleFinishProgram}
+                                        programs={programs}
+                                        sessions={sessions}
+                                        setPrograms={setPrograms}
+                                        setSessions={setSessions}
+                                        handleFinishProgram={handleFinishProgram}
+                                        setActiveTab={setActiveTab}
                                         activePresets={activePresets}
                                         customTemplates={customTemplates}
                                         setCustomTemplates={setCustomTemplates}
@@ -863,72 +903,37 @@ const App: React.FC = () => {
                                         setModifiedDefaults={setModifiedDefaults}
                                         deletedDefaultIds={deletedDefaultIds}
                                         setDeletedDefaultIds={setDeletedDefaultIds}
+                                        templateListExpanded={templateListExpanded}
+                                        setTemplateListExpanded={setTemplateListExpanded}
+                                        editingTemplateId={editingTemplateId}
+                                        setEditingTemplateId={setEditingTemplateId}
+                                        editingTemplateName={editingTemplateName}
+                                        setEditingTemplateName={setEditingTemplateName}
                                         isDefaultPreset={isDefaultPreset}
+                                        isDefaultModified={isDefaultModified}
+                                        moveTemplate={moveTemplate}
                                         PRESETS={PRESETS}
-                                        activeCategory={programCategory}
-                                        setActiveCategory={setProgramCategory}
-                                        onApplyPlanToProgram={handleApplyPlanToProgram}
-                                        readinessColor={isDarkMode ? currentAccent.dark : currentAccent.light}
-                                        fatigueColor={isDarkMode ? (currentAccent.darkAlt || currentAccent.dark) : (currentAccent.lightAlt || currentAccent.light)}
+                                        activeCategory={settingsCategory}
+                                        setActiveCategory={setSettingsCategory}
+                                        questionnaireResponses={questionnaireResponses}
+                                        setQuestionnaireResponses={setQuestionnaireResponses}
+                                        templateOrder={templateOrder}
+                                        setTemplateOrder={setTemplateOrder}
+                                        sampleWeeks={sampleWeeks}
+                                        setSampleWeeks={setSampleWeeks}
+                                        programLength={programLength}
+                                        simulatedCurrentDate={simulatedCurrentDate}
+                                        setSimulatedCurrentDate={setSimulatedCurrentDate}
+                                        autoUpdateSimDate={autoUpdateSimDate}
+                                        setAutoUpdateSimDate={setAutoUpdateSimDate}
+                                        jumpToLastSession={jumpToLastSession}
+                                        generateSampleData={generateSampleData}
+                                        clearSessions={() => setSessions([])}
+                                        autoAdaptiveEnabled={autoAdaptiveEnabled}
+                                        setAutoAdaptiveEnabled={setAutoAdaptiveEnabled}
+                                        onProgramSimulationGenerated={handleProgramSimulationGenerated}
                                     />
-                                </div>
-                            )}
-                            {activeTab === 'settings' && (
-                                <SettingsTab
-                                    themePreference={themePreference}
-                                    setThemePreference={setThemePreference}
-                                    isDarkMode={isDarkMode}
-                                    accentColor={accentColor}
-                                    setAccentColor={setAccentColor}
-                                    accentModifiers={accentModifiers}
-                                    setAccentModifiers={setAccentModifiers}
-                                    ACCENT_COLORS={ACCENT_COLORS}
-                                    isAndroid={isAndroid}
-                                    materialYouColor={materialYouColor}
-                                    activeProgram={activeProgram}
-                                    programs={programs}
-                                    sessions={sessions}
-                                    setPrograms={setPrograms}
-                                    setSessions={setSessions}
-                                    handleFinishProgram={handleFinishProgram}
-                                    setActiveTab={setActiveTab}
-                                    activePresets={activePresets}
-                                    customTemplates={customTemplates}
-                                    setCustomTemplates={setCustomTemplates}
-                                    modifiedDefaults={modifiedDefaults}
-                                    setModifiedDefaults={setModifiedDefaults}
-                                    deletedDefaultIds={deletedDefaultIds}
-                                    setDeletedDefaultIds={setDeletedDefaultIds}
-                                    templateListExpanded={templateListExpanded}
-                                    setTemplateListExpanded={setTemplateListExpanded}
-                                    editingTemplateId={editingTemplateId}
-                                    setEditingTemplateId={setEditingTemplateId}
-                                    editingTemplateName={editingTemplateName}
-                                    setEditingTemplateName={setEditingTemplateName}
-                                    isDefaultPreset={isDefaultPreset}
-                                    isDefaultModified={isDefaultModified}
-                                    moveTemplate={moveTemplate}
-                                    PRESETS={PRESETS}
-                                    activeCategory={settingsCategory}
-                                    setActiveCategory={setSettingsCategory}
-                                    questionnaireResponses={questionnaireResponses}
-                                    setQuestionnaireResponses={setQuestionnaireResponses}
-                                    templateOrder={templateOrder}
-                                    setTemplateOrder={setTemplateOrder}
-                                    sampleWeeks={sampleWeeks}
-                                    setSampleWeeks={setSampleWeeks}
-                                    programLength={programLength}
-                                    simulatedCurrentDate={simulatedCurrentDate}
-                                    setSimulatedCurrentDate={setSimulatedCurrentDate}
-                                    autoUpdateSimDate={autoUpdateSimDate}
-                                    setAutoUpdateSimDate={setAutoUpdateSimDate}
-                                    jumpToLastSession={jumpToLastSession}
-                                    generateSampleData={generateSampleData}
-                                    clearSessions={() => setSessions([])}
-                                    autoAdaptiveEnabled={autoAdaptiveEnabled}
-                                    setAutoAdaptiveEnabled={setAutoAdaptiveEnabled}
-                                    onProgramSimulationGenerated={handleProgramSimulationGenerated}
-                                />
+                                </ErrorBoundary>
                             )}
                         </div>
                     </div>

@@ -8,7 +8,7 @@ import type { SessionNotificationPlugin } from './sessionNotification';
 
 export class SessionNotificationWeb extends WebPlugin implements SessionNotificationPlugin {
     async start(): Promise<void> {
-        console.log('[SessionNotification] Web: start() - no-op');
+        // No-op on web
     }
 
     async updateTime(): Promise<void> {
@@ -16,14 +16,14 @@ export class SessionNotificationWeb extends WebPlugin implements SessionNotifica
     }
 
     async pause(): Promise<void> {
-        console.log('[SessionNotification] Web: pause() - no-op');
+        // No-op on web
     }
 
     async resume(): Promise<void> {
-        console.log('[SessionNotification] Web: resume() - no-op');
+        // No-op on web
     }
 
     async stop(): Promise<void> {
-        console.log('[SessionNotification] Web: stop() - no-op');
+        // No-op on web
     }
 }

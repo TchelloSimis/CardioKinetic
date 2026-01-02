@@ -24,7 +24,6 @@ import {
 import {
   getWeekNumber,
   getProgramEndDateStr,
-  getProgramEndDate,
   isDateInProgramRangeStr
 } from '../utils/chartUtils';
 import { getLocalDateString, getDayIndex, addDays, formatDateShort, parseLocalDate } from '../utils/dateUtils';
@@ -42,15 +41,26 @@ interface ChartProps {
   recentQuestionnaireResponses?: QuestionnaireResponse[]; // Last 7 days for trend analysis
 }
 
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number | string | null;
+    name: string;
+    stroke?: string;
+    fill?: string;
+  }>;
+  label?: string;
+  viewMode?: 'week' | 'day';
+}
 
-const CustomTooltip = React.memo(({ active, payload, label, viewMode }: any) => {
+const CustomTooltip = React.memo(({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 shadow-xl z-50 pointer-events-none">
         <p className="text-neutral-900 dark:text-white font-bold mb-2 text-[10px] tracking-widest uppercase">
           {label}
         </p>
-        {payload.map((entry: any, index: number) => {
+        {payload.map((entry, index: number) => {
           if (entry.value === null || entry.value === undefined) return null;
           return (
             <div key={index} className="flex items-center justify-between gap-4 mb-1 last:mb-0">
@@ -194,14 +204,8 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
     sessions.filter(s => {
       if (s.programId) return selectedProgramIds.has(s.programId);
       // For sessions without programId, include if any matching program is selected
-      return filteredPrograms.some(p => {
-        const sessionDate = new Date(s.date);
-        const startDate = new Date(p.startDate);
-        // Use actual program end date with minimal 1-day buffer
-        const endDate = getProgramEndDate(p);
-        endDate.setDate(endDate.getDate() + 1); // Include sessions on end date
-        return sessionDate >= startDate && sessionDate <= endDate;
-      });
+      // Use string-based comparison for timezone-agnostic behavior
+      return filteredPrograms.some(p => isDateInProgramRangeStr(s.date, p));
     }),
     [sessions, selectedProgramIds, filteredPrograms]
   );
@@ -360,13 +364,10 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
       // Get average metrics for the week
       const weekMetrics = dailyMetrics[weekEndIndex]; // Use end of week metrics
 
-      // Get sessions in this week range
-      const weekStartMs = firstStart.getTime() + (weekStartIndex * oneDay);
-      const weekEndMs = firstStart.getTime() + (weekEndIndex * oneDay);
-
+      // Get sessions in this week range (using timezone-agnostic day index comparison)
       const weekSessions = filteredSessions.filter(s => {
-        const t = new Date(s.date).getTime();
-        return t >= weekStartMs && t <= weekEndMs;
+        const sessionDayIndex = getDayIndex(s.date, firstStartStr);
+        return sessionDayIndex >= weekStartIndex && sessionDayIndex <= weekEndIndex;
       });
 
       let avgActual = null;

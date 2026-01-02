@@ -189,22 +189,8 @@ export async function generateAllSimulationData(
 // VALIDATION & UTILITY
 // ============================================================================
 
-/**
- * Check if a program has valid simulation data.
- */
 export function hasValidSimulationData(program: ProgramRecord): boolean {
-    // Debug: Log what we're checking
-    console.log('[hasValidSimulationData] Checking program:', {
-        id: program.id,
-        name: program.name,
-        hasSimulationData: !!program.simulationData,
-        simulationDataType: typeof program.simulationData,
-        simulationDataKeys: program.simulationData ? Object.keys(program.simulationData) : [],
-        planLength: program.plan?.length
-    });
-
     if (!program.simulationData) {
-        console.log('[hasValidSimulationData] FAIL: no simulationData property');
         return false;
     }
 
@@ -213,17 +199,11 @@ export function hasValidSimulationData(program: ProgramRecord): boolean {
 
     // Check week count matches
     if (data.weekCount !== expectedWeeks) {
-        console.log('[hasValidSimulationData] FAIL: weekCount mismatch', { dataWeekCount: data.weekCount, expectedWeeks });
         return false;
     }
 
     // Check percentiles exist for all weeks
     if (!data.weekPercentiles || data.weekPercentiles.length !== expectedWeeks) {
-        console.log('[hasValidSimulationData] FAIL: weekPercentiles missing or wrong length', {
-            hasWeekPercentiles: !!data.weekPercentiles,
-            percentilesLength: data.weekPercentiles?.length,
-            expectedWeeks
-        });
         return false;
     }
 
@@ -236,14 +216,9 @@ export function hasValidSimulationData(program: ProgramRecord): boolean {
         // New percentiles may not exist in old cached data - that's OK, they'll be regenerated
     }
 
-    console.log('[hasValidSimulationData] PASS: valid simulation data');
     return true;
 }
 
-/**
- * Generate missing simulation data for multiple programs.
- * Returns the count of programs that were updated.
- */
 export async function generateMissingSimulationData(
     programs: ProgramRecord[],
     presets: ProgramPreset[],
@@ -253,20 +228,6 @@ export async function generateMissingSimulationData(
     let updated = 0;
 
     const programsWithoutData = programs.filter(p => !hasValidSimulationData(p));
-
-    // Debug: Log all programs and their simulation data status
-    console.log('[autoAdaptiveSimulation] Programs to scan:', {
-        total: programs.length,
-        withoutData: programsWithoutData.length,
-        programs: programs.map(p => ({
-            id: p.id,
-            name: p.name,
-            presetId: p.presetId,
-            hasData: hasValidSimulationData(p),
-            simDataWeekCount: p.simulationData?.weekCount,
-            planLength: p.plan?.length
-        }))
-    });
 
     for (let i = 0; i < programsWithoutData.length; i++) {
         const program = programsWithoutData[i];
@@ -287,21 +248,17 @@ export async function generateMissingSimulationData(
 
         if (preset) {
             // Use preset's generator for fresh plan data
-            console.log('[autoAdaptiveSimulation] Using preset generator for:', program.name);
             const planWeeks = preset.generator(program.basePower, weekCount);
             weekDefs = planWeeksToWeekDefinitions(planWeeks);
         } else {
             // FALLBACK: Use program's existing plan data directly
             // This handles programs with deleted/missing templates
-            console.log('[autoAdaptiveSimulation] Using existing plan for:', program.name, '(no preset found)');
             if (!program.plan || program.plan.length === 0) {
                 console.warn('[autoAdaptiveSimulation] SKIPPING: No plan data for', program.name);
                 continue;
             }
             weekDefs = planWeeksToWeekDefinitions(program.plan);
         }
-
-        console.log('[autoAdaptiveSimulation] Generating simulation for:', program.name, { weekCount, basePower: program.basePower });
 
         const simulationData = await generateSimulationData(
             weekDefs,
@@ -347,18 +304,6 @@ export async function regenerateAllSimulationData(
     // Filter to only programs with valid plans
     const validPrograms = programs.filter(p => (p.plan?.length || 0) > 0);
     const totalPrograms = validPrograms.length;
-
-    console.log('[autoAdaptiveSimulation] Programs received:', {
-        totalReceived: programs.length,
-        validWithPlans: totalPrograms,
-        allPrograms: programs.map(p => ({
-            id: p.id,
-            name: p.name,
-            status: p.status,
-            planLength: p.plan?.length || 0
-        }))
-    });
-    console.log('[autoAdaptiveSimulation] Regenerating ALL simulation data for', totalPrograms, 'programs');
 
     for (let i = 0; i < validPrograms.length; i++) {
         const program = validPrograms[i];
@@ -487,11 +432,6 @@ export async function regenerateAllTemplateSimulations(
         return weekCounts;
     });
 
-    console.log('[autoAdaptiveSimulation] Regenerating ALL template simulations:', {
-        templates: presets.length,
-        totalWorkUnits
-    });
-
     let completedUnits = 0;
     let totalDurations = 0;
 
@@ -544,10 +484,6 @@ export async function regenerateAllTemplateSimulations(
 
     // Save to localStorage
     saveTemplateSimulationCache(cache);
-    console.log('[autoAdaptiveSimulation] Template simulation cache saved:', {
-        templates: cache.size,
-        totalDurations
-    });
 
     return { templatesProcessed: presets.length, totalDurations };
 }

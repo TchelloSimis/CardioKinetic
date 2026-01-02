@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ProgramRecord, Session } from '../types';
 import { ChevronDown, ChevronRight, Calendar, Zap, Pencil, Trash2, Check, X } from 'lucide-react';
-import { getWeekNumber, getMaxProgramWeek } from '../utils/chartUtils';
+import { getWeekNumber, getMaxProgramWeek, isDateInProgramRangeStr } from '../utils/chartUtils';
 
 interface ProgramHistoryProps {
     programs: ProgramRecord[];
@@ -108,20 +108,8 @@ const ProgramHistory: React.FC<ProgramHistoryProps> = ({
                 if (s.programId) {
                     return s.programId === program.id;
                 }
-                // Fallback: check if session date is within program range
-                const sessionDate = new Date(s.date);
-                const startDate = new Date(program.startDate);
-                // Use actual end date for completed programs, plan length for active
-                let endDate: Date;
-                if (program.status === 'completed' && program.endDate) {
-                    endDate = new Date(program.endDate);
-                } else {
-                    endDate = new Date(program.startDate);
-                    endDate.setDate(endDate.getDate() + (program.plan?.length || 12) * 7);
-                }
-                // Add 1 day to include sessions on end date
-                endDate.setDate(endDate.getDate() + 1);
-                return sessionDate >= startDate && sessionDate <= endDate;
+                // Fallback: use string-based date range check (timezone-agnostic)
+                return isDateInProgramRangeStr(s.date, program);
             });
 
             // Group by week number - use actual max week for this program

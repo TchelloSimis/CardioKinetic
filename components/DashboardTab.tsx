@@ -91,16 +91,16 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                                 : currentWeekPlan.workRestRatio}
                         </div>
                     </div>
-                    <div className="flex items-end gap-4 mt-6">
+                    <div className="flex items-end justify-between mt-6">
                         <div>
-                            <span className="text-6xl font-light tracking-tighter">{currentWeekPlan.plannedPower}</span>
+                            <span className="text-6xl font-semibold tracking-tighter">{currentWeekPlan.plannedPower}</span>
                             <span className="text-lg opacity-60 ml-1">W</span>
                         </div>
-                        <div className="pb-2 opacity-60 text-sm font-mono">
+                        <div className="text-right opacity-60 text-sm font-mono">
                             {currentWeekPlan.targetDurationMinutes && (
-                                <span className="mr-3">{currentWeekPlan.targetDurationMinutes} min</span>
+                                <div>{currentWeekPlan.targetDurationMinutes} min</div>
                             )}
-                            @ RPE {currentWeekPlan.targetRPE}
+                            <div>@ RPE {currentWeekPlan.targetRPE}</div>
                         </div>
                     </div>
                     <div className="mt-4 pt-4 border-t border-white/10 dark:border-black/10">
@@ -143,9 +143,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                             <ClipboardCheck
                                 size={20}
                                 style={{
-                                    color: hasCompletedToday
-                                        ? (isDarkMode ? currentAccent.dark : currentAccent.light)
-                                        : (isDarkMode ? currentAccent.darkAlt : currentAccent.lightAlt)
+                                    color: isDarkMode ? currentAccent.dark : currentAccent.light
                                 }}
                             />
                             {hasCompletedToday && metrics.questionnaireAdjustment && (

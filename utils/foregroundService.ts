@@ -94,18 +94,11 @@ export const startSessionNotification = async (
     title: string = 'Session Active',
     body: string = 'Your training session is in progress'
 ): Promise<void> => {
-    console.log('[ForegroundService] startSessionNotification called');
-    console.log('[ForegroundService] isAndroid():', isAndroid());
-    console.log('[ForegroundService] isNativePlatform:', Capacitor.isNativePlatform());
-    console.log('[ForegroundService] platform:', Capacitor.getPlatform());
-
     if (!isAndroid()) {
-        console.log('[ForegroundService] Not Android, skipping notification');
         return;
     }
 
     try {
-        console.log('[ForegroundService] Creating notification channel...');
         // Create notification channel first (required for Android 8+)
         await ForegroundService.createNotificationChannel({
             id: NOTIFICATION_CHANNEL_ID,
@@ -113,9 +106,7 @@ export const startSessionNotification = async (
             importance: 3, // IMPORTANCE_DEFAULT
             description: 'Notifications for active training sessions',
         });
-        console.log('[ForegroundService] Channel created');
 
-        console.log('[ForegroundService] Starting foreground service...');
         // Start the foreground service with Pause button
         await ForegroundService.startForegroundService({
             id: NOTIFICATION_ID,
@@ -131,7 +122,6 @@ export const startSessionNotification = async (
         });
 
         isServiceRunning = true;
-        console.log('[ForegroundService] Foreground service started successfully');
     } catch (error) {
         console.error('[ForegroundService] Failed to start foreground service:', error);
     }
@@ -287,7 +277,6 @@ export const stopSessionNotification = async (): Promise<void> => {
     try {
         await ForegroundService.stopForegroundService();
         isServiceRunning = false;
-        console.log('Foreground service stopped');
     } catch (error) {
         console.warn('Failed to stop foreground service:', error);
     }

@@ -2,6 +2,20 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.6.1] - 2026-01-02
+
+### Fixed
+
+- **Questionnaire tile icon color**: Fixed the readiness questionnaire tile icon to use the correct readiness color instead of the fatigue color when pending
+- **Timezone-agnostic data handling**: Resolved issues with date handling in the chart and history views to ensure correct data display across different timezones
+- **Android Versioning**: Corrected build version synchronization in Gradle configuration
+
+### Improved
+
+- **Dashboard Tile Styling**: Enhanced the visual weight of the power number on the Next Target tile and improved alignment of session details
+- **Error Handling**: Introduced a global Error Boundary to improve app stability and provide graceful fallback UI during crashes
+- **Code Architecture**: Refactored navigation state management for better maintainability
+
 ## [1.6.0] - 2026-01-01
 
 ### Added

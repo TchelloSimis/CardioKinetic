@@ -92,6 +92,7 @@ if ($changelog -match '\[(\d+)\.(\d+)\.(\d+)\]') {
 **CRITICAL - must happen before build:**
 - Open `config.ts` and update `APP_VERSION` to match the new release version
 - This ensures the built APK has the correct version for the update checker toast
+- Also make sure that version number in build.gradle is updated. 
 
 ---
 
