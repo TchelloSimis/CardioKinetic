@@ -168,8 +168,6 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
             totalWeeks: programLength,
             phase: currentWeekPlan.focus,
             phaseName: currentWeekPlan.phaseName,
-            expectedCyclePhase: currentWeekPlan.expectedCyclePhase,
-            expectedPhasePosition: currentWeekPlan.expectedPhasePosition,
         };
 
         // Calculate auto-adaptive adjustment if enabled and simulation data exists

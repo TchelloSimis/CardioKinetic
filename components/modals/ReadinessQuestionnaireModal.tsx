@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ArrowLeft } from 'lucide-react';
+import { X, ArrowLeft, History } from 'lucide-react';
 import { QuestionnaireResponse } from '../../types';
 import { AccentColorConfig } from '../../presets';
 import {
@@ -17,6 +17,7 @@ interface ReadinessQuestionnaireModalProps {
     existingResponse?: QuestionnaireResponse;
     isDarkMode: boolean;
     currentAccent: AccentColorConfig;
+    onOpenHistory?: () => void;
 }
 
 const ReadinessQuestionnaireModal: React.FC<ReadinessQuestionnaireModalProps> = ({
@@ -25,7 +26,8 @@ const ReadinessQuestionnaireModal: React.FC<ReadinessQuestionnaireModalProps> = 
     onSubmit,
     existingResponse,
     isDarkMode,
-    currentAccent
+    currentAccent,
+    onOpenHistory
 }) => {
     const [responses, setResponses] = useState<Record<string, number | undefined>>(getDefaultResponses());
 
@@ -214,6 +216,15 @@ const ReadinessQuestionnaireModal: React.FC<ReadinessQuestionnaireModalProps> = 
 
                 {/* Footer */}
                 <div className="flex gap-3 p-6 border-t border-neutral-200 dark:border-neutral-800">
+                    {onOpenHistory && (
+                        <button
+                            onClick={onOpenHistory}
+                            className="p-3 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                            title="View History"
+                        >
+                            <History size={20} />
+                        </button>
+                    )}
                     <button
                         onClick={onClose}
                         className="flex-1 py-3 px-4 rounded-xl text-sm font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"

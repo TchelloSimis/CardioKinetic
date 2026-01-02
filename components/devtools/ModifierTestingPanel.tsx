@@ -10,7 +10,7 @@ import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { Play, BarChart3, Zap, ChevronDown, ChevronUp, RefreshCw, Activity, Download } from 'lucide-react';
 import { WeekDefinition, FatigueModifier, FatigueContext } from '../../programTemplate';
 import { ProgramPreset, PlanWeek, SessionStyle } from '../../types';
-import { applyFatigueModifiers, detectCyclePhase } from '../../utils/fatigueModifiers';
+import { applyFatigueModifiers } from '../../utils/fatigueModifiers';
 import { calculateAutoAdaptiveAdjustments } from '../../utils/autoAdaptiveModifiers';
 import { WeekPercentiles, AutoAdaptiveAdjustment } from '../../utils/autoAdaptiveTypes';
 import { runSingleSimulation } from '../../utils/suggestModifiers/simulation';
@@ -198,9 +198,6 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
                     if (useAdaptive) {
                         const fatigue = calculateFatigue(atl, ctl);
                         const readiness = calculateReadiness(ctl - atl);
-                        const cyclePhaseResult = fatigueHistory.length >= 5
-                            ? detectCyclePhase(fatigueHistory, readiness)
-                            : { phase: undefined, confidence: 0 };
 
                         const context: FatigueContext = {
                             fatigueScore: fatigue,
@@ -209,8 +206,6 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
                             weekNumber: weekIdx + 1,
                             totalWeeks: weeks.length,
                             phaseName: week.phaseName,
-                            fatigueHistory: [...fatigueHistory],
-                            expectedCyclePhase: cyclePhaseResult.phase
                         };
 
                         let coachModifierTriggered = false;

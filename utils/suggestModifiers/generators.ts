@@ -1,26 +1,16 @@
 /**
  * Suggest Modifiers Module - Modifier Generators
  * 
- * Contains functions that generate FatigueModifier objects based on analysis.
+ * Contains functions that generate FatigueModifier objects based on simulation analysis.
+ * Uses percentile-based thresholds without cyclePhase filtering.
  */
 
-import { WeekDefinition, FatigueModifier, FlexibleCondition, CyclePhase, PhasePosition } from '../../programTemplate';
+import { WeekDefinition, FatigueModifier, FlexibleCondition } from '../../programTemplate';
 import { TrendAnalysis, WeekAnalysis } from './types';
-import { adjustThresholdsForPosition, computeExpectedPhase } from './algorithms';
 
 // ============================================================================
 // HELPERS
 // ============================================================================
-
-function getPhaseLabel(phase: CyclePhase): string {
-    const labels: Record<CyclePhase, string> = {
-        ascending: 'ascending/build phases',
-        peak: 'peak intensity weeks',
-        descending: 'descending/consolidation phases',
-        trough: 'recovery periods'
-    };
-    return labels[phase];
-}
 
 /**
  * Format adjustments into an actionable, athlete-friendly string.
@@ -66,146 +56,228 @@ function formatAdjustments(adj: Partial<FatigueModifier['adjustments']>): string
 }
 
 // ============================================================================
-// PHASE-SPECIFIC ADJUSTMENTS
+// TIER-BASED ADJUSTMENTS
 // ============================================================================
 
-function getFatigueHighAdjustments(phase: CyclePhase): Partial<FatigueModifier['adjustments']> {
-    const adjustments: Record<CyclePhase, Partial<FatigueModifier['adjustments']>> = {
-        ascending: { powerMultiplier: 0.92, rpeAdjust: -1 },
-        peak: { powerMultiplier: 0.88, rpeAdjust: -1, restMultiplier: 1.3 },
-        descending: { powerMultiplier: 0.90 },
-        trough: { powerMultiplier: 0.85, restMultiplier: 1.5 }
-    };
-    return adjustments[phase];
-}
+// Extreme tier adjustments (P85/P15)
+const EXTREME_FATIGUE_HIGH_ADJ: Partial<FatigueModifier['adjustments']> = {
+    powerMultiplier: 0.85,
+    rpeAdjust: -2,
+    restMultiplier: 1.4
+};
 
-function getFatigueLowAdjustments(phase: CyclePhase): Partial<FatigueModifier['adjustments']> {
-    const adjustments: Record<CyclePhase, Partial<FatigueModifier['adjustments']>> = {
-        ascending: { powerMultiplier: 1.08, volumeMultiplier: 1.1 },
-        peak: { powerMultiplier: 1.05 },
-        descending: { powerMultiplier: 1.0 },
-        trough: { powerMultiplier: 1.0 }
-    };
-    return adjustments[phase];
-}
+const EXTREME_FATIGUE_LOW_ADJ: Partial<FatigueModifier['adjustments']> = {
+    powerMultiplier: 1.12,
+    volumeMultiplier: 1.15
+};
 
-function getReadinessLowAdjustments(phase: CyclePhase): Partial<FatigueModifier['adjustments']> {
-    const adjustments: Record<CyclePhase, Partial<FatigueModifier['adjustments']>> = {
-        ascending: { powerMultiplier: 0.88, rpeAdjust: -1, restMultiplier: 1.25 },
-        peak: { powerMultiplier: 0.85, rpeAdjust: -2, restMultiplier: 1.5 },
-        descending: { powerMultiplier: 0.90, rpeAdjust: -1, restMultiplier: 1.25 },
-        trough: { powerMultiplier: 0.80, rpeAdjust: -2, restMultiplier: 1.75 }
-    };
-    return adjustments[phase];
-}
+const EXTREME_READINESS_LOW_ADJ: Partial<FatigueModifier['adjustments']> = {
+    powerMultiplier: 0.80,
+    rpeAdjust: -2,
+    restMultiplier: 1.5
+};
 
-function getReadinessHighAdjustments(phase: CyclePhase): Partial<FatigueModifier['adjustments']> {
-    const adjustments: Record<CyclePhase, Partial<FatigueModifier['adjustments']>> = {
-        ascending: { powerMultiplier: 1.10, volumeMultiplier: 1.15 },
-        peak: { powerMultiplier: 1.08 },
-        descending: { powerMultiplier: 1.0 },
-        trough: { powerMultiplier: 1.0 }
-    };
-    return adjustments[phase];
-}
+const EXTREME_READINESS_HIGH_ADJ: Partial<FatigueModifier['adjustments']> = {
+    powerMultiplier: 1.15,
+    volumeMultiplier: 1.20
+};
 
-// === EXTREME TIER ADJUSTMENTS (for P15/P85 thresholds) ===
+// Moderate tier adjustments (P75/P25)
+const MODERATE_FATIGUE_HIGH_ADJ: Partial<FatigueModifier['adjustments']> = {
+    powerMultiplier: 0.90,
+    rpeAdjust: -1,
+    restMultiplier: 1.2
+};
 
-function getFatigueExtremeHighAdjustments(phase: CyclePhase): Partial<FatigueModifier['adjustments']> {
-    const adjustments: Record<CyclePhase, Partial<FatigueModifier['adjustments']>> = {
-        ascending: { powerMultiplier: 0.85, rpeAdjust: -2, restMultiplier: 1.3 },
-        peak: { powerMultiplier: 0.80, rpeAdjust: -2, restMultiplier: 1.5 },
-        descending: { powerMultiplier: 0.82, rpeAdjust: -1, restMultiplier: 1.3 },
-        trough: { powerMultiplier: 0.75, restMultiplier: 1.75 }
-    };
-    return adjustments[phase];
-}
+const MODERATE_FATIGUE_LOW_ADJ: Partial<FatigueModifier['adjustments']> = {
+    powerMultiplier: 1.08,
+    volumeMultiplier: 1.1
+};
 
-function getFatigueExtremeLowAdjustments(phase: CyclePhase): Partial<FatigueModifier['adjustments']> {
-    const adjustments: Record<CyclePhase, Partial<FatigueModifier['adjustments']>> = {
-        ascending: { powerMultiplier: 1.12, volumeMultiplier: 1.15 },
-        peak: { powerMultiplier: 1.10, volumeMultiplier: 1.08 },
-        descending: { powerMultiplier: 1.0 },
-        trough: { powerMultiplier: 1.0 }
-    };
-    return adjustments[phase];
-}
+const MODERATE_READINESS_LOW_ADJ: Partial<FatigueModifier['adjustments']> = {
+    powerMultiplier: 0.88,
+    rpeAdjust: -1,
+    restMultiplier: 1.25
+};
 
-function getReadinessExtremeLowAdjustments(phase: CyclePhase): Partial<FatigueModifier['adjustments']> {
-    const adjustments: Record<CyclePhase, Partial<FatigueModifier['adjustments']>> = {
-        ascending: { powerMultiplier: 0.80, rpeAdjust: -2, restMultiplier: 1.5 },
-        peak: { powerMultiplier: 0.75, rpeAdjust: -2, restMultiplier: 1.75 },
-        descending: { powerMultiplier: 0.82, rpeAdjust: -2, restMultiplier: 1.5 },
-        trough: { powerMultiplier: 0.70, rpeAdjust: -2, restMultiplier: 2.0 }
-    };
-    return adjustments[phase];
-}
+const MODERATE_READINESS_HIGH_ADJ: Partial<FatigueModifier['adjustments']> = {
+    powerMultiplier: 1.10,
+    volumeMultiplier: 1.12
+};
 
-function getReadinessExtremeHighAdjustments(phase: CyclePhase): Partial<FatigueModifier['adjustments']> {
-    const adjustments: Record<CyclePhase, Partial<FatigueModifier['adjustments']>> = {
-        ascending: { powerMultiplier: 1.15, volumeMultiplier: 1.20 },
-        peak: { powerMultiplier: 1.12, volumeMultiplier: 1.10 },
-        descending: { powerMultiplier: 1.0 },
-        trough: { powerMultiplier: 1.0 }
-    };
-    return adjustments[phase];
-}
+// Mild tier adjustments (P65/P35)
+const MILD_FATIGUE_HIGH_ADJ: Partial<FatigueModifier['adjustments']> = {
+    powerMultiplier: 0.95,
+    restMultiplier: 1.1
+};
+
+const MILD_FATIGUE_LOW_ADJ: Partial<FatigueModifier['adjustments']> = {
+    powerMultiplier: 1.05
+};
+
+const MILD_READINESS_LOW_ADJ: Partial<FatigueModifier['adjustments']> = {
+    powerMultiplier: 0.92,
+    rpeAdjust: -1
+};
+
+const MILD_READINESS_HIGH_ADJ: Partial<FatigueModifier['adjustments']> = {
+    powerMultiplier: 1.05,
+    volumeMultiplier: 1.05
+};
 
 // ============================================================================
 // MAIN GENERATOR
 // ============================================================================
 
+/**
+ * Generate smart modifiers based on simulation analysis.
+ * Uses percentile thresholds to create tiered modifiers.
+ */
 export function generateSmartModifiers(analysis: TrendAnalysis, weeks: WeekDefinition[]): FatigueModifier[] {
     const modifiers: FatigueModifier[] = [];
     let priority = 10;
 
-    const { weekAnalyses, globalTrend, adaptationScore } = analysis;
+    const { weekAnalyses } = analysis;
     if (weekAnalyses.length === 0) return modifiers;
 
-    // Detect session types in program
-    const sessionTypes = new Set<string>();
-    for (const week of weeks) {
-        if (week.sessionStyle) sessionTypes.add(week.sessionStyle);
-        if (week.blocks) {
-            for (const block of week.blocks) {
-                if (block.type === 'interval') sessionTypes.add('interval');
-                if (block.type === 'steady-state') sessionTypes.add('steady-state');
-            }
+    // Calculate global percentile averages across all weeks
+    const avgP15Fatigue = Math.round(weekAnalyses.reduce((s, w) => s + w.fatigueP15, 0) / weekAnalyses.length);
+    const avgP30Fatigue = Math.round(weekAnalyses.reduce((s, w) => s + w.fatigueP30, 0) / weekAnalyses.length);
+    const avgP50Fatigue = Math.round(weekAnalyses.reduce((s, w) => s + w.fatigueP50, 0) / weekAnalyses.length);
+    const avgP70Fatigue = Math.round(weekAnalyses.reduce((s, w) => s + w.fatigueP70, 0) / weekAnalyses.length);
+    const avgP85Fatigue = Math.round(weekAnalyses.reduce((s, w) => s + w.fatigueP85, 0) / weekAnalyses.length);
+
+    const avgP15Readiness = Math.round(weekAnalyses.reduce((s, w) => s + w.readinessP15, 0) / weekAnalyses.length);
+    const avgP30Readiness = Math.round(weekAnalyses.reduce((s, w) => s + w.readinessP30, 0) / weekAnalyses.length);
+    const avgP50Readiness = Math.round(weekAnalyses.reduce((s, w) => s + w.readinessP50, 0) / weekAnalyses.length);
+    const avgP70Readiness = Math.round(weekAnalyses.reduce((s, w) => s + w.readinessP70, 0) / weekAnalyses.length);
+    const avgP85Readiness = Math.round(weekAnalyses.reduce((s, w) => s + w.readinessP85, 0) / weekAnalyses.length);
+
+    // === EXTREME TIER (P85/P15) ===
+
+    // Extremely high fatigue
+    if (avgP85Fatigue <= 95 && avgP85Fatigue > avgP70Fatigue) {
+        const adj = EXTREME_FATIGUE_HIGH_ADJ;
+        modifiers.push({
+            condition: { fatigue: `>${avgP85Fatigue}`, logic: 'and' } as FlexibleCondition,
+            adjustments: {
+                ...adj,
+                message: `Very high fatigue (>${avgP85Fatigue}%). ${formatAdjustments(adj)}`
+            },
+            priority: priority++
+        });
+    }
+
+    // Extremely low readiness
+    if (avgP15Readiness >= 5 && avgP15Readiness < avgP30Readiness) {
+        const adj = EXTREME_READINESS_LOW_ADJ;
+        modifiers.push({
+            condition: { readiness: `<${avgP15Readiness}`, logic: 'and' } as FlexibleCondition,
+            adjustments: {
+                ...adj,
+                message: `Very low readiness (<${avgP15Readiness}%). ${formatAdjustments(adj)}`
+            },
+            priority: priority++
+        });
+    }
+
+    // Extremely low fatigue (opportunity to push)
+    if (avgP15Fatigue >= 5 && avgP15Fatigue < avgP30Fatigue) {
+        const adj = EXTREME_FATIGUE_LOW_ADJ;
+        const adjStr = formatAdjustments(adj);
+        if (adjStr) {
+            modifiers.push({
+                condition: { fatigue: `<${avgP15Fatigue}`, logic: 'and' } as FlexibleCondition,
+                adjustments: {
+                    ...adj,
+                    message: `Very low fatigue (<${avgP15Fatigue}%). ${adjStr}`
+                },
+                priority: priority++
+            });
         }
     }
-    const hasIntervals = sessionTypes.has('interval');
-    const hasSteadyState = sessionTypes.has('steady-state');
-    const hasCustom = sessionTypes.has('custom');
 
-    // Compute expected phase for each week using DETERMINISTIC signals
-    // This replaces noisy fatigue-based phase detection
-    interface WeekWithExpectedPhase extends WeekAnalysis {
-        expectedPhase: CyclePhase;
-    }
-
-    const assessedWeeks: WeekWithExpectedPhase[] = weekAnalyses.map((wa, i) => ({
-        ...wa,
-        expectedPhase: computeExpectedPhase(
-            weeks[i],
-            wa.weekNumber,
-            weeks.length,
-            weeks[i - 1],
-            weeks[i + 1]
-        )
-    }));
-
-    // Group by EXPECTED phase (deterministic, not noisy detected phase)
-    const phaseGroups = new Map<CyclePhase, WeekWithExpectedPhase[]>();
-    for (const week of assessedWeeks) {
-        if (!phaseGroups.has(week.expectedPhase)) {
-            phaseGroups.set(week.expectedPhase, []);
+    // Extremely high readiness (opportunity to push)
+    if (avgP85Readiness <= 95 && avgP85Readiness > avgP70Readiness) {
+        const adj = EXTREME_READINESS_HIGH_ADJ;
+        const adjStr = formatAdjustments(adj);
+        if (adjStr) {
+            modifiers.push({
+                condition: { readiness: `>${avgP85Readiness}`, logic: 'and' } as FlexibleCondition,
+                adjustments: {
+                    ...adj,
+                    message: `Very high readiness (>${avgP85Readiness}%). ${adjStr}`
+                },
+                priority: priority++
+            });
         }
-        phaseGroups.get(week.expectedPhase)!.push(week);
     }
 
-    // Also group by phaseName for block-based programs
-    const nameGroups = new Map<string, WeekWithExpectedPhase[]>();
-    for (const week of assessedWeeks) {
+    // === MODERATE TIER (P70/P30) ===
+
+    // Moderately high fatigue
+    if (avgP70Fatigue <= 95) {
+        const adj = MODERATE_FATIGUE_HIGH_ADJ;
+        modifiers.push({
+            condition: { fatigue: `>${avgP70Fatigue}`, logic: 'and' } as FlexibleCondition,
+            adjustments: {
+                ...adj,
+                message: `High fatigue (>${avgP70Fatigue}%). ${formatAdjustments(adj)}`
+            },
+            priority: priority++
+        });
+    }
+
+    // Moderately low readiness
+    if (avgP30Readiness >= 5) {
+        const adj = MODERATE_READINESS_LOW_ADJ;
+        modifiers.push({
+            condition: { readiness: `<${avgP30Readiness}`, logic: 'and' } as FlexibleCondition,
+            adjustments: {
+                ...adj,
+                message: `Low readiness (<${avgP30Readiness}%). ${formatAdjustments(adj)}`
+            },
+            priority: priority++
+        });
+    }
+
+    // Moderately low fatigue
+    if (avgP30Fatigue >= 5) {
+        const adj = MODERATE_FATIGUE_LOW_ADJ;
+        const adjStr = formatAdjustments(adj);
+        if (adjStr) {
+            modifiers.push({
+                condition: { fatigue: `<${avgP30Fatigue}`, logic: 'and' } as FlexibleCondition,
+                adjustments: {
+                    ...adj,
+                    message: `Low fatigue (<${avgP30Fatigue}%). ${adjStr}`
+                },
+                priority: priority++
+            });
+        }
+    }
+
+    // Moderately high readiness
+    if (avgP70Readiness <= 95) {
+        const adj = MODERATE_READINESS_HIGH_ADJ;
+        const adjStr = formatAdjustments(adj);
+        if (adjStr) {
+            modifiers.push({
+                condition: { readiness: `>${avgP70Readiness}`, logic: 'and' } as FlexibleCondition,
+                adjustments: {
+                    ...adj,
+                    message: `High readiness (>${avgP70Readiness}%). ${adjStr}`
+                },
+                priority: priority++
+            });
+        }
+    }
+
+    // === PHASE NAME-BASED MODIFIERS ===
+    // Generate modifiers per phaseName for block-based programs
+
+    const nameGroups = new Map<string, WeekAnalysis[]>();
+    for (const week of weekAnalyses) {
         if (week.phaseName) {
             if (!nameGroups.has(week.phaseName)) {
                 nameGroups.set(week.phaseName, []);
@@ -214,448 +286,96 @@ export function generateSmartModifiers(analysis: TrendAnalysis, weeks: WeekDefin
         }
     }
 
-    // Generate modifiers per cycle phase - TWO TIERS
-    for (const [phase, phaseWeeks] of phaseGroups) {
-        // Standard tier thresholds (P30/P70)
-        const avgP30Fatigue = Math.round(phaseWeeks.reduce((s, w) => s + w.fatigueP30, 0) / phaseWeeks.length);
-        const avgP70Fatigue = Math.round(phaseWeeks.reduce((s, w) => s + w.fatigueP70, 0) / phaseWeeks.length);
-        const avgP30Readiness = Math.round(phaseWeeks.reduce((s, w) => s + w.readinessP30, 0) / phaseWeeks.length);
-        const avgP70Readiness = Math.round(phaseWeeks.reduce((s, w) => s + w.readinessP70, 0) / phaseWeeks.length);
-
-        // Extreme tier thresholds (P15/P85)
-        const avgP15Fatigue = Math.round(phaseWeeks.reduce((s, w) => s + w.fatigueP15, 0) / phaseWeeks.length);
-        const avgP85Fatigue = Math.round(phaseWeeks.reduce((s, w) => s + w.fatigueP85, 0) / phaseWeeks.length);
-        const avgP15Readiness = Math.round(phaseWeeks.reduce((s, w) => s + w.readinessP15, 0) / phaseWeeks.length);
-        const avgP85Readiness = Math.round(phaseWeeks.reduce((s, w) => s + w.readinessP85, 0) / phaseWeeks.length);
-
-        const phaseLabel = getPhaseLabel(phase);
-
-        // === EXTREME TIER (P85/P15) ===
-        if (avgP85Fatigue <= 95 && avgP85Fatigue > avgP70Fatigue) {
-            const adj = getFatigueExtremeHighAdjustments(phase);
-            modifiers.push({
-                condition: { fatigue: `>${avgP85Fatigue}`, logic: 'and' } as FlexibleCondition,
-                adjustments: {
-                    ...adj,
-                    message: `Very high fatigue for ${phaseLabel} (>${avgP85Fatigue}%). ${formatAdjustments(adj)}`
-                },
-                priority: priority++,
-                cyclePhase: phase,
-                mutexGroup: 'cycle_phase'
-            });
-        }
-
-        if (avgP15Readiness >= 5 && avgP15Readiness < avgP30Readiness) {
-            const adj = getReadinessExtremeLowAdjustments(phase);
-            modifiers.push({
-                condition: { readiness: `<${avgP15Readiness}`, logic: 'and' } as FlexibleCondition,
-                adjustments: {
-                    ...adj,
-                    message: `Very low readiness for ${phaseLabel} (<${avgP15Readiness}%). ${formatAdjustments(adj)}`
-                },
-                priority: priority++,
-                cyclePhase: phase,
-                mutexGroup: 'cycle_phase'
-            });
-        }
-
-        if (avgP15Fatigue >= 5 && avgP15Fatigue < avgP30Fatigue && phase !== 'trough' && phase !== 'descending') {
-            const adj = getFatigueExtremeLowAdjustments(phase);
-            const adjStr = formatAdjustments(adj);
-            if (adjStr) {
-                modifiers.push({
-                    condition: { fatigue: `<${avgP15Fatigue}`, logic: 'and' } as FlexibleCondition,
-                    adjustments: {
-                        ...adj,
-                        message: `Very low fatigue for ${phaseLabel} (<${avgP15Fatigue}%). ${adjStr}`
-                    },
-                    priority: priority++,
-                    cyclePhase: phase,
-                    mutexGroup: 'cycle_phase'
-                });
-            }
-        }
-
-        if (avgP85Readiness <= 95 && avgP85Readiness > avgP70Readiness && phase !== 'trough' && phase !== 'descending') {
-            const adj = getReadinessExtremeHighAdjustments(phase);
-            const adjStr = formatAdjustments(adj);
-            if (adjStr) {
-                modifiers.push({
-                    condition: { readiness: `>${avgP85Readiness}`, logic: 'and' } as FlexibleCondition,
-                    adjustments: {
-                        ...adj,
-                        message: `Very high readiness for ${phaseLabel} (>${avgP85Readiness}%). ${adjStr}`
-                    },
-                    priority: priority++,
-                    cyclePhase: phase,
-                    mutexGroup: 'cycle_phase'
-                });
-            }
-        }
-
-        // === STANDARD TIER (P70/P30) ===
-        if (avgP70Fatigue <= 95) {
-            const adj = getFatigueHighAdjustments(phase);
-            modifiers.push({
-                condition: { fatigue: `>${avgP70Fatigue}`, logic: 'and' } as FlexibleCondition,
-                adjustments: {
-                    ...adj,
-                    message: `High fatigue for ${phaseLabel} (>${avgP70Fatigue}%). ${formatAdjustments(adj)}`
-                },
-                priority: priority++,
-                cyclePhase: phase,
-                mutexGroup: 'cycle_phase'
-            });
-        }
-
-        if (avgP30Fatigue >= 5 && phase !== 'trough' && phase !== 'descending') {
-            const adj = getFatigueLowAdjustments(phase);
-            const adjStr = formatAdjustments(adj);
-            if (adjStr) {
-                modifiers.push({
-                    condition: { fatigue: `<${avgP30Fatigue}`, logic: 'and' } as FlexibleCondition,
-                    adjustments: {
-                        ...adj,
-                        message: `Low fatigue for ${phaseLabel} (<${avgP30Fatigue}%). ${adjStr}`
-                    },
-                    priority: priority++,
-                    cyclePhase: phase,
-                    mutexGroup: 'cycle_phase'
-                });
-            }
-        }
-
-        if (avgP30Readiness >= 10) {
-            const adj = getReadinessLowAdjustments(phase);
-            modifiers.push({
-                condition: { readiness: `<${avgP30Readiness}`, logic: 'and' } as FlexibleCondition,
-                adjustments: {
-                    ...adj,
-                    message: `Low readiness for ${phaseLabel} (<${avgP30Readiness}%). ${formatAdjustments(adj)}`
-                },
-                priority: priority++,
-                cyclePhase: phase,
-                mutexGroup: 'cycle_phase'
-            });
-        }
-
-        if (avgP70Readiness <= 95 && phase !== 'trough' && phase !== 'descending') {
-            const adj = getReadinessHighAdjustments(phase);
-            const adjStr = formatAdjustments(adj);
-            if (adjStr) {
-                modifiers.push({
-                    condition: { readiness: `>${avgP70Readiness}`, logic: 'and' } as FlexibleCondition,
-                    adjustments: {
-                        ...adj,
-                        message: `High readiness for ${phaseLabel} (>${avgP70Readiness}%). ${adjStr}`
-                    },
-                    priority: priority++,
-                    cyclePhase: phase,
-                    mutexGroup: 'cycle_phase'
-                });
-            }
-        }
-    }
-
-    // Generate modifiers per named phase for block-based programs
     for (const [phaseName, phaseWeeks] of nameGroups) {
-        if (phaseWeeks.length < 2) continue;
+        // Calculate phase-specific percentiles
+        const phaseP30Fatigue = Math.round(phaseWeeks.reduce((s, w) => s + w.fatigueP30, 0) / phaseWeeks.length);
+        const phaseP70Fatigue = Math.round(phaseWeeks.reduce((s, w) => s + w.fatigueP70, 0) / phaseWeeks.length);
+        const phaseP30Readiness = Math.round(phaseWeeks.reduce((s, w) => s + w.readinessP30, 0) / phaseWeeks.length);
+        const phaseP70Readiness = Math.round(phaseWeeks.reduce((s, w) => s + w.readinessP70, 0) / phaseWeeks.length);
 
-        const avgP30Fatigue = Math.round(phaseWeeks.reduce((s, w) => s + w.fatigueP30, 0) / phaseWeeks.length);
-        const avgP70Fatigue = Math.round(phaseWeeks.reduce((s, w) => s + w.fatigueP70, 0) / phaseWeeks.length);
-        const avgP15Fatigue = Math.round(phaseWeeks.reduce((s, w) => s + w.fatigueP15, 0) / phaseWeeks.length);
-        const avgP85Fatigue = Math.round(phaseWeeks.reduce((s, w) => s + w.fatigueP85, 0) / phaseWeeks.length);
-
-        // === EXTREME TIER for named phases ===
-        if (avgP85Fatigue <= 95 && avgP85Fatigue > avgP70Fatigue) {
+        // High fatigue during this phase
+        if (phaseP70Fatigue <= 95) {
             modifiers.push({
-                condition: { fatigue: `>${avgP85Fatigue}`, logic: 'and' } as FlexibleCondition,
-                adjustments: {
-                    powerMultiplier: 0.85,
-                    rpeAdjust: -2,
-                    restMultiplier: 1.3,
-                    message: `Very high fatigue during ${phaseName} (>${avgP85Fatigue}%). Power -15%, RPE -2, Rest +30%`
-                },
-                priority: priority++,
-                phaseName: phaseName
-            });
-        }
-
-        if (avgP15Fatigue >= 5 && avgP15Fatigue < avgP30Fatigue) {
-            modifiers.push({
-                condition: { fatigue: `<${avgP15Fatigue}`, logic: 'and' } as FlexibleCondition,
-                adjustments: {
-                    powerMultiplier: 1.12,
-                    volumeMultiplier: 1.15,
-                    message: `Very low fatigue during ${phaseName} (<${avgP15Fatigue}%). Power +12%, Volume +15%`
-                },
-                priority: priority++,
-                phaseName: phaseName
-            });
-        }
-
-        // === STANDARD TIER for named phases ===
-        if (avgP70Fatigue <= 95) {
-            modifiers.push({
-                condition: { fatigue: `>${avgP70Fatigue}`, logic: 'and' } as FlexibleCondition,
+                condition: { fatigue: `>${phaseP70Fatigue}`, logic: 'and' } as FlexibleCondition,
                 adjustments: {
                     powerMultiplier: 0.90,
                     rpeAdjust: -1,
-                    message: `High fatigue during ${phaseName} (>${avgP70Fatigue}%). Power -10%, RPE -1`
+                    message: `High fatigue during ${phaseName} (>${phaseP70Fatigue}%). Power -10%, RPE -1.`
                 },
                 priority: priority++,
                 phaseName: phaseName
             });
         }
 
-        if (avgP30Fatigue >= 5) {
+        // Low fatigue during this phase
+        if (phaseP30Fatigue >= 5) {
             modifiers.push({
-                condition: { fatigue: `<${avgP30Fatigue}`, logic: 'and' } as FlexibleCondition,
+                condition: { fatigue: `<${phaseP30Fatigue}`, logic: 'and' } as FlexibleCondition,
                 adjustments: {
                     powerMultiplier: 1.08,
-                    message: `Low fatigue during ${phaseName} (<${avgP30Fatigue}%). Power +8%`
+                    message: `Low fatigue during ${phaseName} (<${phaseP30Fatigue}%). Power +8%.`
                 },
                 priority: priority++,
                 phaseName: phaseName
             });
         }
-    }
 
-    // === POSITION-SPECIFIC MODIFIERS FOR ASCENDING PHASES ===
-    // Generate modifiers with position-adjusted thresholds for long ascending phases
-    const ascendingWeeks = weekAnalyses.filter(w => w.cyclePhase === 'ascending');
-    if (ascendingWeeks.length >= 3) {
-        // Group by consecutive runs
-        const earlyWeeks = ascendingWeeks.filter(w => w.phasePosition === 'early');
-        const lateWeeks = ascendingWeeks.filter(w => w.phasePosition === 'late');
-
-        // Early ascending: lower thresholds (low fatigue is expected, don't boost prematurely)
-        if (earlyWeeks.length > 0) {
-            const avgP30 = Math.round(earlyWeeks.reduce((s, w) => s + w.fatigueP30, 0) / earlyWeeks.length);
-            const avgP70 = Math.round(earlyWeeks.reduce((s, w) => s + w.fatigueP70, 0) / earlyWeeks.length);
-            const avgRatio = 0.15; // early position
-            const { adjustedP30, adjustedP70 } = adjustThresholdsForPosition(avgP30, avgP70, avgRatio, 'ascending');
-
+        // Low readiness during this phase
+        if (phaseP30Readiness >= 5) {
             modifiers.push({
-                condition: { fatigue: `<${Math.round(adjustedP30)}`, logic: 'and' } as FlexibleCondition,
+                condition: { readiness: `<${phaseP30Readiness}`, logic: 'and' } as FlexibleCondition,
                 adjustments: {
-                    message: `Early ascending phase - low fatigue is expected at this point. Maintain current load.`
+                    powerMultiplier: 0.88,
+                    rpeAdjust: -1,
+                    restMultiplier: 1.25,
+                    message: `Low readiness during ${phaseName} (<${phaseP30Readiness}%). Power -12%, RPE -1.`
                 },
                 priority: priority++,
-                cyclePhase: 'ascending',
-                phasePosition: 'early',
-                mutexGroup: 'phase_position'
+                phaseName: phaseName
             });
-
-            if (Math.round(adjustedP70) <= 95) {
-                modifiers.push({
-                    condition: { fatigue: `>${Math.round(adjustedP70)}`, logic: 'and' } as FlexibleCondition,
-                    adjustments: {
-                        powerMultiplier: 0.90,
-                        rpeAdjust: -1,
-                        message: `High fatigue for early ascending phase (>${Math.round(adjustedP70)}%). Unusual this early - reducing load to prevent overreach.`
-                    },
-                    priority: priority++,
-                    cyclePhase: 'ascending',
-                    phasePosition: 'early',
-                    mutexGroup: 'phase_position'
-                });
-            }
         }
 
-        // Late ascending: higher thresholds (accumulated fatigue is expected, don't back off too easily)
-        if (lateWeeks.length > 0) {
-            const avgP30 = Math.round(lateWeeks.reduce((s, w) => s + w.fatigueP30, 0) / lateWeeks.length);
-            const avgP70 = Math.round(lateWeeks.reduce((s, w) => s + w.fatigueP70, 0) / lateWeeks.length);
-            const avgRatio = 0.85; // late position
-            const { adjustedP30, adjustedP70 } = adjustThresholdsForPosition(avgP30, avgP70, avgRatio, 'ascending');
-
+        // High readiness during this phase
+        if (phaseP70Readiness <= 95) {
             modifiers.push({
-                condition: { fatigue: `<${Math.round(adjustedP30)}`, logic: 'and' } as FlexibleCondition,
+                condition: { readiness: `>${phaseP70Readiness}`, logic: 'and' } as FlexibleCondition,
                 adjustments: {
                     powerMultiplier: 1.10,
                     volumeMultiplier: 1.12,
-                    message: `Unusually low fatigue for late ascending phase (<${Math.round(adjustedP30)}%). Push harder - you're handling the load well!`
+                    message: `High readiness during ${phaseName} (>${phaseP70Readiness}%). Power +10%, volume +12%.`
                 },
                 priority: priority++,
-                cyclePhase: 'ascending',
-                phasePosition: 'late',
-                mutexGroup: 'phase_position'
+                phaseName: phaseName
             });
-
-            if (Math.round(adjustedP70) <= 95) {
-                modifiers.push({
-                    condition: { fatigue: `>${Math.round(adjustedP70)}`, logic: 'and' } as FlexibleCondition,
-                    adjustments: {
-                        powerMultiplier: 0.92,
-                        restMultiplier: 1.2,
-                        message: `Elevated fatigue for late ascending phase (>${Math.round(adjustedP70)}%). Some accumulation expected - minor adjustment.`
-                    },
-                    priority: priority++,
-                    cyclePhase: 'ascending',
-                    phasePosition: 'late',
-                    mutexGroup: 'phase_position'
-                });
-            }
         }
     }
 
-    // Combined condition modifiers
-    const avgFatigue = Math.round(weekAnalyses.reduce((s, w) => s + w.fatigueP50, 0) / weekAnalyses.length);
-    const avgReadiness = Math.round(weekAnalyses.reduce((s, w) => s + w.readinessP50, 0) / weekAnalyses.length);
+    // === GLOBAL TREND MODIFIERS ===
 
-    modifiers.push({
-        condition: { fatigue: `>${Math.max(55, avgFatigue + 12)}`, readiness: `<${Math.min(45, avgReadiness - 8)}`, logic: 'and' } as FlexibleCondition,
-        adjustments: {
-            powerMultiplier: 0.75,
-            rpeAdjust: -2,
-            volumeMultiplier: 0.70,
-            restMultiplier: 1.5,
-            message: `High fatigue with low readiness. Reduce power to 75%, lower RPE by 2, cut volume by 30%. Focus on completing the session, not intensity.`
-        },
-        priority: 2
-    });
+    const { globalTrend, adaptationScore } = analysis;
 
-    modifiers.push({
-        condition: { fatigue: `>${Math.max(55, avgFatigue + 10)}`, readiness: `<${Math.min(55, avgReadiness)}`, logic: 'and' } as FlexibleCondition,
-        adjustments: {
-            powerMultiplier: 0.88,
-            rpeAdjust: -1,
-            restMultiplier: 1.25,
-            message: `Elevated fatigue with below-average readiness. Reduce power to 88%, target 1 RPE lower. Allow extra rest between intervals.`
-        },
-        priority: 8
-    });
-
-    modifiers.push({
-        condition: { fatigue: `<${Math.min(35, avgFatigue - 10)}`, readiness: `>${Math.max(65, avgReadiness + 10)}`, logic: 'and' } as FlexibleCondition,
-        adjustments: {
-            powerMultiplier: 1.12,
-            volumeMultiplier: 1.15,
-            message: `Low fatigue with high readiness - excellent state for pushing harder. Increase power by 12%, extend session by 15%.`
-        },
-        priority: 15,
-        cyclePhase: ['ascending', 'peak']
-    });
-
-    modifiers.push({
-        condition: { fatigue: `<${avgFatigue + 5}`, readiness: `>${Math.max(60, avgReadiness + 5)}`, logic: 'and' } as FlexibleCondition,
-        adjustments: {
-            powerMultiplier: 1.05,
-            message: `Good recovery despite moderate training load. Consider increasing power by 5% if form feels good.`
-        },
-        priority: 20,
-        cyclePhase: ['ascending', 'peak']
-    });
-
-    modifiers.push({
-        condition: { fatigue: '>82', logic: 'and' } as FlexibleCondition,
-        adjustments: {
-            powerMultiplier: 0.70,
-            rpeAdjust: -3,
-            volumeMultiplier: 0.50,
-            restMultiplier: 2.0,
-            message: `Critical fatigue level detected (>82%). Mandatory deload: power at 70%, volume halved, double rest. Consider taking a complete rest day.`
-        },
-        priority: 1
-    });
-
-    modifiers.push({
-        condition: { readiness: '<28', logic: 'and' } as FlexibleCondition,
-        adjustments: {
-            powerMultiplier: 0.60,
-            rpeAdjust: -3,
-            volumeMultiplier: 0.40,
-            message: `Very low readiness (<28%). Active recovery only: power at 60%, RPE should feel easy. Skip any high-intensity work today.`
-        },
-        priority: 1
-    });
-
-    modifiers.push({
-        condition: { fatigue: '>73', logic: 'and' } as FlexibleCondition,
-        adjustments: {
-            powerMultiplier: 0.82,
-            rpeAdjust: -2,
-            volumeMultiplier: 0.75,
-            restMultiplier: 1.5,
-            message: `Sustained high fatigue (>73%). Pre-emptive load reduction: power at 82%, volume at 75%. Monitor recovery closely.`
-        },
-        priority: 4
-    });
-
-    // Global trend modifiers
-    if (globalTrend === 'declining' || adaptationScore < -0.3) {
+    if (globalTrend === 'declining' && adaptationScore < -0.4) {
         modifiers.push({
-            condition: { readiness: '<40', logic: 'and' } as FlexibleCondition,
+            condition: { fatigue: `>${avgP50Fatigue}`, readiness: `<${avgP50Readiness}`, logic: 'and' } as FlexibleCondition,
             adjustments: {
-                powerMultiplier: 0.75,
+                powerMultiplier: 0.85,
                 rpeAdjust: -2,
-                volumeMultiplier: 0.7,
                 restMultiplier: 1.5,
-                message: 'Declining adaptation trend detected. Significant load reduction needed: power at 75%, volume at 70%, extra rest.'
+                message: `Program trend shows declining adaptation. Significant load reduction recommended.`
             },
-            priority: 3
+            priority: priority++
         });
     }
 
-    if (globalTrend === 'improving' && adaptationScore > 0.5) {
+    if (globalTrend === 'improving' && adaptationScore > 0.4) {
         modifiers.push({
-            condition: { readiness: '>75', fatigue: '<50', logic: 'and' } as FlexibleCondition,
+            condition: { fatigue: `<${avgP50Fatigue}`, readiness: `>${avgP50Readiness}`, logic: 'and' } as FlexibleCondition,
             adjustments: {
                 powerMultiplier: 1.12,
                 volumeMultiplier: 1.15,
-                message: 'Excellent adaptation trend. Push harder today: power +12%, volume +15%.'
+                message: `Program trend shows strong adaptation. Consider progressive overload.`
             },
             priority: priority++
-        });
-    }
-
-    // Session-type-specific modifiers
-    if (hasIntervals || hasCustom) {
-        modifiers.push({
-            condition: { fatigue: `>${Math.max(60, avgFatigue + 10)}`, logic: 'and' } as FlexibleCondition,
-            adjustments: {
-                powerMultiplier: 0.92,
-                restMultiplier: 1.3,
-                message: `High fatigue for intervals. Target 92% power, take 30% longer rest between sets.`
-            },
-            sessionType: hasCustom ? 'custom' : 'interval',
-            priority: priority++
-        });
-
-        modifiers.push({
-            condition: { fatigue: '>75', logic: 'and' } as FlexibleCondition,
-            adjustments: {
-                powerMultiplier: 0.85,
-                restMultiplier: 1.5,
-                message: `Very high fatigue for intervals. Target 85% power, 50% longer rest between sets.`
-            },
-            sessionType: hasCustom ? 'custom' : 'interval',
-            priority: 6
-        });
-    }
-
-    if (hasSteadyState || hasCustom) {
-        modifiers.push({
-            condition: { fatigue: `>${Math.max(60, avgFatigue + 10)}`, logic: 'and' } as FlexibleCondition,
-            adjustments: {
-                powerMultiplier: 0.92,
-                durationMultiplier: 0.85,
-                message: `High fatigue for steady-state. Target 92% power, reduce duration by 15%.`
-            },
-            sessionType: hasCustom ? 'custom' : 'steady-state',
-            priority: priority++
-        });
-
-        modifiers.push({
-            condition: { fatigue: '>75', logic: 'and' } as FlexibleCondition,
-            adjustments: {
-                powerMultiplier: 0.85,
-                durationMultiplier: 0.70,
-                message: `Very high fatigue for steady-state. Target 85% power, reduce session to 70% duration.`
-            },
-            sessionType: hasCustom ? 'custom' : 'steady-state',
-            priority: 6
         });
     }
 

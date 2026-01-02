@@ -7,127 +7,103 @@ import { templateToPreset } from './utils/templateUtils';
 // ============================================================================
 
 /**
- * Template 1: Fixed-Time Steady State Power Progression
- * - Steady-state sessions with constant duration
- * - Power increases progressively throughout the program
- * - Suitable for aerobic base building with gradual intensity increases
+ * Template 1: Aerobic Base Builder
+ * Research: Section 5 - Time-Progression Models, Section 2.1 - Central/Peripheral Dichotomy
+ * - Pure steady-state with duration progression (20→35 min)
+ * - Zone 2 endurance building via mitochondrial volume density
+ * - Low-impact, high-adherence for general population
  */
-const FIXED_TIME_POWER_TEMPLATE: ProgramTemplate = {
+const AEROBIC_BASE_TEMPLATE: ProgramTemplate = {
     templateVersion: '1.0',
-    id: 'fixed-time-power-progression',
-    name: 'Fixed-Time Power Progression',
-    description: 'A steady-state endurance program where session time stays constant while power output increases progressively. Ideal for building aerobic capacity while systematically improving power at a sustainable pace. The program maintains consistent training volume while focusing purely on power adaptation.',
+    id: 'aerobic-base-builder',
+    name: 'Aerobic Base Builder',
+    description: 'A foundational steady-state program emphasizing duration progression at comfortable intensity. Based on traditional endurance periodization, this program increases session length from 20 to 35 minutes while maintaining Zone 2 power output. Ideal for building mitochondrial volume density, capillarization, and fuel efficiency. The gradual time progression allows connective tissue adaptation while developing aerobic base.',
     author: 'CardioKinetic',
-    tags: ['steady-state', 'power-progression', 'endurance', 'beginner-friendly'],
+    tags: ['steady-state', 'endurance', 'base-building', 'beginner-friendly', 'low-impact'],
     weekConfig: {
         type: 'variable',
-        range: { min: 4, max: 16, step: 4 }
+        range: { min: 4, max: 12, step: 4 }
     },
     defaultSessionStyle: 'steady-state',
-    progressionMode: 'power',
+    progressionMode: 'duration',
     defaultSessionDurationMinutes: 20,
     weeks: [
         {
             position: 'first',
             phaseName: 'Foundation',
             focus: 'Volume',
-            description: 'Establish aerobic base with comfortable, sustainable effort.',
+            description: 'Establish aerobic base at comfortable, conversational pace.',
             powerMultiplier: 1.0,
             workRestRatio: 'steady',
-            targetRPE: 5,
+            targetRPE: 4,
             durationMinutes: '100%'
         },
         {
             position: '33%',
             phaseName: 'Build I',
             focus: 'Volume',
-            description: 'Begin gradual power increase while maintaining steady effort.',
-            powerMultiplier: 1.05,
+            description: 'Extend duration while maintaining sustainable effort.',
+            powerMultiplier: 1.0,
             workRestRatio: 'steady',
-            targetRPE: 6,
-            durationMinutes: '100%'
+            targetRPE: 5,
+            durationMinutes: '125%'
         },
         {
             position: '66%',
             phaseName: 'Build II',
-            focus: 'Intensity',
-            description: 'Continue power progression with increased metabolic demand.',
-            powerMultiplier: 1.10,
+            focus: 'Volume',
+            description: 'Continue duration progression. Focus on relaxed efficiency.',
+            powerMultiplier: 1.0,
             workRestRatio: 'steady',
-            targetRPE: 7,
-            durationMinutes: '100%'
+            targetRPE: 5,
+            durationMinutes: '150%'
         },
         {
             position: 'last',
-            phaseName: 'Peak',
-            focus: 'Intensity',
-            description: 'Maximum power output at sustainable duration.',
-            powerMultiplier: 1.15,
+            phaseName: 'Consolidation',
+            focus: 'Volume',
+            description: 'Peak duration achieved. Consolidate aerobic adaptations.',
+            powerMultiplier: 1.0,
             workRestRatio: 'steady',
-            targetRPE: 8,
-            durationMinutes: '100%'
+            targetRPE: 6,
+            durationMinutes: '175%'
         }
     ],
     fatigueModifiers: [
-        // Critical safety modifiers (highest priority)
         {
             condition: 'overreached',
             priority: 0,
             adjustments: {
-                powerMultiplier: 0.75,
-                volumeMultiplier: 0.5,
-                message: 'Overreaching detected. Major reduction for safety and recovery.'
+                durationMultiplier: 0.5,
+                powerMultiplier: 0.8,
+                message: 'Overreaching detected. Halving session duration for recovery.'
             }
         },
         {
             condition: 'very_high_fatigue',
             priority: 1,
             adjustments: {
-                powerMultiplier: 0.85,
-                volumeMultiplier: 0.8,
-                message: 'High fatigue accumulation. Reducing intensity and volume.'
+                durationMultiplier: 0.7,
+                message: 'High fatigue. Reducing session length to protect adaptation.'
             }
         },
-        // Phase-specific high fatigue
         {
             condition: 'high_fatigue',
-            phase: 'Intensity',
             weekPosition: 'late',
             priority: 10,
             adjustments: {
-                powerMultiplier: 0.90,
-                message: 'Late-program fatigue during intensity phase. Backing off power.'
+                durationMultiplier: 0.85,
+                message: 'Late-program fatigue accumulation. Modest duration reduction.'
             }
         },
-        {
-            condition: 'high_fatigue',
-            phase: 'Volume',
-            priority: 11,
-            adjustments: {
-                volumeMultiplier: 0.90,
-                message: 'High fatigue during volume phase. Slightly reducing duration.'
-            }
-        },
-        // Compound: worst case
-        {
-            condition: { fatigue: '>70', readiness: '<40', logic: 'and' },
-            phase: 'Intensity',
-            priority: 5,
-            adjustments: {
-                powerMultiplier: 0.80,
-                volumeMultiplier: 0.70,
-                message: 'High fatigue + low readiness. Strong reduction recommended.'
-            }
-        },
-        // Moderate fatigue handling
         {
             condition: 'moderate_fatigue',
-            phase: 'Intensity',
-            weekPosition: ['mid', 'late'],
+            weekPosition: '>50%',
             priority: 20,
             adjustments: {
-                powerMultiplier: 0.95,
-                message: 'Moderate fatigue in intensity phase. Small power reduction.'
+                durationMultiplier: 0.92,
+                rpeAdjust: -1,
+                message: 'Managing mid-program fatigue. Slight reduction.'
             }
         },
         {
@@ -135,161 +111,354 @@ const FIXED_TIME_POWER_TEMPLATE: ProgramTemplate = {
             priority: 30,
             adjustments: {
                 rpeAdjust: -1,
-                message: 'Feeling tired. Targeting lower effort today.'
+                message: 'Feeling tired. Keep effort conversational today.'
             }
         },
-        {
-            condition: 'tired',
-            phase: 'Intensity',
-            weekPosition: 'last',
-            priority: 25,
-            adjustments: {
-                powerMultiplier: 0.90,
-                rpeAdjust: -1,
-                message: 'Tired at peak week. Significant reduction to preserve quality.'
-            }
-        },
-        // Fresh/recovered bonuses (lowest priority - only if nothing negative matches)
         {
             condition: 'fresh',
-            phase: 'Intensity',
             weekPosition: ['mid', 'late'],
             priority: 40,
             adjustments: {
-                powerMultiplier: 1.05,
-                message: 'Feeling fresh! Adding 5% power boost.'
+                durationMultiplier: 1.10,
+                message: 'Well recovered. Extending session to maximize base building.'
             }
         },
         {
-            condition: 'fresh',
-            phase: 'Volume',
+            condition: { fatigue: '<25', readiness: '>70', logic: 'and' },
             weekPosition: 'early',
-            priority: 41,
-            adjustments: {
-                volumeMultiplier: 1.10,
-                message: 'Well recovered early in program. Extending session 10%.'
-            }
-        },
-        {
-            condition: 'low_fatigue',
-            weekPosition: '>50%',
             priority: 42,
             adjustments: {
-                powerMultiplier: 1.03,
-                message: 'Low fatigue in second half. Small intensity boost.'
+                durationMultiplier: 1.15,
+                message: 'Excellent recovery state. Bonus duration today.'
             }
         }
     ]
 };
 
 /**
- * Template 2: Double Intercalated Progression
- * - Cyclical pattern alternating between compressed (shorter, harder) and extended phases
- * - Duration decreases while power increases, then duration resets for next cycle
- * - Suitable for breaking plateaus and building both efficiency and power
+ * Template 2: Threshold Development (Block-Based)
+ * Research: Section 8 Program D - Critical Power, Section 4.2 - 30-Minute Domain
+ * - Block-based structure with 3-week build + 1-week absorption cycles
+ * - Custom sessions with warmup/threshold work/cooldown
+ * - Steady-state main sets at progressing threshold power
  */
-const DOUBLE_INTERCALATED_TEMPLATE: ProgramTemplate = {
+const THRESHOLD_DEVELOPMENT_TEMPLATE: ProgramTemplate = {
     templateVersion: '1.0',
-    id: 'double-intercalated-progression',
-    name: 'Double Intercalated Progression',
-    description: 'An advanced steady-state program using cyclical progression. Each cycle starts with normal duration at baseline power, compresses to shorter/harder sessions, then expands back to full duration at higher power. This wave-loading pattern helps break plateaus by alternating metabolic stress and recovery while continuously progressing power.',
+    id: 'threshold-development',
+    name: 'Threshold Development',
+    description: 'A block-based threshold training program using structured sessions with warmup, main set, and cooldown. Each 4-week cycle includes 3 weeks of progressive threshold work followed by 1 week of absorption. Based on Critical Power research, main sets target intensities just below threshold to maximize metabolic stability adaptations.',
     author: 'CardioKinetic',
-    tags: ['steady-state', 'wave-loading', 'intermediate', 'plateau-breaker'],
+    tags: ['threshold', 'block-based', 'steady-state', 'intermediate', 'structured'],
+
+    structureType: 'block-based',
     weekConfig: {
         type: 'variable',
-        range: { min: 6, max: 15, step: 3 }
+        customDurations: [4, 8, 12, 16]
     },
-    defaultSessionStyle: 'steady-state',
-    progressionMode: 'double',
-    defaultSessionDurationMinutes: 25,
-    weeks: [
-        // Cycle 1: Baseline
+    defaultSessionStyle: 'custom',
+    progressionMode: 'power',
+    defaultSessionDurationMinutes: 30,
+
+    fixedFirstWeek: {
+        position: 'first',
+        phaseName: 'Introduction',
+        focus: 'Volume',
+        description: 'Assessment week. Find sustainable threshold pace.',
+        powerMultiplier: 0.90,
+        workRestRatio: 'steady',
+        targetRPE: 5,
+        durationMinutes: 30,
+        blocks: [
+            { type: 'steady-state', durationExpression: 5, powerExpression: 0.6 },
+            { type: 'steady-state', durationExpression: 20, powerExpression: 0.90 },
+            { type: 'steady-state', durationExpression: 5, powerExpression: 0.5 }
+        ]
+    },
+
+    fixedLastWeek: {
+        position: 'last',
+        phaseName: 'Consolidation',
+        focus: 'Recovery',
+        description: 'Final week consolidation. Maintain gains at reduced stress.',
+        powerMultiplier: 0.95,
+        workRestRatio: 'steady',
+        targetRPE: 5,
+        durationMinutes: 25,
+        blocks: [
+            { type: 'steady-state', durationExpression: 5, powerExpression: 0.6 },
+            { type: 'steady-state', durationExpression: 15, powerExpression: 0.95 },
+            { type: 'steady-state', durationExpression: 5, powerExpression: 0.5 }
+        ]
+    },
+
+    programBlocks: [
         {
-            position: 'first',
-            phaseName: 'Cycle 1: Base',
-            focus: 'Volume',
-            description: 'Full duration at baseline power. Establish rhythm.',
-            powerMultiplier: 1.0,
-            workRestRatio: 'steady',
-            targetRPE: 5,
-            durationMinutes: '100%'
-        },
-        // Cycle 1: Compression
-        {
-            position: '17%',
-            phaseName: 'Cycle 1: Compress',
+            id: 'threshold-build',
+            name: 'Threshold Build',
+            weekCount: 3,
+            powerReference: 'base',
+            powerProgression: [1.0, 1.05, 1.10],
             focus: 'Intensity',
-            description: 'Shorter sessions, higher power. Build efficiency.',
-            powerMultiplier: 1.08,
+            phaseName: 'Threshold Phase',
+            description: 'Week {weekInBlock}/3: Progressive threshold development',
             workRestRatio: 'steady',
-            targetRPE: 7,
-            durationMinutes: '70%'
+            targetRPE: [6, 7, 7],
+            followedBy: 'absorption',
+            weekSessions: [
+                {
+                    sessionStyle: 'custom',
+                    blocks: [
+                        { type: 'steady-state', durationExpression: 5, powerExpression: 0.6 },
+                        { type: 'steady-state', durationExpression: 20, powerExpression: 1.0 },
+                        { type: 'steady-state', durationExpression: 5, powerExpression: 0.5 }
+                    ]
+                },
+                {
+                    sessionStyle: 'custom',
+                    blocks: [
+                        { type: 'steady-state', durationExpression: 5, powerExpression: 0.6 },
+                        { type: 'steady-state', durationExpression: 22, powerExpression: 1.0 },
+                        { type: 'steady-state', durationExpression: 5, powerExpression: 0.5 }
+                    ]
+                },
+                {
+                    sessionStyle: 'custom',
+                    blocks: [
+                        { type: 'steady-state', durationExpression: 5, powerExpression: 0.65 },
+                        { type: 'steady-state', durationExpression: 25, powerExpression: 1.0 },
+                        { type: 'steady-state', durationExpression: 5, powerExpression: 0.5 }
+                    ]
+                }
+            ]
         },
-        // Cycle 1: Expansion
         {
-            position: '33%',
-            phaseName: 'Cycle 1: Expand',
-            focus: 'Volume',
-            description: 'Return to full duration with elevated power.',
-            powerMultiplier: 1.10,
+            id: 'absorption',
+            name: 'Absorption',
+            weekCount: 1,
+            powerReference: 'base',
+            powerProgression: [0.85],
+            focus: 'Recovery',
+            phaseName: 'Absorption Week',
+            description: 'Recovery week: Consolidate threshold adaptations',
             workRestRatio: 'steady',
-            targetRPE: 6,
-            durationMinutes: '100%'
-        },
-        // Cycle 2: New baseline (at higher power)
-        {
-            position: '50%',
-            phaseName: 'Cycle 2: Base',
-            focus: 'Volume',
-            description: 'New baseline established. Prepare for next compression.',
-            powerMultiplier: 1.10,
-            workRestRatio: 'steady',
-            targetRPE: 6,
-            durationMinutes: '100%'
-        },
-        // Cycle 2: Compression
-        {
-            position: '66%',
-            phaseName: 'Cycle 2: Compress',
-            focus: 'Intensity',
-            description: 'Second compression phase. Push harder.',
-            powerMultiplier: 1.18,
-            workRestRatio: 'steady',
-            targetRPE: 8,
-            durationMinutes: '65%'
-        },
-        // Cycle 2: Final expansion
-        {
-            position: '83%',
-            phaseName: 'Cycle 2: Expand',
-            focus: 'Intensity',
-            description: 'Final expansion with peak power.',
-            powerMultiplier: 1.20,
-            workRestRatio: 'steady',
-            targetRPE: 7,
-            durationMinutes: '90%'
-        },
-        // Peak week
-        {
-            position: 'last',
-            phaseName: 'Peak Performance',
-            focus: 'Intensity',
-            description: 'Peak week: maintained power with full duration.',
-            powerMultiplier: 1.20,
-            workRestRatio: 'steady',
-            targetRPE: 8,
-            durationMinutes: '100%'
+            targetRPE: 4,
+            followedBy: 'threshold-build',
+            weekSessions: [
+                {
+                    sessionStyle: 'steady-state',
+                    durationMinutes: 25,
+                    targetRPE: 4
+                }
+            ]
         }
     ],
+
+    weeks: [],
+
     fatigueModifiers: [
-        // Critical safety (highest priority)
+        {
+            condition: 'overreached',
+            priority: 0,
+            adjustments: {
+                powerMultiplier: 0.70,
+                durationMultiplier: 0.6,
+                message: 'Overreaching. Converting to easy recovery session.'
+            }
+        },
+        {
+            condition: 'very_high_fatigue',
+            priority: 1,
+            adjustments: {
+                powerMultiplier: 0.80,
+                message: 'High fatigue. Reducing threshold intensity significantly.'
+            }
+        },
+        {
+            condition: 'high_fatigue',
+            phaseName: 'Threshold Phase',
+            priority: 10,
+            adjustments: {
+                powerMultiplier: 0.90,
+                message: 'Fatigue during threshold work. Backing off to protect quality.'
+            }
+        },
+        {
+            condition: 'moderate_fatigue',
+            sessionType: 'custom',
+            priority: 20,
+            adjustments: {
+                durationMultiplier: 0.90,
+                message: 'Moderate fatigue. Shortening main set slightly.'
+            }
+        },
+        {
+            condition: 'tired',
+            priority: 30,
+            adjustments: {
+                rpeAdjust: -1,
+                message: 'Tired today. Keep threshold effort controlled.'
+            }
+        },
+        {
+            condition: 'fresh',
+            phaseName: 'Threshold Phase',
+            priority: 40,
+            adjustments: {
+                powerMultiplier: 1.03,
+                message: 'Well recovered. Small threshold boost today.'
+            }
+        },
+        {
+            condition: { fatigue: '<30', readiness: '>65', logic: 'and' },
+            phaseName: 'Threshold Phase',
+            priority: 42,
+            adjustments: {
+                powerMultiplier: 1.05,
+                durationMultiplier: 1.10,
+                message: 'Excellent condition. Pushing threshold limits.'
+            }
+        }
+    ]
+};
+
+/**
+ * Template 3: Billat vVO2max Protocol (Block-Based)
+ * Research: Section 4.2.1 - Billat 30-30 Protocol
+ * - Block-based with 3-week build + 1-week recovery cycles  
+ * - Custom sessions: warmup, 30s/30s intervals at vVO2max, cooldown
+ * - Double progression: power and cycles increase together
+ */
+const BILLAT_VO2MAX_TEMPLATE: ProgramTemplate = {
+    templateVersion: '1.0',
+    id: 'billat-vo2max-protocol',
+    name: 'Billat vVO2max Protocol',
+    description: 'A block-based VO2max development program implementing the Billat 30-30 protocol. Each session includes warmup, 30-second intervals at 100% vVO2max with 30-second active recovery at 50%, and cooldown. This research-proven method maximizes time spent at VO2max while managing acidosis through strategic recovery intervals.',
+    author: 'CardioKinetic',
+    tags: ['vo2max', 'intervals', 'block-based', 'advanced', 'billat'],
+
+    structureType: 'block-based',
+    weekConfig: {
+        type: 'variable',
+        customDurations: [4, 8, 12]
+    },
+    defaultSessionStyle: 'custom',
+    progressionMode: 'double',
+    defaultSessionDurationMinutes: 25,
+
+    fixedFirstWeek: {
+        position: 'first',
+        phaseName: 'Assessment',
+        focus: 'Volume',
+        description: 'Establish vVO2max baseline. Conservative interval count.',
+        powerMultiplier: 0.95,
+        workRestRatio: '1:1',
+        targetRPE: 6,
+        blocks: [
+            { type: 'steady-state', durationExpression: 5, powerExpression: 0.6 },
+            { type: 'interval', powerExpression: 0.95, cycles: 10, workDurationSeconds: 30, restDurationSeconds: 30 },
+            { type: 'steady-state', durationExpression: 3, powerExpression: 0.5 }
+        ]
+    },
+
+    fixedLastWeek: {
+        position: 'last',
+        phaseName: 'Realization',
+        focus: 'Recovery',
+        description: 'Final week: reduced volume, maintain gains.',
+        powerMultiplier: 1.0,
+        workRestRatio: '1:1',
+        targetRPE: 6,
+        blocks: [
+            { type: 'steady-state', durationExpression: 5, powerExpression: 0.6 },
+            { type: 'interval', powerExpression: 1.0, cycles: 12, workDurationSeconds: 30, restDurationSeconds: 30 },
+            { type: 'steady-state', durationExpression: 3, powerExpression: 0.5 }
+        ]
+    },
+
+    programBlocks: [
+        {
+            id: 'vo2max-build',
+            name: 'VO2max Build',
+            weekCount: 3,
+            powerReference: 'base',
+            progressionType: 'double',
+            powerProgression: [1.0, 1.03, 1.05],
+            durationProgression: [1.0, 1.15, 1.30],
+            focus: 'Intensity',
+            phaseName: 'VO2max Phase',
+            description: 'Week {weekInBlock}/3: Billat 30-30 intervals',
+            workRestRatio: '1:1',
+            targetRPE: [7, 8, 8],
+            followedBy: 'recovery',
+            weekSessions: [
+                {
+                    sessionStyle: 'custom',
+                    cycles: 12,
+                    workDurationSeconds: 30,
+                    restDurationSeconds: 30,
+                    blocks: [
+                        { type: 'steady-state', durationExpression: 5, powerExpression: 0.6 },
+                        { type: 'interval', powerExpression: 1.0, cycles: 12, workDurationSeconds: 30, restDurationSeconds: 30 },
+                        { type: 'steady-state', durationExpression: 3, powerExpression: 0.5 }
+                    ]
+                },
+                {
+                    sessionStyle: 'custom',
+                    cycles: 14,
+                    workDurationSeconds: 30,
+                    restDurationSeconds: 30,
+                    blocks: [
+                        { type: 'steady-state', durationExpression: 5, powerExpression: 0.6 },
+                        { type: 'interval', powerExpression: 1.0, cycles: 14, workDurationSeconds: 30, restDurationSeconds: 30 },
+                        { type: 'steady-state', durationExpression: 3, powerExpression: 0.5 }
+                    ]
+                },
+                {
+                    sessionStyle: 'custom',
+                    cycles: 16,
+                    workDurationSeconds: 30,
+                    restDurationSeconds: 30,
+                    blocks: [
+                        { type: 'steady-state', durationExpression: 5, powerExpression: 0.6 },
+                        { type: 'interval', powerExpression: 1.0, cycles: 16, workDurationSeconds: 30, restDurationSeconds: 30 },
+                        { type: 'steady-state', durationExpression: 3, powerExpression: 0.5 }
+                    ]
+                }
+            ]
+        },
+        {
+            id: 'recovery',
+            name: 'Recovery',
+            weekCount: 1,
+            powerReference: 'base',
+            powerProgression: [0.80],
+            focus: 'Recovery',
+            phaseName: 'Recovery Week',
+            description: 'Active recovery: steady-state only',
+            workRestRatio: 'steady',
+            targetRPE: 4,
+            followedBy: 'vo2max-build',
+            weekSessions: [
+                {
+                    sessionStyle: 'steady-state',
+                    durationMinutes: 25,
+                    targetRPE: 4
+                }
+            ]
+        }
+    ],
+
+    weeks: [],
+
+    fatigueModifiers: [
         {
             condition: 'overreached',
             priority: 0,
             adjustments: {
                 powerMultiplier: 0.70,
                 volumeMultiplier: 0.50,
-                message: 'Overreaching! Wave-loading stress requires immediate recovery.'
+                restMultiplier: 2.0,
+                message: 'Overreaching. Converting to recovery session.'
             }
         },
         {
@@ -297,136 +466,85 @@ const DOUBLE_INTERCALATED_TEMPLATE: ProgramTemplate = {
             priority: 1,
             adjustments: {
                 powerMultiplier: 0.80,
-                volumeMultiplier: 0.75,
-                message: 'High fatigue from wave-loading. Major reduction applied.'
+                restMultiplier: 1.5,
+                message: 'High fatigue. Reducing VO2max intensity, extending recovery.'
             }
         },
-        // Compound: worst case during compression
         {
-            condition: { fatigue: '>75', readiness: '<35', logic: 'and' },
-            phase: 'Intensity',
+            condition: { fatigue: '>70', readiness: '<40', logic: 'and' },
             priority: 5,
             adjustments: {
                 powerMultiplier: 0.75,
-                volumeMultiplier: 0.65,
-                message: 'Critical fatigue during compression. Emergency reduction.'
+                volumeMultiplier: 0.70,
+                message: 'Critical fatigue during build. Emergency reduction.'
             }
         },
-        // Compression phase protection
         {
             condition: 'high_fatigue',
-            phase: 'Intensity',
+            phaseName: 'VO2max Phase',
             priority: 10,
             adjustments: {
-                powerMultiplier: 0.88,
-                message: 'High fatigue during compression. Reducing power demand.'
-            }
-        },
-        // Expansion phase protection
-        {
-            condition: 'high_fatigue',
-            phase: 'Volume',
-            priority: 11,
-            adjustments: {
+                restMultiplier: 1.3,
                 volumeMultiplier: 0.85,
-                message: 'High fatigue during expansion. Cutting duration.'
+                message: 'High fatigue. Fewer intervals with longer recovery.'
             }
         },
         {
             condition: 'moderate_fatigue',
-            phase: 'Intensity',
+            sessionType: 'custom',
             priority: 20,
             adjustments: {
-                powerMultiplier: 0.93,
-                message: 'Moderate fatigue in hard phase. Slight power reduction.'
+                restMultiplier: 1.15,
+                message: 'Moderate fatigue. Extending interval rest periods.'
             }
         },
-        {
-            condition: 'moderate_fatigue',
-            phase: 'Volume',
-            priority: 21,
-            adjustments: {
-                volumeMultiplier: 0.92,
-                message: 'Moderate fatigue. Slightly shorter expansion.'
-            }
-        },
-        // General tired handling
         {
             condition: 'tired',
             priority: 30,
             adjustments: {
                 rpeAdjust: -1,
-                message: 'Tired today. Lower effort target.'
+                message: 'Tired today. Focus on quality over quantity.'
             }
         },
-        {
-            condition: 'tired',
-            weekPosition: 'late',
-            priority: 25,
-            adjustments: {
-                powerMultiplier: 0.88,
-                rpeAdjust: -1,
-                message: 'Late-program fatigue. Backing off significantly.'
-            }
-        },
-        // Fresh bonuses (lowest priority)
         {
             condition: 'fresh',
-            phase: 'Intensity',
+            phaseName: 'VO2max Phase',
             priority: 40,
             adjustments: {
-                powerMultiplier: 1.05,
-                message: 'Fresh during compression! Pushing harder.'
-            }
-        },
-        {
-            condition: 'fresh',
-            phase: 'Volume',
-            priority: 41,
-            adjustments: {
-                volumeMultiplier: 1.08,
-                message: 'Well recovered. Extending expansion phase.'
-            }
-        },
-        {
-            condition: 'low_fatigue',
-            weekPosition: ['mid', 'late'],
-            priority: 42,
-            adjustments: {
                 powerMultiplier: 1.03,
-                message: 'Low fatigue mid-program. Small boost applied.'
+                message: 'Well recovered. Pushing VO2max intensity.'
             }
         },
-        // Compound: great shape during expansion
         {
             condition: { fatigue: '<25', readiness: '>70', logic: 'and' },
-            phase: 'Volume',
-            priority: 43,
+            phaseName: 'VO2max Phase',
+            priority: 42,
             adjustments: {
-                volumeMultiplier: 1.15,
-                powerMultiplier: 1.03,
-                message: 'Excellent recovery! Maximizing expansion gains.'
+                powerMultiplier: 1.05,
+                volumeMultiplier: 1.10,
+                message: 'Optimal condition. Maximizing VO2max stimulus.'
             }
         }
     ]
 };
 
 /**
- * Template 3: Standard HIIT Protocol
- * - Classic high-intensity interval training structure
- * - Work/rest ratios progress from conservative to aggressive
- * - Power increases throughout program phases
+ * Template 4: Gibala Sprint Intervals (Week-Based)
+ * Research: Section 4.1.1 - Gibala Protocols, Section 4.1.3 - EDT
+ * - Classic week-based HIIT with work:rest ratio progression
+ * - Fixed 15-minute sessions (EDT concept)
+ * - Power progression with density increase via ratio changes
  */
-const STANDARD_HIIT_TEMPLATE: ProgramTemplate = {
+const GIBALA_HIIT_TEMPLATE: ProgramTemplate = {
     templateVersion: '1.0',
-    id: 'standard-hiit-protocol',
-    name: 'Standard HIIT Protocol',
-    description: 'A classic high-intensity interval training program progressing from conservative work-rest ratios to aggressive intervals. Starts with a base phase emphasizing movement patterns, builds through density phases reducing rest periods, peaks with high power output, and optionally tapers for adaptation. Based on proven HIIT periodization principles.',
+    id: 'gibala-sprint-intervals',
+    name: 'Gibala Sprint Intervals',
+    description: 'A time-efficient HIIT program based on Martin Gibala research demonstrating that short, intense intervals can match endurance adaptations from much longer sessions. Uses fixed 15-minute sessions with progressive work:rest ratios (1:2 → 1:1 → 2:1) and explicit interval parameters. Ideal for maximizing metabolic adaptation with minimal time investment.',
     author: 'CardioKinetic',
-    tags: ['hiit', 'interval', 'power', 'all-levels'],
+    tags: ['hiit', 'intervals', 'gibala', 'time-efficient', 'power'],
     weekConfig: {
         type: 'variable',
-        range: { min: 4, max: 16, step: 4 }
+        range: { min: 4, max: 12, step: 4 }
     },
     defaultSessionStyle: 'interval',
     progressionMode: 'power',
@@ -436,116 +554,103 @@ const STANDARD_HIIT_TEMPLATE: ProgramTemplate = {
             position: 'first',
             phaseName: 'Activation',
             focus: 'Volume',
-            description: 'Neural activation and movement patterns. Conservative intensity.',
+            description: 'Neural activation with conservative intervals. Build movement patterns.',
             powerMultiplier: 0.95,
             workRestRatio: '1:2',
-            targetRPE: 5,
-            durationMinutes: '100%'
+            targetRPE: 6,
+            cycles: 10,
+            workDurationSeconds: 30,
+            restDurationSeconds: 60
         },
         {
-            position: '20%',
-            phaseName: 'Base Building',
+            position: '25%',
+            phaseName: 'Base',
             focus: 'Volume',
-            description: 'Aerobic base development. Building work capacity.',
+            description: 'Aerobic base with work capacity development.',
             powerMultiplier: 1.0,
             workRestRatio: '1:2',
-            targetRPE: 6,
-            durationMinutes: '100%'
-        },
-        {
-            position: '40%',
-            phaseName: 'Density I',
-            focus: 'Density',
-            description: 'Increasing work density. Reducing rest between intervals.',
-            powerMultiplier: 1.0,
-            workRestRatio: '1:1',
             targetRPE: 7,
-            durationMinutes: '100%'
+            cycles: 10,
+            workDurationSeconds: 30,
+            restDurationSeconds: 60
         },
         {
-            position: '55%',
-            phaseName: 'Density II',
+            position: '50%',
+            phaseName: 'Density',
             focus: 'Density',
-            description: 'Peak density phase. Minimal rest, sustained power.',
+            description: 'Increased density with equal work:rest. Lactate management training.',
             powerMultiplier: 1.05,
             workRestRatio: '1:1',
             targetRPE: 7,
-            durationMinutes: '105%'
+            cycles: 12,
+            workDurationSeconds: 30,
+            restDurationSeconds: 30
         },
         {
-            position: '70%',
-            phaseName: 'Intensity I',
+            position: '75%',
+            phaseName: 'Intensity',
             focus: 'Intensity',
-            description: 'Power progression begins. Work longer than rest.',
-            powerMultiplier: 1.10,
+            description: 'Peak intensity phase. Work longer than rest periods.',
+            powerMultiplier: 1.12,
             workRestRatio: '2:1',
             targetRPE: 8,
-            durationMinutes: '100%'
-        },
-        {
-            position: '85%',
-            phaseName: 'Intensity II',
-            focus: 'Intensity',
-            description: 'Peak power development. Maximum sustainable output.',
-            powerMultiplier: 1.15,
-            workRestRatio: '2:1',
-            targetRPE: 9,
-            durationMinutes: '95%'
+            cycles: 10,
+            workDurationSeconds: 40,
+            restDurationSeconds: 20
         },
         {
             position: 'last',
-            phaseName: 'Peak/Taper',
-            focus: 'Recovery',
-            description: 'Final week: maintain power gains, reduce volume for adaptation.',
-            powerMultiplier: 1.10,
-            workRestRatio: '1:1',
-            targetRPE: 7,
-            durationMinutes: '80%'
+            phaseName: 'Peak',
+            focus: 'Intensity',
+            description: 'Maximum power output. Quality over quantity.',
+            powerMultiplier: 1.15,
+            workRestRatio: '2:1',
+            targetRPE: 9,
+            cycles: 8,
+            workDurationSeconds: 40,
+            restDurationSeconds: 20
         }
     ],
     fatigueModifiers: [
-        // Critical safety (highest priority)
         {
             condition: 'overreached',
             priority: 0,
             adjustments: {
-                powerMultiplier: 0.75,
+                powerMultiplier: 0.70,
                 volumeMultiplier: 0.50,
                 restMultiplier: 2.0,
-                message: 'Overreaching detected. Major reduction + extra rest.'
+                message: 'Overreaching. Major reduction with extended recovery.'
             }
         },
         {
             condition: 'very_high_fatigue',
             priority: 1,
             adjustments: {
-                powerMultiplier: 0.85,
+                powerMultiplier: 0.80,
                 restMultiplier: 1.5,
                 message: 'High fatigue. Reducing power, extending rest intervals.'
             }
         },
-        // Compound: critical state
         {
             condition: { fatigue: '>70', readiness: '<40', logic: 'and' },
             phase: 'Intensity',
             priority: 5,
             adjustments: {
-                powerMultiplier: 0.80,
+                powerMultiplier: 0.75,
                 restMultiplier: 1.5,
-                volumeMultiplier: 0.75,
-                message: 'Critical fatigue state. Emergency adjustments active.'
+                volumeMultiplier: 0.70,
+                message: 'Critical fatigue during intensity phase. Emergency protocol.'
             }
         },
-        // Phase-specific high fatigue
         {
             condition: 'high_fatigue',
             phase: 'Intensity',
             weekPosition: 'late',
             priority: 10,
             adjustments: {
-                powerMultiplier: 0.90,
+                powerMultiplier: 0.88,
                 restMultiplier: 1.3,
-                message: 'High fatigue in late intensity phase. Protecting recovery.'
+                message: 'Late-program intensity fatigue. Backing off for safety.'
             }
         },
         {
@@ -558,30 +663,9 @@ const STANDARD_HIIT_TEMPLATE: ProgramTemplate = {
             }
         },
         {
-            condition: 'high_fatigue',
-            phase: 'Volume',
-            priority: 12,
-            adjustments: {
-                volumeMultiplier: 0.85,
-                message: 'High fatigue early. Reducing session volume.'
-            }
-        },
-        // Recovery phase special handling
-        {
-            condition: 'high_fatigue',
-            phase: 'Recovery',
-            priority: 13,
-            adjustments: {
-                powerMultiplier: 0.85,
-                volumeMultiplier: 0.70,
-                restMultiplier: 1.4,
-                message: 'Prioritizing recovery. Heavy reductions applied.'
-            }
-        },
-        // Moderate fatigue
-        {
             condition: 'moderate_fatigue',
-            phase: 'Intensity',
+            sessionType: 'interval',
+            weekPosition: '>50%',
             priority: 20,
             adjustments: {
                 restMultiplier: 1.15,
@@ -589,36 +673,13 @@ const STANDARD_HIIT_TEMPLATE: ProgramTemplate = {
             }
         },
         {
-            condition: 'moderate_fatigue',
-            phase: 'Density',
-            priority: 21,
-            adjustments: {
-                restMultiplier: 1.10,
-                message: 'Managing fatigue with extended rest.'
-            }
-        },
-        // Tired handling
-        {
             condition: 'tired',
             priority: 30,
             adjustments: {
                 rpeAdjust: -1,
-                message: 'Tired today. Targeting lower RPE.'
+                message: 'Tired today. Focus on movement quality.'
             }
         },
-        {
-            condition: 'tired',
-            phase: 'Intensity',
-            weekPosition: 'late',
-            priority: 25,
-            adjustments: {
-                powerMultiplier: 0.90,
-                rpeAdjust: -1,
-                restMultiplier: 1.2,
-                message: 'Tired at peak weeks. Full recovery protocol.'
-            }
-        },
-        // Fresh bonuses (lowest priority)
         {
             condition: 'fresh',
             phase: 'Intensity',
@@ -636,35 +697,24 @@ const STANDARD_HIIT_TEMPLATE: ProgramTemplate = {
             priority: 41,
             adjustments: {
                 volumeMultiplier: 1.10,
-                message: 'Well recovered early. Extending session.'
+                message: 'Well recovered early. Adding extra intervals.'
             }
         },
         {
-            condition: 'low_fatigue',
-            weekPosition: '>50%',
-            phase: 'Intensity',
-            priority: 42,
-            adjustments: {
-                powerMultiplier: 1.03,
-                message: 'Low fatigue in intensity phase. Small boost!'
-            }
-        },
-        // Compound: peak performance
-        {
-            condition: { fatigue: '<30', readiness: '>65', logic: 'and' },
+            condition: { fatigue: '<30', readiness: '>70', logic: 'and' },
             phase: 'Intensity',
             weekPosition: 'late',
-            priority: 43,
+            priority: 42,
             adjustments: {
-                powerMultiplier: 1.07,
-                message: 'Peak condition at peak phase! Maximizing output.'
+                powerMultiplier: 1.08,
+                message: 'Peak condition at peak phase! Maximum output.'
             }
         }
     ]
 };
 
 /**
- * Template 4: Builder/Deload Block-Based Periodization
+ * Template 5: Builder/Deload Block-Based Periodization
  * - Block-based structure with repeating 4-week builder + 2-week deload cycles
  * - Power accumulates through builder phases using block_start reference
  * - Deload blocks reduce to 80% of previous power for recovery
@@ -787,9 +837,10 @@ const BUILDER_DELOAD_TEMPLATE: ProgramTemplate = {
 
 // Convert templates to presets for backward compatibility
 export const DEFAULT_PRESETS: ProgramPreset[] = [
-    templateToPreset(FIXED_TIME_POWER_TEMPLATE),
-    templateToPreset(DOUBLE_INTERCALATED_TEMPLATE),
-    templateToPreset(STANDARD_HIIT_TEMPLATE),
+    templateToPreset(AEROBIC_BASE_TEMPLATE),
+    templateToPreset(THRESHOLD_DEVELOPMENT_TEMPLATE),
+    templateToPreset(BILLAT_VO2MAX_TEMPLATE),
+    templateToPreset(GIBALA_HIIT_TEMPLATE),
     templateToPreset(BUILDER_DELOAD_TEMPLATE)
 ];
 

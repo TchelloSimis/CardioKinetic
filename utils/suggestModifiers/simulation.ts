@@ -4,7 +4,7 @@
  * Contains Monte Carlo simulation functions for generating fatigue/readiness data.
  */
 
-import { WeekDefinition, CyclePhase } from '../../programTemplate';
+import { WeekDefinition } from '../../programTemplate';
 import {
     ATL_ALPHA,
     CTL_ALPHA,
@@ -26,7 +26,6 @@ import {
     calculatePercentile,
     detectChangePoints,
     detectExtrema,
-    calculatePhasePositions,
 } from './algorithms';
 
 // ============================================================================
@@ -106,60 +105,6 @@ export function runSingleSimulation(
 }
 
 // ============================================================================
-// CYCLE PHASE CLASSIFICATION
-// ============================================================================
-
-/**
- * Classify week into cycle phase based on:
- * 1. Coach-declared week focus (Recovery = trough, overrides all else)
- * 2. Template power trajectory (power increasing/decreasing)
- * 3. Simulated fatigue trajectory (as tiebreaker)
- */
-export function classifyCyclePhase(
-    fatigueVelocity: number,
-    fatigueAcceleration: number,
-    fatigueValue: number,
-    powerVelocity: number,
-    isLocalPeak: boolean,
-    isLocalTrough: boolean,
-    weekFocus?: 'Density' | 'Intensity' | 'Volume' | 'Recovery'
-): CyclePhase {
-    // 1. COACH-DECLARED FOCUS takes highest precedence
-    if (weekFocus === 'Recovery') return 'trough';
-
-    if ((weekFocus === 'Intensity' || weekFocus === 'Density') && powerVelocity >= 0) {
-        if (powerVelocity < 0.02 && powerVelocity > -0.02 && fatigueValue > 50) {
-            return 'peak';
-        }
-        return 'ascending';
-    }
-
-    // Explicit peaks/troughs from fatigue data
-    if (isLocalPeak) return 'peak';
-    if (isLocalTrough) return 'trough';
-
-    // 2. POWER TRAJECTORY
-    if (powerVelocity < -0.02) return 'descending';
-    if (powerVelocity > 0.02) return 'ascending';
-
-    // 3. For small power changes, use fatigue analysis as tiebreaker
-    if (fatigueValue > 60 && fatigueVelocity > -2 && fatigueVelocity < 3 && fatigueAcceleration < -1) {
-        return 'peak';
-    }
-    if (fatigueVelocity > 3) return 'ascending';
-    if (fatigueValue < 35 && fatigueVelocity > -2 && fatigueVelocity < 3 && fatigueAcceleration > 1) {
-        return 'trough';
-    }
-    if (fatigueVelocity < -3) return 'descending';
-
-    // Use fatigue position as tiebreaker
-    if (fatigueValue > 55) return fatigueVelocity >= 0 ? 'peak' : 'descending';
-    if (fatigueValue < 35) return fatigueVelocity <= 0 ? 'trough' : 'ascending';
-
-    return fatigueVelocity >= 0 ? 'ascending' : 'descending';
-}
-
-// ============================================================================
 // FULL ANALYSIS PIPELINE
 // ============================================================================
 
@@ -210,10 +155,6 @@ export function runFullAnalysis(
     // Detect extrema
     const { peaks, troughs } = detectExtrema(smoothedFatigue);
 
-    // Calculate power trajectory from template
-    const powerMultipliers = weeks.map(w => w.powerMultiplier || 1.0);
-    const powerVelocity = calculateDerivative(powerMultipliers);
-
     // Build week analyses
     const weekAnalyses: WeekAnalysis[] = [];
     let currentCycleIndex = 0;
@@ -225,16 +166,6 @@ export function runFullAnalysis(
 
         const isLocalPeak = peaks.includes(w);
         const isLocalTrough = troughs.includes(w);
-
-        const cyclePhase = classifyCyclePhase(
-            fatigueVelocity[w],
-            fatigueAcceleration[w],
-            fatigueP50[w],
-            powerVelocity[w],
-            isLocalPeak,
-            isLocalTrough,
-            weeks[w].focus
-        );
 
         weekAnalyses.push({
             weekNumber: w + 1,
@@ -252,18 +183,10 @@ export function runFullAnalysis(
             readinessP85: Math.round(readinessP85[w]),
             fatigueVelocity: fatigueVelocity[w],
             fatigueAcceleration: fatigueAcceleration[w],
-            cyclePhase,
             cycleIndex: currentCycleIndex,
             isLocalPeak,
             isLocalTrough
         });
-    }
-
-    // Enrich week analyses with phase position data
-    const positionData = calculatePhasePositions(weekAnalyses);
-    for (let w = 0; w < weekAnalyses.length; w++) {
-        weekAnalyses[w].phasePosition = positionData[w].phasePosition;
-        weekAnalyses[w].positionRatio = positionData[w].positionRatio;
     }
 
     // Build cycle info

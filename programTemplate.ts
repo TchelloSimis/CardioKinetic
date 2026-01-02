@@ -58,20 +58,6 @@ export type FatigueCondition =
     // Flexible condition object
     | FlexibleCondition;
 
-/**
- * Cycle phases detected automatically from fatigue/power trajectory.
- * Used for intelligent modifier filtering based on where athlete is in a training cycle.
- */
-export type CyclePhase = 'ascending' | 'peak' | 'descending' | 'trough';
-
-/**
- * Position within a continuous cycle phase.
- * Used for position-aware modifier filtering based on fatigue accumulation.
- * - 'early': First 33% of consecutive weeks in this phase (lower expected fatigue)
- * - 'mid': Middle 33% of consecutive weeks in this phase
- * - 'late': Last 33% of consecutive weeks in this phase (higher accumulated fatigue)
- */
-export type PhasePosition = 'early' | 'mid' | 'late';
 
 
 // ============================================================================
@@ -175,8 +161,10 @@ export interface TemplateBlock {
      * Duration as absolute minutes (number) or expression string.
      * Expressions can reference: power, duration, week, totalWeeks
      * Examples: 5, "duration * 0.25", "5"
+     * 
+     * Optional for interval blocks where duration is computed from cycles × (work + rest).
      */
-    durationExpression: string | number;
+    durationExpression?: string | number;
 
     /**
      * Power as multiplier (number) or expression string.
@@ -388,32 +376,6 @@ export interface FatigueModifier {
     phaseName?: string | string[];
 
     /**
-     * Optional: Only apply during specific auto-detected cycle phases.
-     * Cycle phases are determined from fatigue/power trajectory analysis:
-     * - 'ascending': During build-up phases when fatigue is rising
-     * - 'peak': At local fatigue maxima (typically week before recovery)
-     * - 'descending': During taper/recovery when fatigue is falling
-     * - 'trough': At local fatigue minima (recovery complete, ready to build again)
-     * 
-     * Can be combined with phaseName for block-based programs, e.g.:
-     * { phaseName: 'Builder', cyclePhase: 'ascending' }
-     */
-    cyclePhase?: CyclePhase | CyclePhase[];
-
-    /**
-     * Optional: Position within the cycle phase.
-     * Used for position-aware modifier filtering based on fatigue accumulation.
-     * - 'early': First 33% of consecutive weeks in this phase (lower expected fatigue)
-     * - 'mid': Middle 33% of consecutive weeks in this phase
-     * - 'late': Last 33% of consecutive weeks in this phase (higher accumulated fatigue)
-     * 
-     * Must be used with cyclePhase. Example:
-     * { cyclePhase: 'ascending', phasePosition: 'late' }
-     * targets late ascending weeks where fatigue has accumulated.
-     */
-    phasePosition?: PhasePosition | PhasePosition[];
-
-    /**
      * Optional: Only apply to specific session types.
      * - 'interval': High-intensity interval sessions
      * - 'steady-state': Continuous aerobic sessions  
@@ -561,27 +523,8 @@ export interface FatigueContext {
     phase?: WeekFocus;      // Current phase focus (Density, Intensity, Volume, Recovery)
     phaseName?: string;     // Current phase name (e.g., "Build Phase", "Peak Phase")
 
-    /**
-     * Recent fatigue history for cycle phase detection.
-     * Array of fatigue scores from recent sessions/days (most recent last).
-     * Needed for cyclePhase modifier filtering.
-     */
-    fatigueHistory?: number[];
-
     /** Alias for readinessScore for convenience */
     readiness?: number;
-
-    /**
-     * Pre-computed expected cycle phase (from PlanWeek).
-     * Used for deterministic modifier filtering instead of noisy runtime detection.
-     */
-    expectedCyclePhase?: CyclePhase;
-
-    /**
-     * Pre-computed position within the cycle phase (from PlanWeek).
-     * Used for deterministic position-based modifier filtering.
-     */
-    expectedPhasePosition?: PhasePosition;
 }
 
 /**

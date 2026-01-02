@@ -3,6 +3,7 @@ import { ProgramPreset } from '../types';
 import { ArrowRight, Check, ChevronRight, Info, Upload } from 'lucide-react';
 import { formatBlockCounts } from '../utils/blockExpansion';
 import { getLocalDateString } from '../utils/dateUtils';
+import OnboardingCharts from './OnboardingCharts';
 
 interface OnboardingProps {
     presets: ProgramPreset[];
@@ -265,7 +266,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ presets, onComplete, onImportTe
                                 <div className="flex items-center gap-4">
                                     <button
                                         onClick={() => setBasePower(Math.max(50, basePower - 5))}
-                                        className="w-12 h-12 rounded-xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-xl font-bold active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors"
+                                        className="w-12 h-12 rounded-xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-xl font-bold text-neutral-900 dark:text-white active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors"
                                     >-</button>
                                     <div className="flex-1 h-16 bg-neutral-50 dark:bg-neutral-900 border-2 border-neutral-200 dark:border-neutral-800 rounded-2xl flex items-center justify-center relative overflow-hidden">
                                         <input
@@ -278,7 +279,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ presets, onComplete, onImportTe
                                     </div>
                                     <button
                                         onClick={() => setBasePower(basePower + 5)}
-                                        className="w-12 h-12 rounded-xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-xl font-bold active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors"
+                                        className="w-12 h-12 rounded-xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-xl font-bold text-neutral-900 dark:text-white active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors"
                                     >+</button>
                                 </div>
                                 <p className="text-xs text-neutral-400 mt-3 flex items-center gap-2">
@@ -286,6 +287,15 @@ const Onboarding: React.FC<OnboardingProps> = ({ presets, onComplete, onImportTe
                                     <span>This sets the baseline intensity for your workouts.</span>
                                 </p>
                             </div>
+
+                            {/* Program Preview Chart */}
+                            {selectedPreset && (
+                                <OnboardingCharts
+                                    preset={selectedPreset}
+                                    weekCount={selectedWeekCount ?? weekOptions[0]}
+                                    basePower={basePower}
+                                />
+                            )}
 
                             {/* Start Date Input */}
                             <div>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Pencil, Trash2, RotateCcw, ChevronDown, ChevronUp, ArrowUp, ArrowDown, RefreshCw, Loader2, Zap } from 'lucide-react';
+import { Trash2, RotateCcw, ChevronDown, ChevronUp, ArrowUp, ArrowDown, RefreshCw, Loader2, Zap } from 'lucide-react';
 import { ProgramPreset, ProgramRecord } from '../../types';
 import { DEFAULT_PRESETS, AccentColor, AccentColorConfig } from '../../presets';
 import { presetToTemplate, templateToPreset, importTemplateFromJson, exportTemplateToJson } from '../../utils/templateUtils';
@@ -412,16 +412,7 @@ const ProgrammingSettings: React.FC<ProgrammingSettingsProps> = ({
                                                 </button>
                                             )}
 
-                                            <button
-                                                onClick={() => {
-                                                    setEditingTemplateId(preset.id);
-                                                    setEditingTemplateName(preset.name);
-                                                }}
-                                                className="p-2 rounded-lg bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 active:bg-neutral-300 dark:active:bg-neutral-700"
-                                                title="Rename"
-                                            >
-                                                <Pencil size={14} />
-                                            </button>
+
                                             <button
                                                 onClick={() => handleDeleteTemplate(preset, isDefault)}
                                                 className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 active:bg-red-200 dark:active:bg-red-900/50"

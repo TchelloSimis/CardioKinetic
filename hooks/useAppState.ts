@@ -122,24 +122,28 @@ export function useAppState(): AppStateReturn {
         return allPresets;
     }, [customTemplates, modifiedDefaults, deletedDefaultIds, templateOrder]);
 
-    // Move template up/down in list
+    // Move template up/down in list - uses functional update to avoid stale closure
     const moveTemplate = (presetId: string, direction: 'up' | 'down') => {
-        const currentOrder = templateOrder.length > 0
-            ? templateOrder
-            : activePresets.map(p => p.id);
-        const currentIndex = currentOrder.indexOf(presetId);
-        if (currentIndex === -1) return;
+        setTemplateOrder(prevOrder => {
+            // Get current order: use previous state if available, otherwise derive from activePresets
+            const currentOrder = prevOrder.length > 0
+                ? prevOrder
+                : activePresets.map(p => p.id);
 
-        const newIndex = direction === 'up'
-            ? Math.max(0, currentIndex - 1)
-            : Math.min(currentOrder.length - 1, currentIndex + 1);
+            const currentIndex = currentOrder.indexOf(presetId);
+            if (currentIndex === -1) return prevOrder;
 
-        if (newIndex === currentIndex) return;
+            const newIndex = direction === 'up'
+                ? Math.max(0, currentIndex - 1)
+                : Math.min(currentOrder.length - 1, currentIndex + 1);
 
-        const newOrder = [...currentOrder];
-        newOrder.splice(currentIndex, 1);
-        newOrder.splice(newIndex, 0, presetId);
-        setTemplateOrder(newOrder);
+            if (newIndex === currentIndex) return prevOrder;
+
+            const newOrder = [...currentOrder];
+            newOrder.splice(currentIndex, 1);
+            newOrder.splice(newIndex, 0, presetId);
+            return newOrder;
+        });
     };
 
     // Sync PRESETS array whenever activePresets changes

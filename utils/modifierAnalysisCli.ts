@@ -20,7 +20,7 @@
  * - Generates 20+ diverse program configurations
  */
 
-import { applyFatigueModifiers, detectCyclePhase } from './fatigueModifiers.ts';
+import { applyFatigueModifiers } from './fatigueModifiers.ts';
 import { runSingleSimulation } from './suggestModifiers/simulation.ts';
 import { calculatePercentile } from './suggestModifiers/algorithms.ts';
 import { calculateAutoAdaptiveAdjustments } from './autoAdaptiveModifiers.ts';
@@ -549,9 +549,6 @@ function runSimulationIteration(
                 if (useModifiers && weekPercentiles[weekIdx]) {
                     const fatigue = calculateFatigue(atl, ctl);
                     const readiness = calculateReadiness(ctl - atl);
-                    const cyclePhaseResult = fatigueHistory.length >= 5
-                        ? detectCyclePhase(fatigueHistory, readiness)
-                        : { phase: undefined, confidence: 0 };
 
                     const context: FatigueContext = {
                         fatigueScore: fatigue,
@@ -560,8 +557,6 @@ function runSimulationIteration(
                         weekNumber: weekIdx + 1,
                         totalWeeks: weeks.length,
                         phaseName: week.phaseName,
-                        fatigueHistory: [...fatigueHistory],
-                        expectedCyclePhase: cyclePhaseResult.phase
                     };
 
                     // Use auto-adaptive engine

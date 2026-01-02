@@ -9,7 +9,6 @@ import {
     calculateFatigueScore,
     calculateReadinessScore,
     runSingleSimulation,
-    classifyCyclePhase,
     runFullAnalysis
 } from './simulation';
 import { WeekDefinition } from '../../programTemplate';
@@ -130,42 +129,6 @@ describe('runSingleSimulation', () => {
 });
 
 // ============================================================================
-// classifyCyclePhase TESTS
-// ============================================================================
-
-describe('classifyCyclePhase', () => {
-    it('should return trough for Recovery focus', () => {
-        const result = classifyCyclePhase(0, 0, 50, 0, false, false, 'Recovery');
-        expect(result).toBe('trough');
-    });
-
-    it('should return ascending for positive power velocity', () => {
-        const result = classifyCyclePhase(0, 0, 50, 0.1, false, false, undefined);
-        expect(result).toBe('ascending');
-    });
-
-    it('should return descending for negative power velocity', () => {
-        const result = classifyCyclePhase(0, 0, 50, -0.1, false, false, undefined);
-        expect(result).toBe('descending');
-    });
-
-    it('should return peak when isLocalPeak is true', () => {
-        const result = classifyCyclePhase(0, 0, 50, 0, true, false, undefined);
-        expect(result).toBe('peak');
-    });
-
-    it('should return trough when isLocalTrough is true', () => {
-        const result = classifyCyclePhase(0, 0, 50, 0, false, true, undefined);
-        expect(result).toBe('trough');
-    });
-
-    it('should return ascending for Intensity focus with positive power', () => {
-        const result = classifyCyclePhase(0, 0, 40, 0.05, false, false, 'Intensity');
-        expect(result).toBe('ascending');
-    });
-});
-
-// ============================================================================
 // runFullAnalysis TESTS
 // ============================================================================
 
@@ -221,23 +184,6 @@ describe('runFullAnalysis', () => {
 
         expect(result.weekAnalyses[0]).toHaveProperty('fatigueP50');
         expect(result.weekAnalyses[0]).toHaveProperty('readinessP50');
-    });
-
-    it('should classify cycle phases for each week', () => {
-        const weeks = [
-            createWeekDef({ position: 1, focus: 'Volume' }),
-            createWeekDef({ position: 2, focus: 'Intensity' }),
-            createWeekDef({ position: 3, focus: 'Recovery' })
-        ];
-
-        const fatigueData = weeks.map(() => [50, 55, 60]);
-        const readinessData = weeks.map(() => [60, 55, 50]);
-
-        const result = runFullAnalysis(weeks, 150, 3, fatigueData, readinessData);
-
-        for (const wa of result.weekAnalyses) {
-            expect(['ascending', 'descending', 'peak', 'trough']).toContain(wa.cyclePhase);
-        }
     });
 
     it('should detect global trend for programs with 4+ weeks', () => {

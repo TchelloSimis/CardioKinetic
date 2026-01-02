@@ -6,7 +6,6 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-    detectCyclePhase,
     checkFatigueCondition,
     applyFatigueModifiers,
     FATIGUE_THRESHOLDS,
@@ -64,47 +63,6 @@ describe('Threshold Constants', () => {
         expect(READINESS_THRESHOLDS.recovered.min).toBe(50);
         expect(READINESS_THRESHOLDS.tired.min).toBe(35);
         expect(READINESS_THRESHOLDS.overreached.max).toBe(35);
-    });
-});
-
-// ============================================================================
-// detectCyclePhase TESTS
-// ============================================================================
-
-describe('detectCyclePhase', () => {
-    it('should return undefined for insufficient data', () => {
-        const result = detectCyclePhase([50, 55, 60]); // Less than 5 points
-        expect(result.phase).toBeUndefined();
-    });
-
-    it('should detect ascending phase with increasing fatigue', () => {
-        const history = [30, 40, 50, 60, 70, 75, 80];
-        const result = detectCyclePhase(history);
-        expect(['ascending', 'peak']).toContain(result.phase);
-    });
-
-    it('should detect descending phase with decreasing fatigue', () => {
-        const history = [80, 70, 60, 50, 40, 35, 30];
-        const result = detectCyclePhase(history);
-        expect(['descending', 'trough']).toContain(result.phase);
-    });
-
-    it('should return confidence score', () => {
-        const history = [30, 40, 50, 60, 70, 80, 90];
-        const result = detectCyclePhase(history);
-
-        expect(result.confidence).toBeDefined();
-        expect(result.confidence).toBeGreaterThanOrEqual(0);
-        expect(result.confidence).toBeLessThanOrEqual(1);
-    });
-
-    it('should detect phase based on velocity and position', () => {
-        // Stable-ish history at moderately high fatigue
-        const history = [55, 56, 58, 57, 56, 58, 57];
-        const result = detectCyclePhase(history);
-
-        // Should return some phase
-        expect(result.phase).toBeDefined();
     });
 });
 

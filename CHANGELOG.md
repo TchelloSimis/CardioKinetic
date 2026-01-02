@@ -2,6 +2,49 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.6.0] - 2026-01-01
+
+### Added
+
+#### Research-Based Program Templates
+Replaced the original preset templates with five new programs grounded in cardiovascular programming research:
+
+- **Aerobic Base Builder**: Structured steady-state program with progressive duration increases from 20 to 35 minutes across weeks
+- **Threshold Development**: Block-based program featuring dedicated warmup, threshold work, and cooldown phases for lactate threshold improvement
+- **Billat vVO2max Protocol**: Implements the 30-second/30-second interval research for VO2max development with scientifically-backed work:rest ratios
+- **Gibala Sprint Intervals**: High-intensity interval training with progressive work:rest ratio adjustments based on HIIT research
+- **Builder/Deload Periodization**: Cyclical block-based structure alternating 4-week build phases with 2-week recovery deloads
+
+All templates now demonstrate advanced features including block-based structures, custom session configurations, compound fatigue modifiers, and explicit interval parameters.
+
+#### Program Preview Charts
+The onboarding flow now displays power and work progression charts when configuring a new program. Preview your planned training load visually before committing to a program, helping you understand the intensity curve and total volume distribution across weeks.
+
+#### Questionnaire History
+View and manage your wellness check-in history with a dedicated history screen accessible from the questionnaire modal:
+
+- **Month-Based Grouping**: Responses organized in collapsible accordion sections by month
+- **Visual Scoring**: Color-coded readiness and fatigue adjustments matching your theme
+- **Full Edit Capability**: Modify any past response to correct inaccurate entries
+- **Delete Support**: Remove individual responses when needed
+
+### Fixed
+
+- **Block-Based Template Simulation**: Resolved a runtime error when simulating block-based templates with custom sessions that caused a `require is not defined` error
+- **Program Reordering**: Fixed the up/down reordering buttons in the programming settings that were not properly moving programs
+
+### Changed
+
+#### Legacy System Removal
+Removed the deprecated cycle phase detection system that was superseded by the Auto-Adaptive Modifier System in v1.5.0:
+
+- Deleted the phase detection module and legacy duplicate suggest modifiers utility
+- Removed `cyclePhase` and `phasePosition` fields from fatigue modifier interfaces
+- Cleaned up phase-related calculations from plan generation and metrics hooks
+- Reduces codebase by approximately 1,700 lines of legacy code
+
+---
+
 ## [1.5.4] - 2025-12-30
 
 ### Improved

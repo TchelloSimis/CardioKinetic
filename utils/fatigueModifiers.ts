@@ -6,11 +6,7 @@
  */
 
 import { PlanWeek } from '../types';
-import { FatigueModifier, FatigueCondition, FatigueContext, CyclePhase, PhasePosition } from '../programTemplate';
-import { detectCyclePhaseAdvanced, type PhaseContext, type CyclePhaseResult as AdvancedCyclePhaseResult } from './phaseDetection.ts';
-
-// Re-export advanced detection for external use
-export { detectCyclePhaseAdvanced, type PhaseContext } from './phaseDetection.ts';
+import { FatigueModifier, FatigueCondition, FatigueContext } from '../programTemplate';
 
 // ============================================================================
 // CONSTANTS
@@ -31,164 +27,6 @@ export const READINESS_THRESHOLDS = {
     tired: { min: 35, max: 50 },
     overreached: { max: 35 },
 } as const;
-
-// ============================================================================
-// CYCLE PHASE DETECTION
-// ============================================================================
-
-const MIN_HISTORY_POINTS = 5;       // Minimum data points for reliable detection (increased from 3)
-const VELOCITY_HYSTERESIS = 1.5;    // Minimum velocity change to switch phases (prevents thrashing)
-
-/**
- * Result of cycle phase detection with confidence scoring.
- */
-export interface CyclePhaseResult {
-    phase: CyclePhase | undefined;
-    confidence: number;  // 0-1, higher = more certain
-}
-
-/**
- * Detect current cycle phase from recent fatigue history.
- * 
- * Analyzes fatigue velocity (rate of change) and recent pattern.
- * Returns undefined if insufficient data (<5 points).
- * 
- * Improvements over previous version:
- * - Requires minimum 5 data points (was 3) for reliable detection
- * - Uses hysteresis to prevent phase "thrashing" on noisy data
- * - Returns confidence score (0-1) for UI/decision making
- * 
- * @param fatigueHistory - Array of recent fatigue scores
- * @param recentReadiness - Optional current readiness score
- * @param previousPhase - Optional previous detected phase (for hysteresis)
- * @returns Object with phase and confidence score
- */
-export function detectCyclePhase(
-    fatigueHistory: number[],
-    recentReadiness?: number,
-    previousPhase?: CyclePhase
-): CyclePhaseResult {
-    // Need at least MIN_HISTORY_POINTS for reliable detection
-    if (fatigueHistory.length < MIN_HISTORY_POINTS) {
-        return { phase: undefined, confidence: 0 };
-    }
-
-    // Get recent values (last 5-7 points)
-    const recent = fatigueHistory.slice(-Math.min(7, fatigueHistory.length));
-    const n = recent.length;
-
-    // Calculate velocity (average rate of change)
-    let velocity = 0;
-    for (let i = 1; i < n; i++) {
-        velocity += recent[i] - recent[i - 1];
-    }
-    velocity /= (n - 1);
-
-    // Calculate acceleration (rate of change of velocity)
-    const velocities: number[] = [];
-    for (let i = 1; i < n; i++) {
-        velocities.push(recent[i] - recent[i - 1]);
-    }
-    let acceleration = 0;
-    if (velocities.length >= 2) {
-        for (let i = 1; i < velocities.length; i++) {
-            acceleration += velocities[i] - velocities[i - 1];
-        }
-        acceleration /= (velocities.length - 1);
-    }
-
-    const currentFatigue = recent[n - 1];
-    let detectedPhase: CyclePhase;
-    let confidence: number;
-
-    // Determine phase based on velocity and position
-    // PEAK: High fatigue AND velocity turning negative (about to drop)
-    if (currentFatigue > 60 && velocity > -2 && velocity < 3 && acceleration < -1) {
-        detectedPhase = 'peak';
-        confidence = Math.min(1, (currentFatigue - 60) / 30 + Math.abs(acceleration) / 3);
-    }
-    // ASCENDING: Fatigue is clearly rising (with hysteresis)
-    else if (velocity > (2 + (previousPhase === 'ascending' ? 0 : VELOCITY_HYSTERESIS))) {
-        detectedPhase = 'ascending';
-        confidence = Math.min(1, velocity / 5);
-    }
-    // TROUGH: Low fatigue AND velocity turning positive (about to rise)
-    else if (currentFatigue < 40 && velocity < 2 && velocity > -3 && acceleration > 1) {
-        detectedPhase = 'trough';
-        confidence = Math.min(1, (40 - currentFatigue) / 30 + acceleration / 3);
-    }
-    // DESCENDING: Fatigue is clearly falling (with hysteresis)
-    else if (velocity < -(2 + (previousPhase === 'descending' ? 0 : VELOCITY_HYSTERESIS))) {
-        detectedPhase = 'descending';
-        confidence = Math.min(1, Math.abs(velocity) / 5);
-    }
-    // Use position as tiebreaker for stable periods
-    else if (currentFatigue > 55) {
-        detectedPhase = velocity >= 0 ? 'peak' : 'descending';
-        confidence = 0.5;  // Lower confidence for position-based detection
-    } else if (currentFatigue < 35) {
-        detectedPhase = velocity <= 0 ? 'trough' : 'ascending';
-        confidence = 0.5;
-    } else {
-        // Default based on velocity direction
-        detectedPhase = velocity >= 0 ? 'ascending' : 'descending';
-        confidence = 0.3;  // Lowest confidence for default case
-    }
-
-    // Apply hysteresis: stick with previous phase if change is marginal
-    if (previousPhase && previousPhase !== detectedPhase && confidence < 0.6) {
-        return { phase: previousPhase, confidence: confidence * 0.7 };
-    }
-
-    return { phase: detectedPhase, confidence };
-}
-
-/**
- * Calculate phase position (early/mid/late) from fatigue history.
- * 
- * Estimates position within the current phase by looking at how long
- * the current trend has been sustained. Uses velocity consistency to
- * estimate how far into the phase we are.
- * 
- * @param fatigueHistory - Array of recent fatigue scores
- * @param currentPhase - The detected cycle phase
- * @returns PhasePosition or undefined if not enough data
- */
-export function calculatePhasePositionFromHistory(
-    fatigueHistory: number[],
-    currentPhase: CyclePhase
-): PhasePosition | undefined {
-    if (fatigueHistory.length < MIN_HISTORY_POINTS) {
-        return undefined;
-    }
-
-    // Get recent values
-    const recent = fatigueHistory.slice(-Math.min(10, fatigueHistory.length));
-
-    // Count consecutive weeks matching current phase direction
-    let consecutiveCount = 0;
-    const isRising = currentPhase === 'ascending' || currentPhase === 'peak';
-
-    // Start from most recent and count back
-    for (let i = recent.length - 1; i > 0; i--) {
-        const diff = recent[i] - recent[i - 1];
-        const matchesDirection = isRising ? diff >= -1 : diff <= 1;
-
-        if (matchesDirection) {
-            consecutiveCount++;
-        } else {
-            break;
-        }
-    }
-
-    // Map consecutive count to position
-    // Typical phase length is 3-6 weeks
-    const positionRatio = Math.min(1, consecutiveCount / 5);
-
-    if (positionRatio < 0.33) return 'early';
-    if (positionRatio < 0.67) return 'mid';
-    return 'late';
-}
 
 // ============================================================================
 // FATIGUE CONDITION CHECKING
@@ -318,49 +156,6 @@ export function applyFatigueModifiers(
             }
         }
 
-        // Check cyclePhase condition if specified
-        // DETERMINISTIC: Use pre-computed expectedCyclePhase instead of noisy runtime detection
-        if (modifier.cyclePhase !== undefined) {
-            // Prefer stored expectedCyclePhase (deterministic) 
-            // Fallback to runtime detection only if not available
-            let phaseToCheck: CyclePhase | undefined = context.expectedCyclePhase;
-
-            // Fallback to runtime detection if no stored phase
-            if (!phaseToCheck && context.fatigueHistory && context.fatigueHistory.length >= 5) {
-                const result = detectCyclePhase(context.fatigueHistory, context.readiness);
-                phaseToCheck = result.phase;
-            }
-
-            if (!phaseToCheck) {
-                continue; // No phase available - skip this modifier
-            }
-
-            const phasesToMatch = Array.isArray(modifier.cyclePhase) ? modifier.cyclePhase : [modifier.cyclePhase];
-
-            if (!phasesToMatch.includes(phaseToCheck)) {
-                continue; // Skip if phase doesn't match
-            }
-
-            // Check phasePosition within the cycle phase
-            // DETERMINISTIC: Use pre-computed expectedPhasePosition
-            if (modifier.phasePosition !== undefined) {
-                let positionToCheck: PhasePosition | undefined = context.expectedPhasePosition;
-
-                // Fallback to runtime calculation if no stored position
-                if (!positionToCheck && context.fatigueHistory) {
-                    positionToCheck = calculatePhasePositionFromHistory(context.fatigueHistory, phaseToCheck);
-                }
-
-                if (positionToCheck) {
-                    const positionsToMatch = Array.isArray(modifier.phasePosition)
-                        ? modifier.phasePosition : [modifier.phasePosition];
-                    if (!positionsToMatch.includes(positionToCheck)) {
-                        continue; // Skip if phase position doesn't match
-                    }
-                }
-            }
-        }
-
         // Check week position condition if specified (supports relative positioning for variable-length programs)
         if (modifier.weekPosition !== undefined && context.weekNumber !== undefined && context.totalWeeks !== undefined) {
             const positions = Array.isArray(modifier.weekPosition) ? modifier.weekPosition : [modifier.weekPosition];
@@ -457,9 +252,8 @@ export function applyFatigueModifiers(
         matchingModifiers.push({ modifier, priority });
     }
     // MUTEX-AWARE SELECTION:
-    // - For each mutex group (cycle_phase, phase_position), only the highest priority wins
+    // - For each mutex group, only the highest priority wins
     // - Non-mutex modifiers compete globally (only one wins across all non-mutex)
-    // - This prevents contradictions like ascending+descending or early+late
 
     if (matchingModifiers.length > 0) {
         // Sort all by priority (lower number = higher priority)

@@ -13,6 +13,7 @@ import InsightsPage from './components/InsightsTab';
 import DeleteConfirmModal from './components/modals/DeleteConfirmModal';
 import SessionSetupModal from './components/modals/SessionSetupModal';
 import ReadinessQuestionnaireModal from './components/modals/ReadinessQuestionnaireModal';
+import QuestionnaireHistory from './components/QuestionnaireHistory';
 import LiveSessionGuide from './components/LiveSessionGuide';
 import { Session, PlanWeek, ReadinessState, ProgramPreset, ProgramRecord, SessionSetupParams, SessionResult, QuestionnaireResponse } from './types';
 import { FatigueModifier } from './programTemplate';
@@ -81,6 +82,8 @@ const App: React.FC = () => {
     const [sessionResult, setSessionResult] = useState<SessionResult | null>(null);
     const [liveSessionBackPress, setLiveSessionBackPress] = useState(0); // Counter to trigger back in LiveSessionGuide
     const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
+    const [showQuestionnaireHistory, setShowQuestionnaireHistory] = useState(false);
+    const [editingQuestionnaireResponse, setEditingQuestionnaireResponse] = useState<QuestionnaireResponse | null>(null);
     const [showInsightsPage, setShowInsightsPage] = useState(false);
 
     // Tab subcategory state (lifted from child components for back button handling)
@@ -184,6 +187,13 @@ const App: React.FC = () => {
             // Priority 1.6: Close Readiness Questionnaire Modal
             if (showQuestionnaireModal) {
                 setShowQuestionnaireModal(false);
+                setEditingQuestionnaireResponse(null);
+                return;
+            }
+
+            // Priority 1.7: Close Questionnaire History
+            if (showQuestionnaireHistory) {
+                setShowQuestionnaireHistory(false);
                 return;
             }
 
@@ -249,7 +259,7 @@ const App: React.FC = () => {
     }, [
         sessionToDelete, showLogModal, showLiveSession, showSessionSetup,
         activeTab, settingsCategory, programCategory, logModalOrigin, preservedSessionResult,
-        showInsightsPage, showQuestionnaireModal
+        showInsightsPage, showQuestionnaireModal, showQuestionnaireHistory
     ]);
 
     // Request notification permission on Android app startup (Android 13+ requires runtime permission)
@@ -762,19 +772,46 @@ const App: React.FC = () => {
             {/* Readiness Questionnaire Modal */}
             <ReadinessQuestionnaireModal
                 isOpen={showQuestionnaireModal}
-                onClose={() => setShowQuestionnaireModal(false)}
+                onClose={() => {
+                    setShowQuestionnaireModal(false);
+                    setEditingQuestionnaireResponse(null);
+                }}
                 onSubmit={(response: QuestionnaireResponse) => {
-                    // Update or add today's response
-                    const today = getLocalDateString();
+                    // Update or add response for the date (handles both new and edits)
                     setQuestionnaireResponses(prev => {
-                        const filtered = prev.filter(r => r.date !== today);
+                        const filtered = prev.filter(r => r.date !== response.date);
                         return [...filtered, response];
                     });
+                    setEditingQuestionnaireResponse(null);
                 }}
-                existingResponse={getTodayQuestionnaireResponse()}
+                existingResponse={editingQuestionnaireResponse || getTodayQuestionnaireResponse()}
                 isDarkMode={isDarkMode}
                 currentAccent={currentAccent}
+                onOpenHistory={() => {
+                    setShowQuestionnaireModal(false);
+                    setShowQuestionnaireHistory(true);
+                }}
             />
+
+            {/* Questionnaire History */}
+            {showQuestionnaireHistory && (
+                <QuestionnaireHistory
+                    responses={questionnaireResponses}
+                    onEditResponse={(response) => {
+                        setShowQuestionnaireHistory(false);
+                        setEditingQuestionnaireResponse(response);
+                        setShowQuestionnaireModal(true);
+                    }}
+                    onDeleteResponse={(responseDate) => {
+                        setQuestionnaireResponses(prev =>
+                            prev.filter(r => r.date !== responseDate)
+                        );
+                    }}
+                    onClose={() => setShowQuestionnaireHistory(false)}
+                    isDarkMode={isDarkMode}
+                    currentAccent={currentAccent}
+                />
+            )}
 
             {/* Main Content */}
             <main className="flex-1 relative overflow-hidden flex flex-col">
