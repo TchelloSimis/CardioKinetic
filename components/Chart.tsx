@@ -210,29 +210,78 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
     [sessions, selectedProgramIds, filteredPrograms]
   );
 
-  // --- DATA ENGINE: EWMA SMOOTHING ---
-  // Uses new ACWR Sigmoid (fatigue) and TSB Gaussian (readiness) scoring
-  const generateMetrics = (totalDays: number, dailyLoads: Float32Array) => {
+  // --- DATA ENGINE: EWMA SMOOTHING WITH QUESTIONNAIRE CARRYOVER ---
+  // Questionnaire adjustments are applied during the loop so effects carry forward
+  const generateMetrics = (
+    totalDays: number,
+    dailyLoads: Float32Array,
+    firstStartStr: string,
+    questionnaireByDate: Map<string, QuestionnaireResponse>,
+    allResponses: QuestionnaireResponse[]
+  ) => {
     const metrics = [];
     let atl = 0;
     let ctl = 10; // Seed baseline
+    // Wellness modifier tracks cumulative questionnaire impact (EWMA smoothed)
+    let wellnessModifier = 0; // Range: roughly -15 to +15
 
     const atlAlpha = 2 / (7 + 1);
     const ctlAlpha = 2 / (42 + 1);
+    const wellnessAlpha = 2 / (3 + 1); // 3-day half-life for wellness effects
 
     for (let i = 0; i < totalDays; i++) {
       const load = dailyLoads[i];
+      const dateStr = addDays(firstStartStr, i);
 
       atl = atl * (1 - atlAlpha) + load * atlAlpha;
       ctl = ctl * (1 - ctlAlpha) + load * ctlAlpha;
 
       const tsb = ctl - atl;
 
+      // Calculate base scores
+      let fatigue = calculateFatigueScore(atl, ctl);
+      let readiness = calculateReadinessScore(tsb);
+
+      // Look up questionnaire for this day
+      const dayResponse = questionnaireByDate.get(dateStr);
+      if (dayResponse) {
+        // Get recent responses before this day for trend analysis
+        const recentForDay = allResponses
+          .filter(r => r.date < dateStr)
+          .sort((a, b) => b.date.localeCompare(a.date))
+          .slice(0, 7);
+
+        const adjustment = applyQuestionnaireAdjustment(
+          readiness,
+          fatigue,
+          dayResponse,
+          recentForDay
+        );
+
+        // Apply the adjustment to today's display values
+        fatigue = adjustment.fatigue;
+        readiness = adjustment.readiness;
+
+        // Feed the adjustment magnitude into wellness modifier for carryover
+        // This creates a smoothed carryover effect to subsequent days
+        const fatigueImpact = adjustment.fatigueChange;
+        const readinessImpact = adjustment.readinessChange;
+        wellnessModifier = wellnessModifier * (1 - wellnessAlpha) +
+          ((readinessImpact - fatigueImpact) / 2) * wellnessAlpha;
+      } else {
+        // No questionnaire today, but apply smoothed carryover from previous days
+        wellnessModifier = wellnessModifier * (1 - wellnessAlpha);
+
+        // Apply decayed wellness modifier to scores
+        if (Math.abs(wellnessModifier) > 0.5) {
+          readiness = Math.max(0, Math.min(100, Math.round(readiness + wellnessModifier)));
+          fatigue = Math.max(0, Math.min(100, Math.round(fatigue - wellnessModifier)));
+        }
+      }
+
       metrics.push({
-        // NEW: ACWR Sigmoid for fatigue (sensitive to injury-risk thresholds)
-        fatigue: calculateFatigueScore(atl, ctl),
-        // NEW: TSB Gaussian for readiness (peaks at TSB +20, penalizes detraining)
-        readiness: calculateReadinessScore(tsb)
+        fatigue,
+        readiness
       });
     }
     return metrics;
@@ -283,7 +332,21 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
       }
     });
 
-    const dailyMetrics = generateMetrics(totalDays, dailyLoads);
+    // Create date-keyed questionnaire map for O(1) lookup in generateMetrics
+    const questionnaireByDate = new Map<string, QuestionnaireResponse>();
+    const allQuestionnaireResponses = [
+      ...(recentQuestionnaireResponses || []),
+      ...(todayQuestionnaireResponse ? [todayQuestionnaireResponse] : [])
+    ];
+    allQuestionnaireResponses.forEach(r => questionnaireByDate.set(r.date, r));
+
+    const dailyMetrics = generateMetrics(
+      totalDays,
+      dailyLoads,
+      firstStartStr,
+      questionnaireByDate,
+      allQuestionnaireResponses
+    );
 
     // Generate Daily Data
     const daily = [];
@@ -314,21 +377,10 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
       let fatigue = null;
       let readiness = null;
       // Show fatigue/readiness up to current date (supports simulated date)
+      // Questionnaire adjustments are now applied during generateMetrics for carryover
       if (i <= currentDayIndex && i < dailyMetrics.length) {
         fatigue = dailyMetrics[i].fatigue;
         readiness = dailyMetrics[i].readiness;
-
-        // Apply questionnaire adjustments for current day only
-        if (i === currentDayIndex && todayQuestionnaireResponse) {
-          const adjustment = applyQuestionnaireAdjustment(
-            readiness,
-            fatigue,
-            todayQuestionnaireResponse,
-            recentQuestionnaireResponses
-          );
-          fatigue = adjustment.fatigue;
-          readiness = adjustment.readiness;
-        }
       }
 
       // Calculate actual work done

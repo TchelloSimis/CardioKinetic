@@ -109,39 +109,82 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
             }
         });
 
-        // Calculate exponential moving averages
+        // Create questionnaire lookup map for carryover calculation
+        const questionnaireByDate = new Map<string, typeof todayQuestionnaireResponse>();
+        const allQuestionnaireResponses = [
+            ...(recentQuestionnaireResponses || []),
+            ...(todayQuestionnaireResponse ? [todayQuestionnaireResponse] : [])
+        ];
+        allQuestionnaireResponses.forEach(r => {
+            if (r) questionnaireByDate.set(r.date, r);
+        });
+
+        // Calculate exponential moving averages WITH questionnaire carryover
         let atl = 0;
         let ctl = 10;
+        let wellnessModifier = 0; // Tracks cumulative questionnaire impact
         const atlAlpha = 2 / (7 + 1);
         const ctlAlpha = 2 / (42 + 1);
+        const wellnessAlpha = 2 / (3 + 1); // 3-day half-life for wellness effects
+
+        let fatigueScore = 0;
+        let readinessScore = 0;
+        let questionnaireAdjustment: { readinessChange: number; fatigueChange: number } | undefined;
 
         for (let i = 0; i < totalCalcDays; i++) {
             const load = dailyLoads[i];
+            const dateStr = addDays(startDate, i);
+
             atl = atl * (1 - atlAlpha) + load * atlAlpha;
             ctl = ctl * (1 - ctlAlpha) + load * ctlAlpha;
+
+            const tsb = ctl - atl;
+            fatigueScore = calculateFatigueScore(atl, ctl);
+            readinessScore = calculateReadinessScore(tsb);
+
+            // Look up questionnaire for this day and apply adjustment with carryover
+            const dayResponse = questionnaireByDate.get(dateStr);
+            if (dayResponse) {
+                // Get recent responses before this day for trend analysis
+                const recentForDay = allQuestionnaireResponses
+                    .filter(r => r && r.date < dateStr)
+                    .sort((a, b) => b!.date.localeCompare(a!.date))
+                    .slice(0, 7) as typeof recentQuestionnaireResponses;
+
+                const adjustment = applyQuestionnaireAdjustment(
+                    readinessScore,
+                    fatigueScore,
+                    dayResponse,
+                    recentForDay
+                );
+
+                fatigueScore = adjustment.fatigue;
+                readinessScore = adjustment.readiness;
+
+                // Track adjustment for current day (last iteration)
+                if (i === totalCalcDays - 1) {
+                    questionnaireAdjustment = {
+                        readinessChange: adjustment.readinessChange,
+                        fatigueChange: adjustment.fatigueChange
+                    };
+                }
+
+                // Feed adjustment into wellness modifier for carryover
+                wellnessModifier = wellnessModifier * (1 - wellnessAlpha) +
+                    ((adjustment.readinessChange - adjustment.fatigueChange) / 2) * wellnessAlpha;
+            } else {
+                // No questionnaire today, apply smoothed carryover from previous days
+                wellnessModifier = wellnessModifier * (1 - wellnessAlpha);
+
+                if (Math.abs(wellnessModifier) > 0.5) {
+                    readinessScore = Math.max(0, Math.min(100, Math.round(readinessScore + wellnessModifier)));
+                    fatigueScore = Math.max(0, Math.min(100, Math.round(fatigueScore - wellnessModifier)));
+                }
+            }
         }
 
         const tsb = ctl - atl;
         const acwr = ctl > 0 ? atl / ctl : 0;
-        let fatigueScore = calculateFatigueScore(atl, ctl);
-        let readinessScore = calculateReadinessScore(tsb);
-
-        // Apply questionnaire adjustments if available
-        let questionnaireAdjustment: { readinessChange: number; fatigueChange: number } | undefined;
-        if (todayQuestionnaireResponse) {
-            const adjustment = applyQuestionnaireAdjustment(
-                readinessScore,
-                fatigueScore,
-                todayQuestionnaireResponse,
-                recentQuestionnaireResponses  // Last 7 days for trend analysis
-            );
-            questionnaireAdjustment = {
-                readinessChange: adjustment.readinessChange,
-                fatigueChange: adjustment.fatigueChange
-            };
-            readinessScore = adjustment.readiness;
-            fatigueScore = adjustment.fatigue;
-        }
 
         // Handle missing week plan
         if (!currentWeekPlan) {

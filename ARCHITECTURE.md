@@ -136,6 +136,21 @@ Fatigue Score  = ACWR sigmoid function (injury risk)
 Readiness Score = TSB gaussian function (performance state)
 ```
 
+### Questionnaire System
+
+Daily readiness questionnaires adjust fatigue/readiness with **carryover effects**:
+
+- **Same-day adjustment**: Direct impact from questionnaire responses
+- **Wellness modifier**: 3-day EWMA that carries effects forward
+- **Trend analysis**: Uses last 7 days to amplify/dampen adjustments
+
+```
+Day with questionnaire: Apply full adjustment + update wellness modifier
+Day without: Apply decayed wellness modifier from previous days
+```
+
+Both `useMetrics` (dashboard) and `Chart.tsx` use identical carryover logic.
+
 ### Auto-Adaptive System
 
 Uses Monte Carlo simulation to generate percentiles for each week of a program:
@@ -214,7 +229,7 @@ npm run test:run   # Single run (CI)
 
 ### Coverage
 
-- **869+ unit tests** covering:
+- **889+ unit tests** covering:
   - Utility functions (Date, metrics, validation)
   - Algorithm implementations (questionnaire, modifiers)
   - Component rendering

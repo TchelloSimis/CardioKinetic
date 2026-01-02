@@ -782,6 +782,7 @@ const App: React.FC = () => {
                     setEditingQuestionnaireResponse(null);
                 }}
                 existingResponse={editingQuestionnaireResponse || getTodayQuestionnaireResponse()}
+                allResponses={questionnaireResponses}
                 isDarkMode={isDarkMode}
                 currentAccent={currentAccent}
                 onOpenHistory={() => {

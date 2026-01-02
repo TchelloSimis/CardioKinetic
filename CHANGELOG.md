@@ -2,6 +2,28 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.6.2] - 2026-01-02
+
+### Fixed
+
+#### Training Insights Dashboard Clarity
+Resolved confusion caused by change badges showing inconsistent values. The dashboard now clearly separates weekly averages from daily snapshots:
+- Weekly averages display as main values with percentage-point change badges
+- Today's current values appear in a secondary section with appropriate labels
+
+#### Questionnaire Date Preservation
+Fixed a bug where editing a historical questionnaire response would incorrectly overwrite today's response. Edited responses now correctly preserve their original dates.
+
+#### Historic Questionnaire Data Integration
+Resolved an issue where past questionnaire responses did not carry over into the analytics chart or affect subsequent days' fatigue and readiness calculations. Questionnaire adjustments are now integrated directly into the EWMA smoothing loop with a 3-day wellness modifier, ensuring consistent values between the dashboard and chart.
+
+### Added
+
+#### Questionnaire Date Selector
+A date picker has been added to the questionnaire modal, allowing users to fill in or edit responses for any past date. Selecting a date with existing data automatically loads those values for review or modification.
+
+---
+
 ## [1.6.1] - 2026-01-02
 
 ### Fixed

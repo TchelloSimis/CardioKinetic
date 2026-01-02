@@ -179,24 +179,24 @@ const InsightsPage: React.FC<InsightsPageProps> = ({
                         Body Status
                     </h3>
                     <div className="bg-white/60 dark:bg-neutral-900/60 backdrop-blur-md rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm p-6">
-                        {/* Current State Row */}
+                        {/* Weekly Averages with Change Badges */}
                         <div className="grid grid-cols-2 gap-4 mb-6">
                             <div className="text-center">
                                 <div className="text-3xl font-medium text-neutral-900 dark:text-white">
-                                    {fatigueReadiness.currentReadiness}%
+                                    {fatigueReadiness.weeklyReadinessAvg}%
                                 </div>
-                                <div className="text-[10px] uppercase tracking-widest text-neutral-500 mb-1">Readiness</div>
+                                <div className="text-[10px] uppercase tracking-widest text-neutral-500 mb-1">7-Day Avg Readiness</div>
                                 <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${getChangeColorClass(fatigueReadiness.readinessChange)}`}>
-                                    {fatigueReadiness.readinessChange >= 0 ? '+' : ''}{fatigueReadiness.readinessChange}
+                                    {fatigueReadiness.readinessChange >= 0 ? '+' : ''}{fatigueReadiness.readinessChange} pts
                                 </span>
                             </div>
                             <div className="text-center">
                                 <div className="text-3xl font-medium text-neutral-900 dark:text-white">
-                                    {fatigueReadiness.currentFatigue}%
+                                    {fatigueReadiness.weeklyFatigueAvg}%
                                 </div>
-                                <div className="text-[10px] uppercase tracking-widest text-neutral-500 mb-1">Fatigue</div>
+                                <div className="text-[10px] uppercase tracking-widest text-neutral-500 mb-1">7-Day Avg Fatigue</div>
                                 <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${getChangeColorClass(-fatigueReadiness.fatigueChange)}`}>
-                                    {fatigueReadiness.fatigueChange >= 0 ? '+' : ''}{fatigueReadiness.fatigueChange}
+                                    {fatigueReadiness.fatigueChange >= 0 ? '+' : ''}{fatigueReadiness.fatigueChange} pts
                                 </span>
                             </div>
                         </div>
@@ -217,19 +217,19 @@ const InsightsPage: React.FC<InsightsPageProps> = ({
                             </p>
                         </div>
 
-                        {/* Weekly Averages */}
+                        {/* Today's Current Values */}
                         <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-800">
                             <div className="text-center">
                                 <div className="text-lg font-medium text-neutral-700 dark:text-neutral-300">
-                                    {fatigueReadiness.weeklyReadinessAvg}%
+                                    {fatigueReadiness.currentReadiness}%
                                 </div>
-                                <div className="text-[10px] uppercase tracking-widest text-neutral-500">7-Day Avg Readiness</div>
+                                <div className="text-[10px] uppercase tracking-widest text-neutral-500">Today's Readiness</div>
                             </div>
                             <div className="text-center">
                                 <div className="text-lg font-medium text-neutral-700 dark:text-neutral-300">
-                                    {fatigueReadiness.weeklyFatigueAvg}%
+                                    {fatigueReadiness.currentFatigue}%
                                 </div>
-                                <div className="text-[10px] uppercase tracking-widest text-neutral-500">7-Day Avg Fatigue</div>
+                                <div className="text-[10px] uppercase tracking-widest text-neutral-500">Today's Fatigue</div>
                             </div>
                         </div>
                     </div>

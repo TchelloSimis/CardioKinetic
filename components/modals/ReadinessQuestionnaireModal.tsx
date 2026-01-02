@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ArrowLeft, History } from 'lucide-react';
+import { X, ArrowLeft, History, Calendar } from 'lucide-react';
 import { QuestionnaireResponse } from '../../types';
 import { AccentColorConfig } from '../../presets';
 import {
@@ -15,6 +15,7 @@ interface ReadinessQuestionnaireModalProps {
     onClose: () => void;
     onSubmit: (response: QuestionnaireResponse) => void;
     existingResponse?: QuestionnaireResponse;
+    allResponses?: QuestionnaireResponse[];  // All responses for date selector feature
     isDarkMode: boolean;
     currentAccent: AccentColorConfig;
     onOpenHistory?: () => void;
@@ -25,20 +26,35 @@ const ReadinessQuestionnaireModal: React.FC<ReadinessQuestionnaireModalProps> = 
     onClose,
     onSubmit,
     existingResponse,
+    allResponses = [],
     isDarkMode,
     currentAccent,
     onOpenHistory
 }) => {
     const [responses, setResponses] = useState<Record<string, number | undefined>>(getDefaultResponses());
+    const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
 
-    // Initialize with existing responses if editing
+    // Initialize with existing responses if editing, or reset on open
     useEffect(() => {
         if (existingResponse) {
+            setSelectedDate(existingResponse.date);
             setResponses(existingResponse.responses);
         } else {
+            setSelectedDate(getLocalDateString());
             setResponses(getDefaultResponses());
         }
     }, [existingResponse, isOpen]);
+
+    // When date changes, load existing response for that date if available
+    const handleDateChange = (newDate: string) => {
+        setSelectedDate(newDate);
+        const existingForDate = allResponses.find(r => r.date === newDate);
+        if (existingForDate) {
+            setResponses(existingForDate.responses);
+        } else {
+            setResponses(getDefaultResponses());
+        }
+    };
 
     const handleValueChange = (questionId: string, value: number | undefined) => {
         setResponses(prev => ({ ...prev, [questionId]: value }));
@@ -54,7 +70,7 @@ const ReadinessQuestionnaireModal: React.FC<ReadinessQuestionnaireModalProps> = 
         }
 
         const response: QuestionnaireResponse = {
-            date: getLocalDateString(),
+            date: selectedDate,  // Use selectedDate instead of always today
             responses: cleanedResponses,
             timestamp: new Date().toISOString()
         };
@@ -109,18 +125,67 @@ const ReadinessQuestionnaireModal: React.FC<ReadinessQuestionnaireModalProps> = 
                     >
                         <ArrowLeft size={24} className="text-neutral-900 dark:text-white" />
                     </button>
-                    <div>
-                        <h2 className="text-xl font-medium text-neutral-900 dark:text-white">
-                            Daily Readiness Check-In
-                        </h2>
-                        <p className="text-sm text-neutral-500">
-                            {existingResponse ? 'Update your responses' : 'How are you feeling today?'}
-                        </p>
-                    </div>
+                    <h2 className="text-xl font-medium text-neutral-900 dark:text-white">
+                        Readiness Check-In
+                    </h2>
                 </div>
 
                 {/* Questions */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                    {/* Date Selector Field */}
+                    <div>
+                        <div className="mb-4">
+                            <span className="text-xs font-bold uppercase tracking-widest text-neutral-400">
+                                Date
+                            </span>
+                        </div>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                                    Which day is this check-in for?
+                                </span>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-3">
+                                    <Calendar size={20} style={{ color: readinessColor }} />
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const input = document.getElementById('date-picker-input') as HTMLInputElement;
+                                            if (input?.showPicker) input.showPicker();
+                                            else input?.focus();
+                                        }}
+                                        className="text-lg font-medium cursor-pointer hover:opacity-80 transition-opacity"
+                                        style={{ color: readinessColor }}
+                                    >
+                                        {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', {
+                                            weekday: 'short',
+                                            month: 'short',
+                                            day: 'numeric',
+                                            year: 'numeric'
+                                        })}
+                                    </button>
+                                    <input
+                                        id="date-picker-input"
+                                        type="date"
+                                        value={selectedDate}
+                                        onChange={(e) => handleDateChange(e.target.value)}
+                                        max={getLocalDateString()}
+                                        className="sr-only"
+                                    />
+                                    {allResponses.find(r => r.date === selectedDate) && selectedDate !== (existingResponse?.date || '') && (
+                                        <span
+                                            className="text-xs px-2 py-1 rounded-md"
+                                            style={{ backgroundColor: `${readinessColor}20`, color: readinessColor }}
+                                        >
+                                            Has existing data
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     {categories.map(category => {
                         const questions = questionsByCategory.get(category) || [];
                         const info = CATEGORY_INFO[category];
