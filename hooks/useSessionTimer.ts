@@ -44,9 +44,14 @@ interface UseSessionTimerReturn {
     adjustWorkDuration: (deltaSeconds: number) => void;
     adjustRestDuration: (deltaSeconds: number) => void;
     adjustTargetPower: (deltaWatts: number) => void;
+    logRpe: (rpe: number) => void;
+    currentRpe: number | null;
     isInitialized: boolean;
     completionResult: SessionResult | null;
 }
+
+// Debounce interval for RPE logging (5 seconds)
+const RPE_DEBOUNCE_MS = 5000;
 
 const INITIAL_STATE: LiveSessionState = {
     isActive: false,
@@ -123,6 +128,11 @@ export const useSessionTimer = (
     const blockResultsRef = useRef<BlockResult[]>([]);
     const currentBlockPowersRef = useRef<{ workPower: number; restPower: number }>({ workPower: 0, restPower: 0 });
 
+    // RPE logging with debounce
+    const rpeHistoryRef = useRef<Array<{ timeSeconds: number; rpe: number }>>([]);
+    const pendingRpeRef = useRef<{ value: number; timestamp: number } | null>(null);
+    const [currentRpe, setCurrentRpe] = useState<number | null>(null);
+
     // Initialize audio on mount
     useEffect(() => {
         const init = async () => {
@@ -177,6 +187,21 @@ export const useSessionTimer = (
         if (params?.sessionStyle === 'custom' && params.blocks && params.blocks.length > 0) {
             result.blocks = params.blocks;
             result.blockResults = [...blockResultsRef.current];
+        }
+
+        // Commit any pending RPE before building result
+        if (pendingRpeRef.current) {
+            const commitElapsed = (pendingRpeRef.current.timestamp - startTimeRef.current - pausedTimeRef.current) / 1000;
+            rpeHistoryRef.current.push({
+                timeSeconds: Math.round(commitElapsed),
+                rpe: pendingRpeRef.current.value
+            });
+            pendingRpeRef.current = null;
+        }
+
+        // Add RPE history if any entries exist
+        if (rpeHistoryRef.current.length > 0) {
+            result.rpeHistory = [...rpeHistoryRef.current];
         }
 
         return result;
@@ -244,6 +269,11 @@ export const useSessionTimer = (
         // Initialize phase log
         phaseLogRef.current = [{ timeSeconds: 0, power: workPower, phase: 'work' }];
         completionResultRef.current = null;
+
+        // Initialize RPE tracking
+        rpeHistoryRef.current = [];
+        pendingRpeRef.current = null;
+        setCurrentRpe(null);
 
         // Handle custom sessions with blocks
         if (params.sessionStyle === 'custom' && params.blocks && params.blocks.length > 0) {
@@ -1029,6 +1059,32 @@ export const useSessionTimer = (
         });
     }, []);
 
+    /**
+     * Log RPE with debounce (5-second tolerance for rapid adjustments)
+     */
+    const logRpe = useCallback((rpe: number) => {
+        const now = Date.now();
+
+        // Set pending RPE (will be committed after debounce period)
+        pendingRpeRef.current = { value: rpe, timestamp: now };
+        setCurrentRpe(rpe);
+
+        // Schedule commit after debounce period
+        setTimeout(() => {
+            const pending = pendingRpeRef.current;
+            // Only commit if this is still the pending value (no newer input)
+            if (pending && pending.timestamp === now) {
+                // Calculate elapsed time at the moment of the ORIGINAL input
+                const commitElapsed = (pending.timestamp - startTimeRef.current - pausedTimeRef.current) / 1000;
+                rpeHistoryRef.current.push({
+                    timeSeconds: Math.round(commitElapsed),
+                    rpe: pending.value
+                });
+                pendingRpeRef.current = null;
+            }
+        }, RPE_DEBOUNCE_MS);
+    }, []);
+
 
     return {
         state,
@@ -1041,6 +1097,8 @@ export const useSessionTimer = (
         adjustWorkDuration,
         adjustRestDuration,
         adjustTargetPower,
+        logRpe,
+        currentRpe,
         isInitialized,
         completionResult: completionResultRef.current,
     };

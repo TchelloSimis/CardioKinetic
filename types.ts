@@ -41,6 +41,14 @@ export interface BlockResult {
   totalIntervals?: number;
 }
 
+/**
+ * A single RPE log entry during a session
+ */
+export interface RpeLogEntry {
+  timeSeconds: number;  // Session time when RPE was logged
+  rpe: number;          // RPE value (1-10, supports 0.5 increments)
+}
+
 // How the program progresses over time - by increasing power, duration, or both
 export type ProgressionMode = 'power' | 'duration' | 'double';
 
@@ -60,6 +68,13 @@ export interface Session {
   workRestRatio?: string; // e.g., "1:2", "1:1"
   weekNum?: number; // The week this session belongs to
   programId?: string; // Link to specific program instance
+  /** Stored chart data for historical viewing */
+  chartData?: {
+    powerHistory: Array<{ timeSeconds: number; power: number; phase: 'work' | 'rest' }>;
+    rpeHistory: RpeLogEntry[];
+    targetRPE: number;
+    initialTargetPower: number;
+  };
 }
 
 export interface ProgramRecord {
@@ -210,6 +225,9 @@ export interface SessionResult {
   // For custom sessions (sessionStyle === 'custom')
   blocks?: SessionBlock[];              // Original block definitions
   blockResults?: BlockResult[];         // Results per block
+
+  // RPE history for completion chart
+  rpeHistory?: RpeLogEntry[];           // Logged RPE values during session
 }
 
 // ============================================================================

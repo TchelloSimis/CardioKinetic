@@ -439,27 +439,37 @@ const SessionSetupModal: React.FC<SessionSetupModalProps> = ({
                 {/* Target RPE */}
                 <div>
                     <label className="block text-xs font-bold uppercase tracking-widest text-neutral-400 mb-2">Target RPE</label>
-                    <div className="flex gap-1 mb-2">
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rpe) => {
-                            const isSelected = targetRPE === rpe;
-                            const rpeColor = getRPEColor(rpe);
-                            return (
-                                <button
-                                    key={rpe}
-                                    onClick={() => setTargetRPE(rpe)}
-                                    className="flex-1 py-3 rounded-lg text-sm font-bold"
-                                    style={{
-                                        backgroundColor: isSelected ? rpeColor : isDarkMode ? '#262626' : '#e5e5e5',
-                                        color: isSelected ? '#ffffff' : undefined,
-                                    }}
-                                >
-                                    {rpe}
-                                </button>
-                            );
-                        })}
+                    <div className="flex items-center gap-3 mb-3">
+                        <span className="text-xs text-neutral-500 w-6">1</span>
+                        <input
+                            type="range"
+                            min="1"
+                            max="10"
+                            step="0.5"
+                            value={targetRPE}
+                            onChange={(e) => setTargetRPE(Number(e.target.value))}
+                            className={`flex-1 h-3 rounded-lg appearance-none cursor-pointer 
+                                [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white
+                                [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow-lg`}
+                            style={{
+                                background: `linear-gradient(to right, ${readinessColor}, ${fatigueColor})`,
+                                // @ts-ignore - CSS custom property for thumb color
+                                '--thumb-bg': getRPEColor(targetRPE),
+                            } as React.CSSProperties & { '--thumb-bg': string }}
+                        />
+                        <span className="text-xs text-neutral-500 w-6 text-right">10</span>
+                        <style>{`
+                            input[type="range"]::-webkit-slider-thumb { background-color: ${getRPEColor(targetRPE)}; }
+                            input[type="range"]::-moz-range-thumb { background-color: ${getRPEColor(targetRPE)}; }
+                        `}</style>
                     </div>
-                    <div className="text-center text-sm py-2 px-4 rounded-xl" style={{ backgroundColor: `${getRPEColor(targetRPE)}20`, color: getRPEColor(targetRPE) }}>
-                        {RPE_DESCRIPTIONS[targetRPE]}
+                    <div className="flex justify-center items-center mb-3">
+                        <span className="text-4xl font-mono font-bold" style={{ color: getRPEColor(targetRPE) }}>
+                            {targetRPE}
+                        </span>
+                    </div>
+                    <div className="text-center text-sm py-3 px-4 rounded-xl" style={{ backgroundColor: `${getRPEColor(targetRPE)}20`, color: getRPEColor(targetRPE) }}>
+                        {RPE_DESCRIPTIONS[targetRPE] || RPE_DESCRIPTIONS[Math.round(targetRPE)] || "Adjust slider to see description."}
                     </div>
                 </div>
             </div>

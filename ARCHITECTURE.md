@@ -37,9 +37,9 @@ cardiokinetic/
 │   ├── LiveSessionGuide.tsx # Guided workout screen
 │   ├── SessionLog.tsx      # Manual session logging
 │   ├── Onboarding.tsx      # First-run setup
-│   ├── modals/             # Modal dialogs
+│   ├── modals/             # Modal dialogs (inc. SessionChartModal for chart viewing)
 │   ├── settings/           # Settings sub-screens
-│   ├── liveSession/        # Live session sub-components
+│   ├── liveSession/        # Live session sub-components (RPE slider, phase controls)
 │   └── devtools/           # Developer tools (accessible via Settings → Dev Tools)
 │
 ├── hooks/                  # Custom React hooks
@@ -121,6 +121,7 @@ flowchart TD
 
 - **Session**: A single workout entry
   - Records: date, duration, power, RPE, work/rest ratio
+  - Guided sessions store `chartData` (power/RPE history for post-session visualization)
   - Linked to a program via `programId`
 
 ### Metrics Engine
@@ -292,6 +293,6 @@ npm run test:run   # Single run (CI)
 |------|------------|
 | **ACWR** | Acute:Chronic Workload Ratio - injury risk metric |
 | **TSB** | Training Stress Balance - readiness indicator |
-| **RPE** | Rate of Perceived Exertion (1-10 scale) |
+| **RPE** | Rate of Perceived Exertion (1-10 scale). Descriptions defined in `components/modals/sessionSetupUtils.ts` (single source of truth, supports 0.5 increments) |
 | **ATL** | Acute Training Load - recent stress |
 | **CTL** | Chronic Training Load - fitness level |

@@ -15,18 +15,28 @@ export const DEFAULT_WORK_DARK = '#34d399';   // brighter green for work in dark
 export const DEFAULT_REST_LIGHT = '#0284c7';  // blue for rest
 export const DEFAULT_REST_DARK = '#38bdf8';   // bright blue for rest in dark
 
-// RPE descriptions
+// RPE descriptions (aligned with exercise science standards)
+// Includes 0.5 increments for slider precision
 export const RPE_DESCRIPTIONS: Record<number, string> = {
-    1: 'Very light - minimal effort',
-    2: 'Light - easy conversation',
-    3: 'Light - comfortable pace',
-    4: 'Moderate - mild effort',
-    5: 'Moderate - sustainable',
-    6: 'Somewhat hard - working',
-    7: 'Hard - challenging',
-    8: 'Very hard - difficult',
-    9: 'Extremely hard - near max',
-    10: 'Maximum - all-out effort',
+    1: 'Minimum Effort - Bare minimum exertion; a gentle stroll. Could continue all day',
+    1.5: 'Very Light - Barely noticeable effort, completely relaxed',
+    2: 'Light and Easy - Non-taxing, easy to maintain conversation. Could continue for hours',
+    2.5: 'Easy - Very light effort, breathing completely relaxed',
+    3: 'Comfortable Pace - Able to maintain a conversation without getting out of breath',
+    3.5: 'Light Moderate - Warming up, conversation still easy',
+    4: 'Comfortable With Some Effort - Slight push, can speak a few sentences without struggling',
+    4.5: 'Moderate - Breaking a light sweat, conversation comfortable',
+    5: 'Progressive Pace - Requires some pushing to maintain; still able to hold a conversation',
+    5.5: 'Moderate Hard - Effort noticeable, conversation becoming shorter',
+    6: 'Hard Activity - Labored breathing, challenging but sustainable for 30-60 mins',
+    6.5: 'Challenging - Breathing heavier, can still talk in short phrases',
+    7: 'Vigorous Activity - Can speak in short sentences; becomes uncomfortable quickly',
+    7.5: 'Very Challenging - Requires constant effort, speaking difficult',
+    8: 'Hard Intensity - Requires focus to maintain; hard to say more than 2-3 words',
+    8.5: 'Very Hard - Difficult to maintain, very heavy breathing',
+    9: 'Very Hard Intensity - Hard to speak, breathing labored after a few seconds',
+    9.5: 'Near Maximum - Can hardly speak, mental toughness required',
+    10: 'All-Out Sprint - Maximum possible effort, sustainable for just 20-30 seconds',
 };
 
 // ============================================================================

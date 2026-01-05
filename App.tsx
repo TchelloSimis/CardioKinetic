@@ -15,6 +15,7 @@ import SessionSetupModal from './components/modals/SessionSetupModal';
 import ReadinessQuestionnaireModal from './components/modals/ReadinessQuestionnaireModal';
 import QuestionnaireHistory from './components/QuestionnaireHistory';
 import LiveSessionGuide from './components/LiveSessionGuide';
+import SessionChartModal from './components/modals/SessionChartModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Session, PlanWeek, ReadinessState, ProgramPreset, ProgramRecord, SessionSetupParams, SessionResult, QuestionnaireResponse } from './types';
 import { FatigueModifier } from './programTemplate';
@@ -87,6 +88,7 @@ const App: React.FC = () => {
     const [showQuestionnaireHistory, setShowQuestionnaireHistory] = useState(false);
     const [editingQuestionnaireResponse, setEditingQuestionnaireResponse] = useState<QuestionnaireResponse | null>(null);
     const [showInsightsPage, setShowInsightsPage] = useState(false);
+    const [chartViewSession, setChartViewSession] = useState<Session | null>(null);
 
     // Tab subcategory state (lifted from child components for back button handling)
     const [settingsCategory, setSettingsCategory] = useState<SettingsCategory>('main');
@@ -572,6 +574,13 @@ const App: React.FC = () => {
             weekNum: currentWeekNum,
             programId: activeProgram?.id,
             notes,
+            // Persist chart data for historical viewing
+            chartData: {
+                powerHistory: result.powerHistory || [],
+                rpeHistory: result.rpeHistory || [],
+                targetRPE: result.targetRPE,
+                initialTargetPower: result.initialTargetPower || result.targetPower,
+            },
         } as Session);
         // Preserve result for back navigation to completion screen
         setPreservedSessionResult(result);
@@ -723,7 +732,7 @@ const App: React.FC = () => {
             {showLogModal && (
                 <div className="fixed inset-0 z-[100] bg-white dark:bg-black flex flex-col animate-in slide-in-from-bottom-10 duration-300">
                     <div className="flex-1 overflow-auto p-6">
-                        <SessionLog onAddSession={handleSaveSession} onCancel={() => { setShowLogModal(false); setEditingSession(null); }} currentWeekPlan={currentWeekPlan} allPlans={adaptedPlan} startDate={settings.startDate} currentWeekNum={currentWeekNum} restRecoveryPercentage={settings.restRecoveryPercentage} initialData={editingSession || undefined} />
+                        <SessionLog onAddSession={handleSaveSession} onCancel={() => { setShowLogModal(false); setEditingSession(null); }} currentWeekPlan={currentWeekPlan} allPlans={adaptedPlan} startDate={settings.startDate} currentWeekNum={currentWeekNum} restRecoveryPercentage={settings.restRecoveryPercentage} initialData={editingSession || undefined} accentColor={accentValue} accentAltColor={accentAltValue} />
                     </div>
                 </div>
             )}
@@ -763,6 +772,7 @@ const App: React.FC = () => {
                 }}
                 onComplete={handleSessionComplete}
                 accentColor={accentValue}
+                accentAltColor={accentAltValue}
                 backButtonPressed={liveSessionBackPress}
             />
 
@@ -836,6 +846,7 @@ const App: React.FC = () => {
                                         todayQuestionnaireResponse={getTodayQuestionnaireResponse()}
                                         onOpenQuestionnaire={() => setShowQuestionnaireModal(true)}
                                         onOpenInsights={() => setShowInsightsPage(true)}
+                                        onViewChart={(session) => setChartViewSession(session)}
                                     />
                                 </ErrorBoundary>
                             </div>
@@ -954,6 +965,18 @@ const App: React.FC = () => {
                     currentMetrics={metrics}
                     activeProgram={activeProgram}
                     onClose={() => setShowInsightsPage(false)}
+                />
+            )}
+
+            {/* Session Chart Modal */}
+            {chartViewSession && (
+                <SessionChartModal
+                    session={chartViewSession}
+                    isOpen={!!chartViewSession}
+                    onClose={() => setChartViewSession(null)}
+                    accentColor={accentValue}
+                    accentAltColor={accentAltValue}
+                    isDarkMode={isDarkMode}
                 />
             )}
         </div>

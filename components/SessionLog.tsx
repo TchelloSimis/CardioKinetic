@@ -1,8 +1,11 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Session, PlanWeek, SessionBlock } from '../types';
-import { Calculator, ArrowRight, RefreshCw, X, Layers } from 'lucide-react';
+import { Calculator, ArrowRight, RefreshCw, X, Layers, ChevronDown, ChevronUp, BarChart2 } from 'lucide-react';
 import { getLocalDateString, getWeekNumber } from '../utils/dateUtils';
+import { RPE_DESCRIPTIONS } from './modals/sessionSetupUtils';
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip } from 'recharts';
+import { interpolateRpeData } from './liveSessionUtils';
 
 interface SessionLogProps {
   onAddSession: (session: Session) => void;
@@ -13,22 +16,14 @@ interface SessionLogProps {
   startDate: string;
   initialData?: Session;
   restRecoveryPercentage?: number; // Optional to support legacy usage, but expected
+  accentColor?: string;
+  accentAltColor?: string;
 }
 
-const RPE_GUIDE: Record<number, string> = {
-  1: "Very Light - Little to no effort, like watching TV.",
-  2: "Light - Easy to breathe and carry on a conversation.",
-  3: "Light/Moderate - Can talk easily, warming up.",
-  4: "Moderate - Breaking a sweat, can talk in short sentences.",
-  5: "Moderate - Comfortable but somewhat challenging.",
-  6: "Moderate/Hard - Breathing heavier, can still talk.",
-  7: "Hard - Uncomfortable, can speak a few words.",
-  8: "Very Hard - Difficult to maintain, heavy breathing.",
-  9: "Extremely Hard - Mental toughness required, can hardly speak.",
-  10: "Max Effort - Exhaustion, gasping for air, cannot speak."
-};
+// Use shared RPE descriptions from sessionSetupUtils
+const RPE_GUIDE = RPE_DESCRIPTIONS;
 
-const SessionLog: React.FC<SessionLogProps> = ({ onAddSession, onCancel, currentWeekPlan, allPlans, currentWeekNum, startDate, initialData, restRecoveryPercentage = 50 }) => {
+const SessionLog: React.FC<SessionLogProps> = ({ onAddSession, onCancel, currentWeekPlan, allPlans, currentWeekNum, startDate, initialData, restRecoveryPercentage = 50, accentColor = '#3b82f6', accentAltColor = '#eab308' }) => {
   // Determine if this is a steady-state session based on the plan
   // Check for sessionStyle or various steady-state ratio formats (steady, 1:0)
   const isSteadyState = currentWeekPlan.sessionStyle === 'steady-state' ||
@@ -79,6 +74,78 @@ const SessionLog: React.FC<SessionLogProps> = ({ onAddSession, onCancel, current
     const w = getWeekForDate(formData.date);
     setCalculatedWeek(w);
   }, [formData.date, startDate]);
+
+  // Chart accordion state
+  const [chartExpanded, setChartExpanded] = useState(false);
+
+  // Derive chart data from initialData if available
+  const sessionChartData = useMemo(() => {
+    if (!initialData?.chartData) return null;
+
+    const { powerHistory, rpeHistory, targetRPE, initialTargetPower } = initialData.chartData;
+
+    // Calculate session duration
+    const durationSeconds = initialData.duration * 60;
+
+    // Interpolate RPE data
+    const rpeData = interpolateRpeData(rpeHistory, durationSeconds, targetRPE);
+
+    // Create a merged dataset by time for proper tooltip support
+    // Build a map of time -> { power, rpe }
+    const timeMap = new Map<number, { power?: number; rpe?: number }>();
+
+    // Add power data points
+    powerHistory.forEach(p => {
+      const time = Math.round(p.timeSeconds / 60 * 10) / 10;
+      const existing = timeMap.get(time) || {};
+      timeMap.set(time, { ...existing, power: p.power });
+    });
+
+    // Add RPE data points
+    rpeData.forEach(r => {
+      const time = r.time;
+      const existing = timeMap.get(time) || {};
+      timeMap.set(time, { ...existing, rpe: r.rpe });
+    });
+
+    // Convert to sorted array
+    const mergedData = Array.from(timeMap.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([time, values]) => ({
+        time,
+        power: values.power,
+        rpe: values.rpe,
+      }));
+
+    // Calculate power domain with 15% padding above max
+    const powers = powerHistory.map(p => p.power);
+    const maxPower = Math.max(...powers);
+    const minPower = Math.min(...powers);
+    const powerPadding = (maxPower - minPower) * 0.15 || 20; // 15% padding or 20W min
+    const powerDomain: [number, number] = [
+      Math.max(0, Math.floor((minPower - powerPadding) / 10) * 10),
+      Math.ceil((maxPower + powerPadding) / 10) * 10
+    ];
+
+    // Calculate RPE domain with padding above max data point
+    // Keep min at 1 to show full scale, add ~1 point padding above max
+    const rpes = rpeData.map(r => r.rpe);
+    const maxRpe = rpes.length > 0 ? Math.max(...rpes) : 10;
+    // Domain: always start at 1, extend to max+1 for padding
+    const rpeDomain: [number, number] = [
+      1, // Always show from 1
+      Math.ceil(maxRpe) + 1 // Add 1 point padding above max
+    ];
+
+    return {
+      mergedData,
+      powerDomain,
+      rpeDomain,
+      targetRpe: targetRPE,
+      targetPower: initialTargetPower,
+      hasRpeData: rpeData.length > 0,
+    };
+  }, [initialData]);
 
   const activePlan = allPlans.find(p => p.week === calculatedWeek) || currentWeekPlan;
 
@@ -207,7 +274,9 @@ const SessionLog: React.FC<SessionLogProps> = ({ onAddSession, onCancel, current
       restPower: Number(formData.restPower),
       distance: Number(formData.distance) || 0,
       rpe: Number(formData.rpe),
-      weekNum: calculatedWeek
+      weekNum: calculatedWeek,
+      // Preserve chartData from guided session if available
+      ...(initialData?.chartData && { chartData: initialData.chartData }),
     });
     setFormData(prev => ({ ...prev, notes: '' }));
   };
@@ -423,40 +492,194 @@ const SessionLog: React.FC<SessionLogProps> = ({ onAddSession, onCancel, current
             )}
           </div>
 
-          {/* RPE & Distance */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <div className="flex justify-between items-end mb-2">
-                <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">RPE</label>
-                <span className="text-2xl font-bold font-mono text-neutral-900 dark:text-white">{formData.rpe}</span>
-              </div>
-              <input
-                type="range"
-                min="1"
-                max="10"
-                step="0.5"
-                value={formData.rpe}
-                onChange={(e) => setFormData({ ...formData, rpe: Number(e.target.value) })}
-                className="w-full h-2 bg-neutral-200 dark:bg-neutral-800 rounded-full appearance-none cursor-pointer accent-neutral-900 dark:accent-white"
-              />
-              <div className="mt-3 bg-neutral-100 dark:bg-neutral-900 p-3 rounded-lg border border-neutral-200 dark:border-neutral-800">
-                <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed font-medium">
-                  {RPE_GUIDE[Math.round(formData.rpe)] || "Adjust slider to see description."}
-                </p>
-              </div>
+          {/* RPE */}
+          <div>
+            <div className="flex justify-between items-end mb-2">
+              <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">RPE</label>
+              <span className="text-2xl font-bold font-mono text-neutral-900 dark:text-white">{formData.rpe}</span>
             </div>
+            <input
+              type="range"
+              min="1"
+              max="10"
+              step="0.5"
+              value={formData.rpe}
+              onChange={(e) => setFormData({ ...formData, rpe: Number(e.target.value) })}
+              className="w-full h-2 bg-neutral-200 dark:bg-neutral-800 rounded-full appearance-none cursor-pointer accent-neutral-900 dark:accent-white"
+            />
+            <div className="mt-3 bg-neutral-100 dark:bg-neutral-900 p-3 rounded-lg border border-neutral-200 dark:border-neutral-800">
+              <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed font-medium">
+                {RPE_GUIDE[formData.rpe] || RPE_GUIDE[Math.round(formData.rpe)] || "Adjust slider to see description."}
+              </p>
+            </div>
+          </div>
 
-            <div>
-              <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-2 block">Distance (Optional)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.distance}
-                onChange={(e) => setFormData({ ...formData, distance: Number(e.target.value) })}
-                className="w-full bg-neutral-100 dark:bg-neutral-900 border-none rounded-xl p-4 text-neutral-900 dark:text-white focus:ring-1 focus:ring-neutral-400 outline-none font-mono text-sm"
-                placeholder="0.00"
-              />
+          {/* Session Chart Accordion - only show when editing session with chart data */}
+          {sessionChartData && (
+            <div className="bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setChartExpanded(!chartExpanded)}
+                className="w-full flex items-center justify-between p-4 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
+              >
+                <div className="flex items-center gap-2 text-neutral-900 dark:text-white">
+                  <BarChart2 size={16} />
+                  <span className="text-xs font-bold uppercase tracking-widest">Session Chart</span>
+                </div>
+                {chartExpanded ? (
+                  <ChevronUp size={18} className="text-neutral-400" />
+                ) : (
+                  <ChevronDown size={18} className="text-neutral-400" />
+                )}
+              </button>
+
+              {chartExpanded && (
+                <div className="p-4">
+                  {/* Chart */}
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                        data={sessionChartData.mergedData}
+                        margin={{ top: 10, right: sessionChartData.hasRpeData ? 35 : 15, left: 5, bottom: 5 }}
+                      >
+                        <XAxis
+                          dataKey="time"
+                          type="number"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: 'rgba(128,128,128,0.6)', fontSize: 10 }}
+                          tickFormatter={(v) => `${v}m`}
+                          domain={['dataMin', 'dataMax']}
+                          allowDuplicatedCategory={false}
+                        />
+                        <YAxis
+                          yAxisId="power"
+                          orientation="left"
+                          domain={sessionChartData.powerDomain}
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: 'rgba(128,128,128,0.6)', fontSize: 9 }}
+                          tickFormatter={(v) => `${v}W`}
+                          width={40}
+                        />
+                        {sessionChartData.hasRpeData && (
+                          <YAxis
+                            yAxisId="rpe"
+                            orientation="right"
+                            domain={sessionChartData.rpeDomain}
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: 'rgba(128,128,128,0.6)', fontSize: 9 }}
+                            tickFormatter={(v) => `${v}`}
+                            width={25}
+                            ticks={[1, 5, 10]}
+                          />
+                        )}
+                        <Tooltip
+                          content={({ active, payload, label }) => {
+                            if (active && payload && payload.length) {
+                              return (
+                                <div className="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 shadow-xl z-50 pointer-events-none">
+                                  <p className="text-neutral-900 dark:text-white font-bold mb-2 text-[10px] tracking-widest uppercase">
+                                    {typeof label === 'number' ? label.toFixed(1) : label}m
+                                  </p>
+                                  {payload.map((entry: any, index: number) => {
+                                    if (entry.value === null || entry.value === undefined) return null;
+                                    return (
+                                      <div key={index} className="flex items-center justify-between gap-4 mb-1 last:mb-0">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: entry.stroke }}></div>
+                                          <span className="text-[10px] uppercase text-neutral-500 dark:text-neutral-400">{entry.name}</span>
+                                        </div>
+                                        <span className="font-mono font-bold text-xs text-neutral-900 dark:text-white">
+                                          {typeof entry.value === 'number' ? Math.round(entry.value) : entry.value}
+                                          {entry.name === 'Power' ? 'W' : ''}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                          cursor={{ stroke: 'rgba(128,128,128,0.3)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                        />
+                        {/* Target power reference line */}
+                        <ReferenceLine
+                          yAxisId="power"
+                          y={sessionChartData.targetPower}
+                          stroke="rgba(128,128,128,0.2)"
+                          strokeWidth={1}
+                          strokeDasharray="4 4"
+                        />
+                        {/* Target RPE reference line */}
+                        {sessionChartData.hasRpeData && (
+                          <ReferenceLine
+                            yAxisId="rpe"
+                            y={sessionChartData.targetRpe}
+                            stroke={`${accentAltColor}66`}
+                            strokeWidth={1}
+                            strokeDasharray="4 4"
+                          />
+                        )}
+                        {/* Power line */}
+                        <Line
+                          yAxisId="power"
+                          type="stepAfter"
+                          dataKey="power"
+                          stroke={accentColor}
+                          strokeWidth={2}
+                          dot={false}
+                          name="Power"
+                          connectNulls={false}
+                        />
+                        {/* RPE line */}
+                        {sessionChartData.hasRpeData && (
+                          <Line
+                            yAxisId="rpe"
+                            type="monotone"
+                            dataKey="rpe"
+                            stroke={accentAltColor}
+                            strokeWidth={2}
+                            dot={false}
+                            name="RPE"
+                            connectNulls={false}
+                          />
+                        )}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Legend */}
+                  <div className="flex justify-center gap-4 mt-4 text-[10px] text-neutral-500">
+                    <span className="flex items-center gap-1">
+                      <span className="w-4 h-0.5" style={{ backgroundColor: accentColor }}></span>
+                      Power
+                    </span>
+                    {sessionChartData.hasRpeData && (
+                      <span className="flex items-center gap-1">
+                        <span className="w-4 h-0.5" style={{ backgroundColor: accentAltColor }}></span>
+                        RPE
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
+          )}
+
+          {/* Distance */}
+          <div>
+            <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-2 block">Distance (Optional)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={formData.distance}
+              onChange={(e) => setFormData({ ...formData, distance: Number(e.target.value) })}
+              className="w-full bg-neutral-100 dark:bg-neutral-900 border-none rounded-xl p-4 text-neutral-900 dark:text-white focus:ring-1 focus:ring-neutral-400 outline-none font-mono text-sm"
+              placeholder="0.00"
+            />
           </div>
 
           <button

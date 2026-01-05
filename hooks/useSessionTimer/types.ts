@@ -29,6 +29,8 @@ export interface UseSessionTimerReturn {
     adjustWorkDuration: (deltaSeconds: number) => void;
     adjustRestDuration: (deltaSeconds: number) => void;
     adjustTargetPower: (deltaWatts: number) => void;
+    logRpe: (rpe: number) => void;
+    currentRpe: number | null;
     isInitialized: boolean;
     completionResult: SessionResult | null;
 }
@@ -113,6 +115,9 @@ export interface SessionRefs {
     blockIntervalsCompleted: number;
     blockResults: BlockResult[];
     currentBlockPowers: { workPower: number; restPower: number };
+    // RPE logging with debounce
+    rpeHistory: Array<{ timeSeconds: number; rpe: number }>;
+    pendingRpe: { value: number; timestamp: number } | null;
 }
 
 export const createInitialRefs = (): SessionRefs => ({
@@ -144,4 +149,6 @@ export const createInitialRefs = (): SessionRefs => ({
     blockIntervalsCompleted: 0,
     blockResults: [],
     currentBlockPowers: { workPower: 0, restPower: 0 },
+    rpeHistory: [],
+    pendingRpe: null,
 });

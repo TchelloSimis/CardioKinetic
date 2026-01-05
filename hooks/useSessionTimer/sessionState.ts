@@ -23,6 +23,16 @@ export function buildSessionResult(
     const params = refs.setupParams;
     const endTime = Date.now();
 
+    // Commit any pending RPE before building result
+    if (refs.pendingRpe) {
+        const commitElapsed = (refs.pendingRpe.timestamp - refs.startTime - refs.pausedTime) / 1000;
+        refs.rpeHistory.push({
+            timeSeconds: Math.round(commitElapsed),
+            rpe: refs.pendingRpe.value
+        });
+        refs.pendingRpe = null;
+    }
+
     const result: SessionResult = {
         actualDurationMinutes: Math.round(sessionState.sessionTimeElapsed / 60 * 10) / 10,
         intervalsCompleted: sessionState.currentInterval,
@@ -42,6 +52,7 @@ export function buildSessionResult(
         actualWorkRestRatio: computeActualRatio(refs.workPhaseTime, refs.restPhaseTime),
         powerHistory: [...refs.phaseLog],
         initialTargetPower: refs.initialTargetPower,
+        rpeHistory: refs.rpeHistory.length > 0 ? [...refs.rpeHistory] : undefined,
     };
 
     // Add custom session block data

@@ -9,6 +9,7 @@ import { initAudioContext } from '../utils/audioService';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { stopSessionNotification } from '../utils/foregroundService';
 import { formatTime, calculateProgress, getAccentDarkBg, generateSessionChartData } from './liveSessionUtils';
+import RpeSlider from './liveSession/RpeSlider';
 
 interface LiveSessionGuideProps {
     isOpen: boolean;
@@ -16,7 +17,8 @@ interface LiveSessionGuideProps {
     onClose: () => void;
     onBackToSetup: () => void; // Called when user cancels (X) mid-session
     onComplete: (result: SessionResult) => void;
-    accentColor?: string; // For the completion screen and chart
+    accentColor?: string; // For the completion screen and chart (power line)
+    accentAltColor?: string; // Alt accent for RPE line on chart
     backButtonPressed?: number; // Increment to trigger back button handling (like X button)
 }
 
@@ -33,6 +35,7 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
     onBackToSetup,
     onComplete,
     accentColor = '#34d399',
+    accentAltColor = '#059669',
     backButtonPressed = 0,
 }) => {
     const [confirmStop, setConfirmStop] = useState(false);
@@ -60,6 +63,7 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
         adjustWorkDuration,
         adjustRestDuration,
         adjustTargetPower,
+        logRpe,
         isInitialized,
         completionResult,
     } = useSessionTimer({
@@ -68,6 +72,22 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
             pendingResultRef.current = result;
         },
     });
+
+    // RPE slider state - initialized from target RPE
+    const [sliderRpe, setSliderRpe] = useState<number>(6);
+
+    // Sync slider to session target RPE on start
+    useEffect(() => {
+        if (params?.targetRPE) {
+            setSliderRpe(params.targetRPE);
+        }
+    }, [params?.targetRPE]);
+
+    // Handle RPE slider change with debounced logging
+    const handleRpeChange = (rpe: number) => {
+        setSliderRpe(rpe);
+        logRpe(rpe);
+    };
 
     // Start session when params are provided
     useEffect(() => {
@@ -262,7 +282,7 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
     };
 
     // Chart data for completion screen (must be before early return for hooks rules)
-    const { actualData, plannedData, blockBoundaries } = useMemo(() => {
+    const { actualData, plannedData, blockBoundaries, rpeData, targetRpe } = useMemo(() => {
         const result = completionResult || pendingResultRef.current;
         return generateSessionChartData(
             params,
@@ -303,6 +323,13 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
         : isRestPhase
             ? 'bg-blue-500'
             : 'bg-amber-500';
+
+    // Hex color for phase (used by RpeSlider gradient)
+    const phaseHexColor = isWorkPhase
+        ? '#22c55e' // green-500
+        : isRestPhase
+            ? '#3b82f6' // blue-500
+            : '#f59e0b'; // amber-500
 
 
 
@@ -356,7 +383,7 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
 
             {/* Harder/Easier Buttons - At top for easy access */}
             {!isComplete && (
-                <div className="flex justify-center gap-4 px-6 pb-4">
+                <div className="flex justify-center gap-4 px-6 pb-2">
                     <button
                         onClick={handleEasier}
                         className="flex-1 max-w-[140px] py-2 bg-white/10 hover:bg-white/20 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors"
@@ -374,20 +401,31 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
                 </div>
             )}
 
+            {/* RPE Slider - Always visible during session */}
+            {!isComplete && (
+                <div className="flex justify-center px-6 pb-2">
+                    <RpeSlider
+                        value={sliderRpe}
+                        onChange={handleRpeChange}
+                        phaseColor={phaseHexColor}
+                    />
+                </div>
+            )}
+
             {/* Main Content */}
             <div className="flex-1 flex flex-col items-center justify-center px-6 relative">
 
                 {/* Phase Indicator */}
                 {!isSteadyState && !isComplete && !isCustomSteadyBlock && (
                     <div
-                        className={`${phaseBgColor} px-6 py-2 rounded-full text-lg font-bold uppercase tracking-widest mb-6 animate-pulse`}
+                        className={`${phaseBgColor} px-5 py-1.5 rounded-full text-base font-bold uppercase tracking-widest mb-3 animate-pulse`}
                     >
                         {isWorkPhase ? 'Work' : 'Rest'}
                     </div>
                 )}
 
                 {(isSteadyState || isCustomSteadyBlock) && !isComplete && (
-                    <div className="bg-white/20 px-6 py-2 rounded-full text-lg font-bold uppercase tracking-widest mb-6">
+                    <div className="bg-white/20 px-5 py-1.5 rounded-full text-base font-bold uppercase tracking-widest mb-3">
                         Keep Going
                     </div>
                 )}
@@ -404,11 +442,11 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
                         {/* Session Power Chart */}
                         <div className="w-full max-w-md mb-4 rounded-2xl bg-white/10 p-4">
                             <div className="text-xs font-bold uppercase tracking-widest text-white/60 mb-3 text-center">
-                                Session Power
+                                Session Power {rpeData.length > 0 ? '& RPE' : ''}
                             </div>
                             <div className="h-32">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                                    <LineChart margin={{ top: 5, right: rpeData.length > 0 ? 30 : 10, left: 10, bottom: 5 }}>
                                         <XAxis
                                             dataKey="time"
                                             type="number"
@@ -420,9 +458,23 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
                                             allowDuplicatedCategory={false}
                                         />
                                         <YAxis
+                                            yAxisId="power"
                                             hide
                                             domain={['dataMin - 20', 'dataMax + 20']}
                                         />
+                                        {rpeData.length > 0 && (
+                                            <YAxis
+                                                yAxisId="rpe"
+                                                orientation="right"
+                                                domain={[1, 10]}
+                                                axisLine={false}
+                                                tickLine={false}
+                                                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 9 }}
+                                                tickFormatter={(v) => `${v}`}
+                                                width={20}
+                                                ticks={[1, 5, 10]}
+                                            />
+                                        )}
                                         {/* Block boundary lines for custom sessions */}
                                         {blockBoundaries.map((boundary, index) => (
                                             <ReferenceLine
@@ -431,6 +483,7 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
                                                 stroke="rgba(255,255,255,0.4)"
                                                 strokeWidth={1}
                                                 strokeDasharray="3 3"
+                                                yAxisId="power"
                                                 label={{
                                                     value: boundary.label,
                                                     position: 'top',
@@ -439,8 +492,19 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
                                                 }}
                                             />
                                         ))}
+                                        {/* Target RPE reference line */}
+                                        {rpeData.length > 0 && (
+                                            <ReferenceLine
+                                                yAxisId="rpe"
+                                                y={targetRpe}
+                                                stroke="rgba(255,255,255,0.3)"
+                                                strokeWidth={1}
+                                                strokeDasharray="4 4"
+                                            />
+                                        )}
                                         {/* Planned line (dashed, dimmed) */}
                                         <Line
+                                            yAxisId="power"
                                             data={plannedData}
                                             type="stepAfter"
                                             dataKey="plannedPower"
@@ -452,6 +516,7 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
                                         />
                                         {/* Actual line (solid, accent color) */}
                                         <Line
+                                            yAxisId="power"
                                             data={actualData}
                                             type="stepAfter"
                                             dataKey="actualPower"
@@ -460,6 +525,19 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
                                             dot={false}
                                             name="Actual"
                                         />
+                                        {/* RPE line (smooth curve, alt accent color) */}
+                                        {rpeData.length > 0 && (
+                                            <Line
+                                                yAxisId="rpe"
+                                                data={rpeData}
+                                                type="monotone"
+                                                dataKey="rpe"
+                                                stroke={accentAltColor}
+                                                strokeWidth={2}
+                                                dot={false}
+                                                name="RPE"
+                                            />
+                                        )}
                                     </LineChart>
                                 </ResponsiveContainer>
                             </div>
@@ -472,25 +550,31 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
                                     <span className="w-4 h-0.5" style={{ backgroundColor: accentColor }}></span>
                                     Actual
                                 </span>
+                                {rpeData.length > 0 && (
+                                    <span className="flex items-center gap-1">
+                                        <span className="w-4 h-0.5" style={{ backgroundColor: accentAltColor }}></span>
+                                        RPE
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </>
                 )}
 
                 {/* Main Timer Display */}
-                <div className="text-center mb-6 relative z-10">
-                    <div className="text-8xl md:text-9xl font-mono font-bold tracking-tighter">
+                <div className="text-center mb-3 relative z-10">
+                    <div className="text-7xl md:text-8xl font-mono font-bold tracking-tighter">
                         {isComplete ? formatTime(state.sessionTimeElapsed) : formatTime(state.phaseTimeRemaining)}
                     </div>
-                    <div className="text-white/60 text-sm uppercase tracking-widest mt-2">
+                    <div className="text-white/60 text-xs uppercase tracking-widest mt-1">
                         {isComplete ? 'Total Time' : (isSteadyState || isCustomSteadyBlock) ? 'Block Time' : 'Phase Time'}
                     </div>
                 </div>
 
                 {/* Phase Progress Ring (for intervals only - not for steady-state or steady blocks in custom sessions) */}
                 {!isSteadyState && !isComplete && !isCustomSteadyBlock && (
-                    <div className="relative w-40 h-40 mb-6">
-                        <svg className="w-full h-full transform -rotate-90">
+                    <div className="relative w-28 h-28 mb-3">
+                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 160 160">
                             <circle
                                 cx="80"
                                 cy="80"
@@ -515,10 +599,10 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
                             />
                         </svg>
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <div className="text-3xl font-bold">
+                            <div className="text-2xl font-bold">
                                 {state.currentInterval}/{state.totalIntervals}
                             </div>
-                            <div className="text-white/60 text-xs uppercase tracking-widest">
+                            <div className="text-white/60 text-[10px] uppercase tracking-widest">
                                 Intervals
                             </div>
                         </div>
@@ -640,7 +724,7 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
             </div>
 
             {/* Control Buttons */}
-            <div className="p-6 pb-8">
+            <div className="p-6 shrink-0" style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 2rem))' }}>
                 {isComplete ? (
                     <button
                         onClick={handleLogSession}

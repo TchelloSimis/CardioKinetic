@@ -2,6 +2,40 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.7.0] - 2026-01-05
+
+### Added
+
+#### In-Session RPE Logging
+Real-time RPE tracking is now integrated directly into guided training sessions:
+- **Live RPE Slider**: Adjust RPE on the fly with a dedicated slider during sessions
+- **Data Persistence**: RPE history is logged and stored with session results
+- **Safety Features**: Debounced input prevents accidental adjustments
+- **Session Analysis**: View your RPE progression alongside power data in post-session analysis
+
+#### Session Chart Viewer
+A comprehensive charting tool for visualizing session history:
+- **Interactive Charts**: Dual-axis support visualizing Power and RPE simultaneously
+- **Access Everywhere**: View charts from the dashboard session list or within session edit screens
+- **Smart Integration**: Automatically saves and displays chart data for all new guided sessions
+
+### Improved
+
+#### Live Session Experience
+- **Enhanced Layout**: Redesigned for better space efficiency on all devices
+- **Visual Feedback**: RPE slider features phase-aware gradients and dynamic thumb coloring
+- **Optimized Controls**: Larger touch targets and better safe-area handling for notched devices
+
+#### Session Planning
+- **Visual RPE Selection**: New slider-based RPE input replaces button grid
+- **Dynamic Cues**: Interface colors update instantly to reflect selected RPE intensity
+
+### Enhancement
+
+- **RPE Descriptions**: Completely rewritten guide with consistent, actionable descriptions across the app
+- **Fractional RPE**: Support for 0.5 increments for more precise intensity logging
+- **Documentation**: Updated architecture documentation to reflect new data handling
+
 ## [1.6.2] - 2026-01-02
 
 ### Fixed

@@ -35,6 +35,7 @@ interface DashboardTabProps {
     todayQuestionnaireResponse?: QuestionnaireResponse;
     onOpenQuestionnaire: () => void;
     onOpenInsights: () => void;
+    onViewChart?: (session: Session) => void;
 }
 
 const DashboardTab: React.FC<DashboardTabProps> = ({
@@ -52,7 +53,8 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
     onStartSession,
     todayQuestionnaireResponse,
     onOpenQuestionnaire,
-    onOpenInsights
+    onOpenInsights,
+    onViewChart
 }) => {
     const hasCompletedToday = !!todayQuestionnaireResponse;
     const completionTime = hasCompletedToday

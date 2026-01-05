@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ProgramRecord, Session } from '../types';
-import { ChevronDown, ChevronRight, Calendar, Zap, Pencil, Trash2, Check, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Calendar, Zap, Pencil, Trash2, Check, X, BarChart2 } from 'lucide-react';
 import { getWeekNumber, getMaxProgramWeek, isDateInProgramRangeStr } from '../utils/chartUtils';
 
 interface ProgramHistoryProps {
@@ -10,6 +10,7 @@ interface ProgramHistoryProps {
     onDeleteSession?: (sessionId: string) => void;
     onRenameProgram?: (programId: string, newName: string) => void;
     onDeleteProgram?: (programId: string) => void;
+    onViewChart?: (session: Session) => void;
 }
 
 interface WeekGroup {
@@ -29,7 +30,8 @@ const ProgramHistory: React.FC<ProgramHistoryProps> = ({
     onEditSession,
     onDeleteSession,
     onRenameProgram,
-    onDeleteProgram
+    onDeleteProgram,
+    onViewChart
 }) => {
     const [expandedProgramId, setExpandedProgramId] = useState<string | null>(null);
     const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
@@ -92,6 +94,13 @@ const ProgramHistory: React.FC<ProgramHistoryProps> = ({
         e.stopPropagation();
         if (onDeleteSession) {
             onDeleteSession(sessionId);
+        }
+    };
+
+    const handleViewChart = (session: Session, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (onViewChart && session.chartData) {
+            onViewChart(session);
         }
     };
 
@@ -289,6 +298,15 @@ const ProgramHistory: React.FC<ProgramHistoryProps> = ({
 
                                                                 {/* Always visible session actions */}
                                                                 <div className="flex items-center gap-1 shrink-0">
+                                                                    {session.chartData && onViewChart && (
+                                                                        <button
+                                                                            onClick={e => handleViewChart(session, e)}
+                                                                            className="p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"
+                                                                            title="View session chart"
+                                                                        >
+                                                                            <BarChart2 size={14} />
+                                                                        </button>
+                                                                    )}
                                                                     <button
                                                                         onClick={e => handleEditSession(session, e)}
                                                                         className="p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"

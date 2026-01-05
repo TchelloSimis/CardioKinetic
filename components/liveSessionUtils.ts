@@ -4,7 +4,7 @@
  * Helper functions for time formatting, progress calculation, and chart data generation.
  */
 
-import { SessionResult, SessionSetupParams } from '../types';
+import { SessionResult, SessionSetupParams, RpeLogEntry } from '../types';
 
 // ============================================================================
 // TIME FORMATTING
@@ -60,6 +60,11 @@ export interface ChartDataPoint {
     actualPower?: number;
 }
 
+export interface RpeChartDataPoint {
+    time: number;
+    rpe: number;
+}
+
 export interface BlockBoundary {
     time: number;
     label: string;
@@ -69,7 +74,73 @@ export interface SessionChartData {
     actualData: Array<{ time: number; actualPower: number }>;
     plannedData: Array<{ time: number; plannedPower: number }>;
     blockBoundaries: BlockBoundary[];
+    rpeData: RpeChartDataPoint[];
+    targetRpe: number;
 }
+
+// ============================================================================
+// RPE INTERPOLATION
+// ============================================================================
+
+/**
+ * Interpolate RPE values between logged points
+ * Uses linear interpolation with time-weighted sampling
+ */
+export const interpolateRpeData = (
+    rpeHistory: RpeLogEntry[] | undefined,
+    totalDurationSeconds: number,
+    targetRpe: number
+): RpeChartDataPoint[] => {
+    if (!rpeHistory || rpeHistory.length === 0) {
+        // No RPE logged - return empty (no line will be shown)
+        return [];
+    }
+
+    const points: RpeChartDataPoint[] = [];
+    const sampleInterval = 30; // Sample every 30 seconds for smooth curve
+
+    // Sort history by time
+    const sorted = [...rpeHistory].sort((a, b) => a.timeSeconds - b.timeSeconds);
+
+    for (let t = 0; t <= totalDurationSeconds; t += sampleInterval) {
+        const timeMinutes = Math.round(t / 60 * 10) / 10;
+
+        // Find surrounding logged points
+        const before = sorted.filter(p => p.timeSeconds <= t).pop();
+        const after = sorted.find(p => p.timeSeconds > t);
+
+        let interpolatedRpe: number;
+
+        if (!before && !after) {
+            // No data at all - use target
+            interpolatedRpe = targetRpe;
+        } else if (!before) {
+            // Before first entry - use first value
+            interpolatedRpe = after!.rpe;
+        } else if (!after) {
+            // After last entry - hold last value
+            interpolatedRpe = before.rpe;
+        } else {
+            // Linear interpolation between points
+            const ratio = (t - before.timeSeconds) / (after.timeSeconds - before.timeSeconds);
+            interpolatedRpe = before.rpe + (after.rpe - before.rpe) * ratio;
+        }
+
+        points.push({
+            time: timeMinutes,
+            rpe: Math.round(interpolatedRpe * 10) / 10
+        });
+    }
+
+    // Ensure we have an end point
+    const endTime = Math.round(totalDurationSeconds / 60 * 10) / 10;
+    if (points.length > 0 && points[points.length - 1].time < endTime) {
+        const lastRpe = points[points.length - 1].rpe;
+        points.push({ time: endTime, rpe: lastRpe });
+    }
+
+    return points;
+};
 
 // ============================================================================
 // CHART DATA GENERATION
@@ -202,5 +273,19 @@ export const generateSessionChartData = (
         actual.push({ time: Math.round(sessionDuration / 60 * 10) / 10, actualPower: result?.averagePower || targetPower });
     }
 
-    return { actualData: actual, plannedData: planned, blockBoundaries: boundaries };
+    // Generate interpolated RPE data
+    const sessionTargetRpe = result?.targetRPE || params?.targetRPE || 6;
+    const rpeData = interpolateRpeData(
+        result?.rpeHistory,
+        sessionDuration,
+        sessionTargetRpe
+    );
+
+    return {
+        actualData: actual,
+        plannedData: planned,
+        blockBoundaries: boundaries,
+        rpeData,
+        targetRpe: sessionTargetRpe
+    };
 };
