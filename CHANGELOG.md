@@ -2,6 +2,13 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.8.4] - 2026-01-07
+
+### Fixed
+
+- **Insight Value Synchronization**: Resolved discrepancy where Training Insights values differed from the Dashboard by utilizing pre-calculated metrics.
+- **Training Insights UI**: Refactored the "Body Status" section for a cleaner, unified display of MET/MSK load and recovery efficiency, removing redundant legacy indicators.
+
 ## [1.8.3] - 2026-01-07
 
 ### Fixed

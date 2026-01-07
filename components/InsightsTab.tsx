@@ -8,6 +8,7 @@ import {
     calculatePersonalRecords,
     calculateTrends,
     calculateFatigueReadinessInsights,
+    generateInsightFromMetrics,
     getRecentActivity,
     formatChange,
     getChangeColor,
@@ -79,7 +80,7 @@ const InsightsPage: React.FC<InsightsPageProps> = ({
     );
 
     // Use current values from useMetrics (includes questionnaire adjustments). 
-    // Recalculate changes and trend based on the adjusted current values vs previous week
+    // Generate insight text from these same values to ensure consistency with dashboard.
     const fatigueReadiness = useMemo(() => {
         // Current values from useMetrics (with questionnaire adjustments)
         const currentFatigue = currentMetrics.fatigue;
@@ -118,6 +119,21 @@ const InsightsPage: React.FC<InsightsPageProps> = ({
             trend = 'stable';
         }
 
+        // Generate insight text from currentMetrics values (matches dashboard exactly)
+        const { insight, recommendation } = generateInsightFromMetrics(
+            currentFatigue,
+            currentReadiness,
+            currentMetrics.sMetabolic,
+            currentMetrics.sStructural,
+            fatigueChange,
+            readinessChange,
+            currentMetrics.recoveryEfficiency
+        );
+
+        // Calculate MET/MSK percentages from raw compartment values for display
+        const sMetabolicPct = Math.round(currentMetrics.sMetabolic / 100 * 100); // CAP_METABOLIC = 100
+        const sStructuralPct = Math.round(currentMetrics.sStructural / 150 * 100); // CAP_STRUCTURAL = 150
+
         return {
             ...fatigueReadinessInsights,
             currentFatigue,
@@ -125,6 +141,11 @@ const InsightsPage: React.FC<InsightsPageProps> = ({
             fatigueChange,
             readinessChange,
             trend,
+            insight,
+            recommendation,
+            sMetabolicPct,
+            sStructuralPct,
+            recoveryEfficiency: currentMetrics.recoveryEfficiency,
         };
     }, [fatigueReadinessInsights, currentMetrics]);
 
@@ -234,65 +255,6 @@ const InsightsPage: React.FC<InsightsPageProps> = ({
                                 <div className="text-[10px] uppercase tracking-widest text-neutral-500">Today's Fatigue</div>
                             </div>
                         </div>
-
-                        {/* Compartment Status (MET/MSK) */}
-                        <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-800">
-                            <div className="flex justify-center gap-6 mb-3">
-                                <div className="text-center">
-                                    <div className="text-sm font-medium" style={{ color: fatigueReadiness.sMetabolicPct > 50 ? '#ef4444' : fatigueReadiness.sMetabolicPct > 30 ? '#f59e0b' : '#22c55e' }}>
-                                        {fatigueReadiness.sMetabolicPct}%
-                                    </div>
-                                    <div className="text-[9px] uppercase tracking-widest text-neutral-500">MET Load</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-sm font-medium" style={{ color: fatigueReadiness.sStructuralPct > 40 ? '#ef4444' : fatigueReadiness.sStructuralPct > 25 ? '#f59e0b' : '#22c55e' }}>
-                                        {fatigueReadiness.sStructuralPct}%
-                                    </div>
-                                    <div className="text-[9px] uppercase tracking-widest text-neutral-500">MSK Load</div>
-                                </div>
-                            </div>
-                            <p className="text-xs text-neutral-500 text-center italic">
-                                {fatigueReadiness.compartmentInsight}
-                            </p>
-                        </div>
-                    </div>
-                </section>
-
-                {/* Recovery Efficiency Section (φ) */}
-                <section>
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-neutral-400 mb-4 flex items-center gap-2">
-                        <Heart size={16} style={{ color: accentColor }} />
-                        Recovery Efficiency
-                    </h3>
-                    <div className="bg-white/60 dark:bg-neutral-900/60 backdrop-blur-md rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm p-6">
-                        <div className="flex items-center justify-center gap-6 mb-4">
-                            <div className="text-center">
-                                <div
-                                    className="text-4xl font-medium"
-                                    style={{
-                                        color: currentMetrics.recoveryEfficiency >= 1.2 ? '#22c55e' :
-                                            currentMetrics.recoveryEfficiency >= 0.9 ? accentColor :
-                                                currentMetrics.recoveryEfficiency >= 0.7 ? '#f59e0b' : '#ef4444'
-                                    }}
-                                >
-                                    {Math.round(currentMetrics.recoveryEfficiency * 100)}%
-                                </div>
-                                <div className="text-[10px] uppercase tracking-widest text-neutral-500 mt-1">
-                                    {currentMetrics.recoveryEfficiency >= 1.2 ? 'Excellent Recovery' :
-                                        currentMetrics.recoveryEfficiency >= 1.0 ? 'Good Recovery' :
-                                            currentMetrics.recoveryEfficiency >= 0.8 ? 'Moderate Recovery' : 'Impaired Recovery'}
-                                </div>
-                            </div>
-                        </div>
-                        <div className="text-xs text-neutral-600 dark:text-neutral-400 text-center space-y-2">
-                            <p>
-                                Recovery efficiency (φ) is calculated from your questionnaire responses about sleep, nutrition, and stress.
-                            </p>
-                            <p>
-                                <span className="font-medium">100%</span> = baseline recovery rate.
-                                Higher values mean faster metabolic recovery between sessions.
-                            </p>
-                        </div>
                     </div>
                 </section>
 
@@ -303,23 +265,28 @@ const InsightsPage: React.FC<InsightsPageProps> = ({
                         Critical Power
                     </h3>
                     <div className="bg-white/60 dark:bg-neutral-900/60 backdrop-blur-md rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm p-6">
-                        <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="grid grid-cols-3 gap-4 mb-4">
                             <div className="text-center">
-                                <div className="text-3xl font-medium text-neutral-900 dark:text-white">
+                                <div className="text-2xl font-medium text-neutral-900 dark:text-white">
                                     {currentMetrics.eCP}<span className="text-sm opacity-60 ml-1">W</span>
                                 </div>
                                 <div className="text-[10px] uppercase tracking-widest text-neutral-500">Estimated CP</div>
                             </div>
                             <div className="text-center">
-                                <div className="text-3xl font-medium text-neutral-900 dark:text-white">
+                                <div className="text-2xl font-medium text-neutral-900 dark:text-white">
                                     {Math.round(currentMetrics.wPrime / 1000)}<span className="text-sm opacity-60 ml-1">kJ</span>
                                 </div>
                                 <div className="text-[10px] uppercase tracking-widest text-neutral-500">W' (Anaerobic)</div>
                             </div>
+                            <div className="text-center">
+                                <div className="text-2xl font-medium text-neutral-900 dark:text-white">
+                                    {Math.round(currentMetrics.recoveryEfficiency * 100)}<span className="text-sm opacity-60 ml-1">%</span>
+                                </div>
+                                <div className="text-[10px] uppercase tracking-widest text-neutral-500">Recovery Rate</div>
+                            </div>
                         </div>
                         <p className="text-xs text-neutral-600 dark:text-neutral-400 text-center">
-                            Critical Power represents the highest power you can sustain for extended periods.
-                            W' is your anaerobic energy reserve for efforts above CP.
+                            Critical Power is the highest power you can sustain for extended periods. W' is your anaerobic energy reserve for efforts above CP. Recovery Rate reflects how efficiently your body recovers between sessions based on sleep, nutrition, and stress factors.
                         </p>
                     </div>
                 </section>

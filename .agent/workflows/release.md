@@ -117,10 +117,11 @@ $env:JAVA_HOME = "C:\Program Files\Microsoft\jdk-25.0.1.8-hotspot"; .\gradlew as
 ```
 
 // turbo
-### Step 7: Rename APK to CardioKinetic.apk
+### Step 7: Rename APK to CardioKinetic(x.y.z).apk (with x.y.z representing the version number)
 ```powershell
 cd 'c:\Users\marce\Downloads\cardiokinetic(1)'
-Copy-Item -Path "android\app\build\outputs\apk\debug\app-debug.apk" -Destination "CardioKinetic.apk" -Force
+$version = (Get-Content src\config.ts | Select-String "APP_VERSION\s*=\s*['""]([^'""]+)['""]").Matches.Groups[1].Value
+Copy-Item -Path "android\app\build\outputs\apk\debug\app-debug.apk" -Destination "CardioKinetic($version).apk" -Force
 ```
 
 ### Step 8: Update CHANGELOG.md

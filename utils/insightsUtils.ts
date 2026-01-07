@@ -67,10 +67,11 @@ export interface FatigueReadinessInsights {
     trend: 'improving' | 'stable' | 'declining';
     insight: string;            // Human-readable insight message
     recommendation: string;     // Actionable recommendation
-    // NEW: Compartment-specific values (0-100 percentage of capacity)
+    // Compartment-specific values (0-100 percentage of capacity)
     sMetabolicPct: number;      // MET compartment percentage
     sStructuralPct: number;     // MSK compartment percentage
-    compartmentInsight: string; // MET/MSK-specific insight
+    // Recovery efficiency from questionnaire (φ value)
+    recoveryEfficiency: number;
 }
 
 export interface RecentActivitySummary {
@@ -297,7 +298,7 @@ export function calculateFatigueReadinessInsights(
         recommendation: 'Log a few sessions to unlock personalized insights.',
         sMetabolicPct: 0,
         sStructuralPct: 0,
-        compartmentInsight: 'Both energy systems are fully recovered.'
+        recoveryEfficiency: 1.0
     };
 
     if (sessions.length === 0) return defaultInsights;
@@ -463,17 +464,23 @@ export function calculateFatigueReadinessInsights(
         trend = 'stable';
     }
 
-    // Generate compartment-specific insight
-    const compartmentInsight = generateCompartmentInsight(sMetabolicPct, sStructuralPct);
+    // Get current recovery efficiency (latest questionnaire response)
+    const latestQuestionnaire = questionnaireHistory
+        .filter(r => r.date <= getLocalDateString(currentDate))
+        .sort((a, b) => b.date.localeCompare(a.date))[0];
+    const currentRecoveryEfficiency = latestQuestionnaire
+        ? calculatePhiFromQuestionnaire(latestQuestionnaire)
+        : DEFAULT_PHI_RECOVERY;
 
-    // Generate insights based on current state with MET/MSK awareness
+    // Generate insights based on current state with MET/MSK and recovery awareness
     const { insight, recommendation } = generateInsightMessage(
         current.fatigueScore,
         current.readinessScore,
         fatigueChange,
         readinessChange,
         sMetabolicPct,
-        sStructuralPct
+        sStructuralPct,
+        currentRecoveryEfficiency
     );
 
     return {
@@ -488,35 +495,57 @@ export function calculateFatigueReadinessInsights(
         recommendation,
         sMetabolicPct,
         sStructuralPct,
-        compartmentInsight
+        recoveryEfficiency: currentRecoveryEfficiency
     };
 }
 
 /**
- * Generate compartment-specific insight based on MET and MSK percentages.
+ * Generate insight text from pre-calculated metrics (from useMetrics).
+ * 
+ * This ensures the insight text uses the same values displayed on the dashboard,
+ * avoiding discrepancies from independent recalculation with different CP estimates.
+ * 
+ * @param fatigue - Display fatigue value (0-100)
+ * @param readiness - Display readiness value (0-100)  
+ * @param sMetabolic - Raw metabolic compartment value from chronic model
+ * @param sStructural - Raw structural compartment value from chronic model
+ * @param fatigueChange - Week-over-week fatigue change
+ * @param readinessChange - Week-over-week readiness change
+ * @param recoveryEfficiency - Recovery efficiency (φ) from questionnaire (0.5-1.5)
  */
-function generateCompartmentInsight(metaPct: number, structPct: number): string {
-    const metaHigh = metaPct > 50;
-    const structHigh = structPct > 40; // MSK has slower decay, so lower threshold
+export function generateInsightFromMetrics(
+    fatigue: number,
+    readiness: number,
+    sMetabolic: number,
+    sStructural: number,
+    fatigueChange: number,
+    readinessChange: number,
+    recoveryEfficiency: number
+): { insight: string; recommendation: string } {
+    // Calculate percentages from raw compartment values
+    const metaPct = Math.round(sMetabolic / DEFAULT_CAP_METABOLIC * 100);
+    const structPct = Math.round(sStructural / DEFAULT_CAP_STRUCTURAL * 100);
 
-    if (metaHigh && structHigh) {
-        return 'Both metabolic and structural systems are fatigued. Full recovery recommended.';
-    }
-    if (metaHigh && !structHigh) {
-        return 'Energy reserves depleted but body integrity is good. Zone 2 or endurance work would be ideal.';
-    }
-    if (!metaHigh && structHigh) {
-        return 'Energy available but musculoskeletal system needs recovery. Active recovery or cross-training recommended.';
-    }
-    if (metaPct > 30 || structPct > 25) {
-        return 'Moderate fatigue in both systems. Normal training with attention to recovery.';
-    }
-    return 'Both energy systems are fresh. Ready for challenging work!';
+    // Use the existing insight generation logic with dashboard-consistent values
+    return generateInsightMessage(
+        fatigue,
+        readiness,
+        fatigueChange,
+        readinessChange,
+        metaPct,
+        structPct,
+        recoveryEfficiency
+    );
 }
 
 /**
- * Generate insight message with MET/MSK awareness and relative thresholds.
- * Uses proportional thresholds appropriate for the chronic fatigue model.
+ * Generate unified insight message with multi-factor case detection.
+ * 
+ * Considers: fatigue/readiness values, MET/MSK compartment loads, recovery efficiency,
+ * and weekly trend changes. Cases are evaluated in priority order to provide the most
+ * relevant insight for the athlete's current state.
+ * 
+ * All insights include the actual values that triggered the analysis for transparency.
  */
 function generateInsightMessage(
     fatigue: number,
@@ -524,86 +553,188 @@ function generateInsightMessage(
     fatigueChange: number,
     readinessChange: number,
     metaPct: number,
-    structPct: number
+    structPct: number,
+    recoveryEfficiency: number
 ): { insight: string; recommendation: string } {
-    // Thresholds adapted for chronic model's typical value ranges
-    // High fatigue: >45% (instead of legacy 70%)
-    // Low readiness: <55% (instead of legacy 40%)
-    // Peak readiness: >85% with fatigue <20%
+    // Thresholds calibrated for the chronic fatigue model
+    const MET_HIGH = 50;
+    const MET_MODERATE = 30;
+    const MSK_HIGH = 40;
+    const MSK_MODERATE = 25;
+    const RECOVERY_IMPAIRED = 0.7;
+    const RECOVERY_EXCELLENT = 1.2;
 
-    // Dominant compartment fatigue scenarios
-    if (metaPct > 50 && structPct < 30) {
+    // Format helpers
+    const recPct = Math.round(recoveryEfficiency * 100);
+    const fmtChange = (v: number) => v >= 0 ? `+${v}` : `${v}`;
+
+    // ============================================================================
+    // PRIORITY 1: Full System Fatigue (both compartments stressed)
+    // ============================================================================
+    if (metaPct > MET_HIGH && structPct > MSK_HIGH) {
+        if (recoveryEfficiency < RECOVERY_IMPAIRED) {
+            return {
+                insight: `Your metabolic load is at ${metaPct}% and musculoskeletal load at ${structPct}%, with recovery efficiency at only ${recPct}%. This combination of high fatigue across both systems and impaired recovery conditions suggests your body needs a genuine break to consolidate recent training adaptations.`,
+                recommendation: 'Take a complete rest day or very light movement only. Prioritize sleep quality, hydration, and nutrition before your next training session.'
+            };
+        }
         return {
-            insight: 'Your metabolic reserves are depleted while structural health is fine.',
-            recommendation: 'Low-intensity endurance work is ideal. Avoid glycolytic efforts today.'
+            insight: `Both energy systems are under substantial stress: metabolic load at ${metaPct}% and musculoskeletal load at ${structPct}%. The metabolic fatigue indicates depleted fuel stores, while the structural load reflects accumulated tissue stress from recent volume.`,
+            recommendation: 'A recovery day would accelerate adaptation. If you must train, keep intensity and duration minimal to allow both systems to recover in parallel.'
         };
     }
 
-    if (structPct > 50 && metaPct < 30) {
+    // ============================================================================
+    // PRIORITY 2: Metabolic-Dominant Fatigue (energy depleted, structure OK)
+    // ============================================================================
+    if (metaPct > MET_HIGH && structPct < MSK_MODERATE) {
         return {
-            insight: 'Your musculoskeletal system is fatigued while energy is available.',
-            recommendation: 'Cross-training or active recovery. Avoid high-impact or volume work.'
+            insight: `Your metabolic system is running at ${metaPct}% load while your musculoskeletal system is only at ${structPct}%. This imbalance suggests your energy reserves are depleted from recent intensity, but your tissues are handling the mechanical stress well.`,
+            recommendation: 'Low-intensity aerobic work is ideal today. Zone 2 efforts will promote metabolic recovery without adding structural stress, setting you up for quality training tomorrow.'
         };
     }
 
-    // High combined fatigue
+    // ============================================================================
+    // PRIORITY 3: Structural-Dominant Fatigue (tissue stressed, energy available)
+    // ============================================================================
+    if (structPct > MSK_HIGH && metaPct < MET_MODERATE) {
+        return {
+            insight: `Your musculoskeletal system is at ${structPct}% load while metabolic reserves are at only ${metaPct}%. This pattern shows accumulated tissue stress from volume or mechanical load, while your energy systems remain available.`,
+            recommendation: 'Consider cross-training or non-impact activities today. Your energy systems can handle work, but your connective tissues and muscles would benefit from reduced mechanical stress.'
+        };
+    }
+
+    // ============================================================================
+    // PRIORITY 4: Impaired Recovery Conditions
+    // ============================================================================
+    if (recoveryEfficiency < RECOVERY_IMPAIRED) {
+        if (fatigue > 35) {
+            return {
+                insight: `Recovery efficiency is at ${recPct}%, well below the baseline of 100%, while fatigue sits at ${fatigue}%. Your recovery capacity is diminished, likely due to sleep, nutrition, or life stress, limiting how effectively your body can adapt to training.`,
+                recommendation: 'Address the limiting factors in your recovery before pushing training. Even light sessions may accumulate more fatigue than usual until recovery conditions improve.'
+            };
+        }
+        return {
+            insight: `Your recovery efficiency is at ${recPct}%, indicating suboptimal conditions for adaptation. While current fatigue at ${fatigue}% is manageable, impaired recovery will slow the benefits from any training you do today.`,
+            recommendation: 'If recovery factors are within your control, address them before training. Otherwise, keep today\'s session conservative and monitor how you feel tomorrow.'
+        };
+    }
+
+    // ============================================================================
+    // PRIORITY 5: Excellent Recovery Window (supercompensation opportunity)
+    // ============================================================================
+    if (recoveryEfficiency > RECOVERY_EXCELLENT && fatigue < 25 && readiness > 75) {
+        return {
+            insight: `Excellent conditions for training: recovery efficiency at ${recPct}%, fatigue low at ${fatigue}%, and readiness high at ${readiness}%. This combination creates an optimal window where quality work will translate efficiently into adaptation.`,
+            recommendation: 'This is a good day to challenge yourself. Your body is primed to handle and benefit from a harder session, whether that means higher intensity, longer duration, or both.'
+        };
+    }
+
+    // ============================================================================
+    // PRIORITY 6: Peak Performance State
+    // ============================================================================
+    if (readiness > 85 && fatigue < 20) {
+        const compartmentDetail = metaPct < 15
+            ? ` with metabolic load at just ${metaPct}%`
+            : ` (MET ${metaPct}%, MSK ${structPct}%)`;
+        return {
+            insight: `Peak state detected: readiness at ${readiness}% and fatigue at only ${fatigue}%${compartmentDetail}. Your body can both execute demanding work and adapt to it effectively.`,
+            recommendation: 'Consider this a green light for challenging work. Test sessions, key workouts, or breakthrough efforts are well-suited for days like this.'
+        };
+    }
+
+    // ============================================================================
+    // PRIORITY 7: Low Readiness Warning (recovery deficit)
+    // ============================================================================
+    if (readiness < 55) {
+        const compartmentDetail = metaPct > 40 || structPct > 35
+            ? ` The underlying loads (MET ${metaPct}%, MSK ${structPct}%) suggest accumulated training stress that needs time to dissipate.`
+            : '';
+        return {
+            insight: `Readiness is at ${readiness}%, indicating your body is not in an optimal state for productive training.${compartmentDetail}`,
+            recommendation: 'Lighter sessions will be more beneficial than pushing through today. Use this as an opportunity for technique work, mobility, or gentle aerobic movement.'
+        };
+    }
+
+    // ============================================================================
+    // PRIORITY 8: Elevated Fatigue (adaptation in progress)
+    // ============================================================================
     if (fatigue > 45) {
         return {
-            insight: 'Your fatigue levels are elevated. Your body is adapting to training stress.',
-            recommendation: 'Consider an easy session or rest day. Recovery supports fitness gains!'
+            insight: `Fatigue is elevated at ${fatigue}%, which is a normal part of progressive training. The stress you have accumulated (MET ${metaPct}%, MSK ${structPct}%) is the stimulus your body will adapt to, provided you allow adequate recovery.`,
+            recommendation: 'An easy session or rest day would support the adaptation process. If you feel good despite the numbers, a light session is fine, but avoid adding significant new stress.'
         };
     }
 
-    // Low readiness
-    if (readiness < 55) {
+    // ============================================================================
+    // PRIORITY 9: Moderate Compartment Stress (approaching thresholds)
+    // ============================================================================
+    if (metaPct > MET_MODERATE && structPct > MSK_MODERATE) {
         return {
-            insight: 'Your readiness is below optimal. Recovery may be lagging behind training.',
-            recommendation: 'Prioritize sleep and nutrition. A lighter session would be wise.'
+            insight: `Both systems are carrying moderate loads: metabolic at ${metaPct}% and musculoskeletal at ${structPct}%. You are not at risk of overtraining, but fatigue is accumulating and will eventually need to be addressed.`,
+            recommendation: 'Normal training is fine today, but be attentive to recovery. Consider a lighter day in the next few sessions to prevent fatigue from accumulating further.'
         };
     }
 
-    // Peak readiness with low fatigue
-    if (readiness > 85 && fatigue < 20) {
-        return {
-            insight: 'You\'re in excellent shape! High readiness with minimal fatigue.',
-            recommendation: 'Great day for a challenging workout or testing your limits.'
-        };
-    }
-
-    // Trend-based insights
+    // ============================================================================
+    // PRIORITY 10: Declining Trend (readiness dropping week-over-week)
+    // ============================================================================
     if (readinessChange < -5) {
         return {
-            insight: 'Your readiness has been declining this week compared to last.',
-            recommendation: 'Watch for signs of overreaching. Consider a mini-deload.'
+            insight: `Readiness has declined ${fmtChange(readinessChange)} points compared to last week. This pattern may indicate that training load is outpacing recovery, or that external stressors are affecting your capacity to adapt.`,
+            recommendation: 'Watch for early signs of overreaching: persistent fatigue, mood changes, or declining performance. A short deload period may be warranted if this trend continues.'
         };
     }
 
+    // ============================================================================
+    // PRIORITY 11: Accumulating Fatigue Trend
+    // ============================================================================
     if (fatigueChange > 5) {
         return {
-            insight: 'Fatigue has been accumulating faster than usual this week.',
-            recommendation: 'Good training stress! Monitor how you feel in the next few days.'
+            insight: `Fatigue has increased ${fmtChange(fatigueChange)} points this week compared to last, now at ${fatigue}%. This accumulation is often expected during progressive overload, but sustained increases without recovery can lead to overreaching.`,
+            recommendation: 'Monitor your response to training over the next few days. If you continue to feel recovered each morning, the load is manageable. If not, consider backing off.'
         };
     }
 
+    // ============================================================================
+    // PRIORITY 12: Positive Adaptation Pattern
+    // ============================================================================
     if (readinessChange > 3 && fatigueChange < 0) {
         return {
-            insight: 'Your body is adapting well. Readiness is up while fatigue is down.',
-            recommendation: 'Continue current approach. You\'re in a good rhythm.'
+            insight: `Positive adaptation pattern: readiness is up ${fmtChange(readinessChange)} points while fatigue is down ${Math.abs(fatigueChange)} points compared to last week. Your body is successfully recovering and supercompensating from recent training.`,
+            recommendation: 'Continue your current approach. You are in a good rhythm where training stress and recovery are well balanced.'
         };
     }
 
-    // Steady state
-    if (Math.abs(readinessChange) < 3 && Math.abs(fatigueChange) < 3) {
+    // ============================================================================
+    // PRIORITY 13: Metabolic Recovery Opportunity
+    // ============================================================================
+    if (metaPct > MET_MODERATE && structPct < MSK_MODERATE && recoveryEfficiency > 1.0) {
         return {
-            insight: 'Your fatigue and readiness are stable and balanced.',
-            recommendation: 'Maintain consistency. Your training load is sustainable.'
+            insight: `Metabolic load is at ${metaPct}% but recovery efficiency is good at ${recPct}%, which should help restore it quickly. Structural load is low at ${structPct}%, giving you flexibility in what training you can do.`,
+            recommendation: 'Aerobic work at conversational intensity would support metabolic recovery today. You have room for some volume if you keep the power output moderate.'
         };
     }
 
-    // Default balanced state
+    // ============================================================================
+    // PRIORITY 14: Stable and Balanced State
+    // ============================================================================
+    if (Math.abs(readinessChange) < 3 && Math.abs(fatigueChange) < 3) {
+        const loadContext = metaPct > 20 || structPct > 15
+            ? `Current loads are modest (MET ${metaPct}%, MSK ${structPct}%) and being managed effectively.`
+            : `Both systems are operating near baseline (MET ${metaPct}%, MSK ${structPct}%), giving you considerable training flexibility.`;
+        return {
+            insight: `Stable week-over-week: readiness ${fmtChange(readinessChange)} and fatigue ${fmtChange(fatigueChange)} points, suggesting a sustainable balance between training and recovery. ${loadContext}`,
+            recommendation: 'Maintain your current consistency. This equilibrium is a good foundation for either continued steady training or a deliberate push if your goals require it.'
+        };
+    }
+
+    // ============================================================================
+    // DEFAULT: General Guidance
+    // ============================================================================
     return {
-        insight: 'Your training metrics are within normal ranges.',
-        recommendation: 'Listen to your body and train according to how you feel today.'
+        insight: `Current state: readiness ${readiness}%, fatigue ${fatigue}%, metabolic load ${metaPct}%, musculoskeletal load ${structPct}%, recovery efficiency ${recPct}%. All metrics are within expected ranges with no specific concerns or opportunities standing out.`,
+        recommendation: 'Train according to how you feel today. Listen to your body and adjust intensity based on your subjective response to the warmup.'
     };
 }
 
