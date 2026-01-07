@@ -32,7 +32,8 @@ const mockCPEstimate: CriticalPowerEstimate = {
     cp: 200,
     wPrime: 15000,
     confidence: 0.8,
-    contributingSessions: 5,
+    dataPoints: 5,
+    decayApplied: false,
     lastUpdated: new Date().toISOString()
 };
 

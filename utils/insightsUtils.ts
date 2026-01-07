@@ -7,17 +7,20 @@
  * Uses Chronic Fatigue Model (dual-compartment) for fatigue/readiness calculations.
  */
 
-import { Session, ProgramRecord } from '../types';
+import { Session, ProgramRecord, QuestionnaireResponse } from '../types';
 import { getLocalDateString, addDays, compareDates, isDateInRange, parseLocalDate } from './dateUtils';
 import {
     updateMetabolicFreshness,
     updateStructuralHealth,
     calculateReadinessScore as calculateChronicReadiness,
+    applyStructuralCorrection,
+    applyMetabolicCorrection,
     DEFAULT_PHI_RECOVERY,
     DEFAULT_CAP_METABOLIC,
     DEFAULT_CAP_STRUCTURAL,
     SIGMA_IMPACT,
 } from './chronicFatigueModel';
+import { applyQuestionnaireAdjustment } from './questionnaireConfig';
 import { estimateCostFromAverage } from './physiologicalCostEngine';
 
 // ============================================================================
@@ -64,6 +67,10 @@ export interface FatigueReadinessInsights {
     trend: 'improving' | 'stable' | 'declining';
     insight: string;            // Human-readable insight message
     recommendation: string;     // Actionable recommendation
+    // NEW: Compartment-specific values (0-100 percentage of capacity)
+    sMetabolicPct: number;      // MET compartment percentage
+    sStructuralPct: number;     // MSK compartment percentage
+    compartmentInsight: string; // MET/MSK-specific insight
 }
 
 export interface RecentActivitySummary {
@@ -232,26 +239,65 @@ function calculateFatigueFromChronic(sMeta: number, sStruct: number): number {
 }
 
 /**
+ * Calculate recovery efficiency (φ) from questionnaire responses.
+ * Maps sleep, nutrition, and stress to a [0.5, 1.5] scalar.
+ */
+function calculatePhiFromQuestionnaire(response: QuestionnaireResponse): number {
+    const { responses } = response;
+
+    // Use actual questionnaire field names - average sleep metrics
+    const sleepHours = responses['sleep_hours'] || 3;
+    const sleepQuality = responses['sleep_quality'] || 3;
+    const sleep = (sleepHours + sleepQuality) / 2;
+    const nutrition = responses['nutrition'] || 3;
+    const stress = responses['stress'] || 3;
+
+    // Normalize to 0-1 range
+    const sleepNorm = (sleep - 1) / 4;
+    const nutritionNorm = (nutrition - 1) / 4;
+    const stressNorm = (stress - 1) / 4;
+
+    // Calculate phi: 0.5 at worst, 1.5 at best
+    const avgFactor = (sleepNorm + nutritionNorm + stressNorm) / 3;
+    return Math.max(0.5, Math.min(1.5, 0.5 + avgFactor));
+}
+
+/**
  * Calculate fatigue and readiness trend insights using Chronic Fatigue Model.
  * Provides analysis, trend direction, and actionable recommendations.
+ * 
+ * Now integrates questionnaire data for:
+ * - Recovery efficiency (φ) affecting metabolic decay
+ * - Bayesian corrections for soreness/energy
+ * - Questionnaire adjustments with wellness modifier carryover
+ * 
+ * @param sessions - Training sessions
+ * @param programStartDate - Program start date
+ * @param currentDate - Current/simulated date
+ * @param basePower - Base power for load estimation
+ * @param questionnaireHistory - Historical questionnaire responses for full integration
  */
 export function calculateFatigueReadinessInsights(
     sessions: Session[],
     programStartDate: Date,
     currentDate: Date,
-    basePower: number = 150
+    basePower: number = 150,
+    questionnaireHistory: QuestionnaireResponse[] = []
 ): FatigueReadinessInsights {
     // Default values for no data
     const defaultInsights: FatigueReadinessInsights = {
         currentFatigue: 0,
-        currentReadiness: 75,
+        currentReadiness: 100,
         weeklyFatigueAvg: 0,
-        weeklyReadinessAvg: 75,
+        weeklyReadinessAvg: 100,
         fatigueChange: 0,
         readinessChange: 0,
         trend: 'stable',
         insight: 'Start training to see your fatigue and readiness patterns.',
-        recommendation: 'Log a few sessions to unlock personalized insights.'
+        recommendation: 'Log a few sessions to unlock personalized insights.',
+        sMetabolicPct: 0,
+        sStructuralPct: 0,
+        compartmentInsight: 'Both energy systems are fully recovered.'
     };
 
     if (sessions.length === 0) return defaultInsights;
@@ -274,6 +320,12 @@ export function calculateFatigueReadinessInsights(
         dailyLoadMap.set(session.date, (dailyLoadMap.get(session.date) || 0) + load);
     }
 
+    // Build questionnaire lookup map
+    const questionnaireByDate = new Map<string, QuestionnaireResponse>();
+    for (const r of questionnaireHistory) {
+        questionnaireByDate.set(r.date, r);
+    }
+
     // Calculate metrics using chronic model
     const oneDay = 24 * 60 * 60 * 1000;
     const totalDays = Math.ceil((currentDate.getTime() - programStartDate.getTime()) / oneDay) + 1;
@@ -285,28 +337,97 @@ export function calculateFatigueReadinessInsights(
     const capMeta = DEFAULT_CAP_METABOLIC;
     const capStruct = DEFAULT_CAP_STRUCTURAL;
 
-    const dailyMetrics: Array<{ fatigueScore: number; readinessScore: number }> = [];
+    // Wellness carryover modifier - decays questionnaire effects into subsequent days
+    // Matches useMetrics.ts and Chart.tsx logic
+    let wellnessModifier = 0;
+    const wellnessAlpha = 2 / (3 + 1); // 3-day half-life
+
+    const dailyMetrics: Array<{ fatigueScore: number; readinessScore: number; sMeta: number; sStruct: number }> = [];
 
     for (let i = 0; i < totalDays; i++) {
         const day = new Date(programStartDate.getTime() + i * oneDay);
         const dateStr = day.toISOString().split('T')[0];
 
         const dailyLoad = dailyLoadMap.get(dateStr) || 0;
+        const dayResponse = questionnaireByDate.get(dateStr);
 
-        // Update chronic model with default recovery
-        sMeta = updateMetabolicFreshness(sMeta, dailyLoad, DEFAULT_PHI_RECOVERY, capMeta);
+        // Get recovery efficiency from questionnaire (matches useMetrics.ts)
+        const phiRecovery = dayResponse
+            ? calculatePhiFromQuestionnaire(dayResponse)
+            : DEFAULT_PHI_RECOVERY;
+
+        // Update chronic model with φ recovery efficiency
+        sMeta = updateMetabolicFreshness(sMeta, dailyLoad, phiRecovery, capMeta);
         sStruct = updateStructuralHealth(sStruct, dailyLoad, SIGMA_IMPACT, capStruct);
 
-        const fatigueScore = calculateFatigueFromChronic(sMeta, sStruct);
-        const readinessScore = calculateChronicReadiness(sMeta, sStruct, capMeta, capStruct);
+        // Apply Bayesian corrections for questionnaire days (matches useMetrics.ts)
+        if (dayResponse) {
+            const soreness = dayResponse.responses['soreness'];
+            const energy = dayResponse.responses['energy'];
 
-        dailyMetrics.push({ fatigueScore, readinessScore });
+            if (soreness && soreness <= 2) {
+                const correction = applyStructuralCorrection(
+                    { sMetabolic: sMeta, sStructural: sStruct, capMetabolic: capMeta, capStructural: capStruct, lastUpdated: '' },
+                    soreness
+                );
+                sStruct = correction.sStructural;
+            }
+            if (energy && energy <= 2) {
+                const correction = applyMetabolicCorrection(
+                    { sMetabolic: sMeta, sStructural: sStruct, capMetabolic: capMeta, capStructural: capStruct, lastUpdated: '' },
+                    energy
+                );
+                sMeta = correction.sMetabolic;
+            }
+        }
+
+        // Calculate base values
+        let readiness = calculateChronicReadiness(sMeta, sStruct, capMeta, capStruct);
+        let fatigue = calculateFatigueFromChronic(sMeta, sStruct);
+
+        // Apply questionnaire display adjustments with wellness modifier carryover (matches useMetrics.ts)
+        if (dayResponse) {
+            // Get recent responses for trend analysis (prior 7 days)
+            const recentForDay = questionnaireHistory
+                .filter(r => r.date < dateStr)
+                .sort((a, b) => b.date.localeCompare(a.date))
+                .slice(0, 7);
+
+            const adjustment = applyQuestionnaireAdjustment(readiness, fatigue, dayResponse, recentForDay);
+
+            // Track wellness modifier for carryover
+            const fatigueImpact = adjustment.fatigue - fatigue;
+            const readinessImpact = adjustment.readiness - readiness;
+            wellnessModifier = wellnessModifier * (1 - wellnessAlpha) +
+                ((readinessImpact - fatigueImpact) / 2) * wellnessAlpha;
+
+            readiness = adjustment.readiness;
+            fatigue = adjustment.fatigue;
+        } else {
+            // Decay wellness modifier on non-questionnaire days
+            wellnessModifier = wellnessModifier * (1 - wellnessAlpha);
+
+            // Apply carryover if significant
+            if (Math.abs(wellnessModifier) > 0.5) {
+                readiness = Math.max(0, Math.min(100, Math.round(readiness + wellnessModifier)));
+                fatigue = Math.max(0, Math.min(100, Math.round(fatigue - wellnessModifier)));
+            }
+        }
+
+        dailyMetrics.push({
+            fatigueScore: fatigue,
+            readinessScore: readiness,
+            sMeta,
+            sStruct
+        });
     }
 
     if (dailyMetrics.length === 0) return defaultInsights;
 
     // Current values (today)
     const current = dailyMetrics[dailyMetrics.length - 1];
+    const sMetabolicPct = Math.round(current.sMeta / capMeta * 100);
+    const sStructuralPct = Math.round(current.sStruct / capStruct * 100);
 
     // Last 7 days average
     const last7Days = dailyMetrics.slice(-7);
@@ -325,24 +446,34 @@ export function calculateFatigueReadinessInsights(
     const fatigueChange = weeklyFatigueAvg - prevFatigueAvg;
     const readinessChange = weeklyReadinessAvg - prevReadinessAvg;
 
-    // Determine trend
+    // Determine trend using RELATIVE thresholds (scaled to typical chronic model values)
+    // The chronic model typically produces lower values than legacy EWMA, so thresholds are proportional
     let trend: 'improving' | 'stable' | 'declining';
-    if (readinessChange > 5 && fatigueChange < 5) {
+
+    // Significant improvement: readiness up and fatigue not rising significantly
+    if (readinessChange > 3 && fatigueChange < 3) {
         trend = 'improving';
-    } else if (readinessChange < -5 || fatigueChange > 10) {
+    }
+    // Significant decline: readiness dropping or fatigue rising sharply
+    else if (readinessChange < -3 || fatigueChange > 5) {
         trend = 'declining';
-    } else {
+    }
+    // Everything else is stable
+    else {
         trend = 'stable';
     }
 
-    // Generate insights based on current state
+    // Generate compartment-specific insight
+    const compartmentInsight = generateCompartmentInsight(sMetabolicPct, sStructuralPct);
+
+    // Generate insights based on current state with MET/MSK awareness
     const { insight, recommendation } = generateInsightMessage(
         current.fatigueScore,
         current.readinessScore,
         fatigueChange,
         readinessChange,
-        weeklyFatigueAvg,
-        weeklyReadinessAvg
+        sMetabolicPct,
+        sStructuralPct
     );
 
     return {
@@ -354,60 +485,107 @@ export function calculateFatigueReadinessInsights(
         readinessChange: Math.round(readinessChange),
         trend,
         insight,
-        recommendation
+        recommendation,
+        sMetabolicPct,
+        sStructuralPct,
+        compartmentInsight
     };
 }
 
+/**
+ * Generate compartment-specific insight based on MET and MSK percentages.
+ */
+function generateCompartmentInsight(metaPct: number, structPct: number): string {
+    const metaHigh = metaPct > 50;
+    const structHigh = structPct > 40; // MSK has slower decay, so lower threshold
+
+    if (metaHigh && structHigh) {
+        return 'Both metabolic and structural systems are fatigued. Full recovery recommended.';
+    }
+    if (metaHigh && !structHigh) {
+        return 'Energy reserves depleted but body integrity is good. Zone 2 or endurance work would be ideal.';
+    }
+    if (!metaHigh && structHigh) {
+        return 'Energy available but musculoskeletal system needs recovery. Active recovery or cross-training recommended.';
+    }
+    if (metaPct > 30 || structPct > 25) {
+        return 'Moderate fatigue in both systems. Normal training with attention to recovery.';
+    }
+    return 'Both energy systems are fresh. Ready for challenging work!';
+}
+
+/**
+ * Generate insight message with MET/MSK awareness and relative thresholds.
+ * Uses proportional thresholds appropriate for the chronic fatigue model.
+ */
 function generateInsightMessage(
     fatigue: number,
     readiness: number,
     fatigueChange: number,
     readinessChange: number,
-    avgFatigue: number,
-    avgReadiness: number
+    metaPct: number,
+    structPct: number
 ): { insight: string; recommendation: string } {
-    // High fatigue scenarios
-    if (fatigue > 70) {
+    // Thresholds adapted for chronic model's typical value ranges
+    // High fatigue: >45% (instead of legacy 70%)
+    // Low readiness: <55% (instead of legacy 40%)
+    // Peak readiness: >85% with fatigue <20%
+
+    // Dominant compartment fatigue scenarios
+    if (metaPct > 50 && structPct < 30) {
         return {
-            insight: 'Your fatigue levels are elevated. Your body is working hard to adapt.',
-            recommendation: 'Consider an easy session or rest day. Your fitness is building!'
+            insight: 'Your metabolic reserves are depleted while structural health is fine.',
+            recommendation: 'Low-intensity endurance work is ideal. Avoid glycolytic efforts today.'
         };
     }
 
-    // Very low readiness
-    if (readiness < 40) {
+    if (structPct > 50 && metaPct < 30) {
+        return {
+            insight: 'Your musculoskeletal system is fatigued while energy is available.',
+            recommendation: 'Cross-training or active recovery. Avoid high-impact or volume work.'
+        };
+    }
+
+    // High combined fatigue
+    if (fatigue > 45) {
+        return {
+            insight: 'Your fatigue levels are elevated. Your body is adapting to training stress.',
+            recommendation: 'Consider an easy session or rest day. Recovery supports fitness gains!'
+        };
+    }
+
+    // Low readiness
+    if (readiness < 55) {
         return {
             insight: 'Your readiness is below optimal. Recovery may be lagging behind training.',
             recommendation: 'Prioritize sleep and nutrition. A lighter session would be wise.'
         };
     }
 
-    // Peak readiness
-    if (readiness > 80 && fatigue < 30) {
+    // Peak readiness with low fatigue
+    if (readiness > 85 && fatigue < 20) {
         return {
-            insight: 'You\'re in excellent shape! High readiness with managed fatigue.',
+            insight: 'You\'re in excellent shape! High readiness with minimal fatigue.',
             recommendation: 'Great day for a challenging workout or testing your limits.'
         };
     }
 
-    // Falling readiness trend
-    if (readinessChange < -10) {
+    // Trend-based insights
+    if (readinessChange < -5) {
         return {
             insight: 'Your readiness has been declining this week compared to last.',
             recommendation: 'Watch for signs of overreaching. Consider a mini-deload.'
         };
     }
 
-    // Rising fatigue trend
-    if (fatigueChange > 10) {
+    if (fatigueChange > 5) {
         return {
             insight: 'Fatigue has been accumulating faster than usual this week.',
             recommendation: 'Good training stress! Monitor how you feel in the next few days.'
         };
     }
 
-    // Improving trend
-    if (readinessChange > 5 && fatigueChange < 0) {
+    if (readinessChange > 3 && fatigueChange < 0) {
         return {
             insight: 'Your body is adapting well. Readiness is up while fatigue is down.',
             recommendation: 'Continue current approach. You\'re in a good rhythm.'
@@ -415,7 +593,7 @@ function generateInsightMessage(
     }
 
     // Steady state
-    if (Math.abs(readinessChange) < 5 && Math.abs(fatigueChange) < 5) {
+    if (Math.abs(readinessChange) < 3 && Math.abs(fatigueChange) < 3) {
         return {
             insight: 'Your fatigue and readiness are stable and balanced.',
             recommendation: 'Maintain consistency. Your training load is sustainable.'

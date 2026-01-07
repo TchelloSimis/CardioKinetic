@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Trophy, TrendingUp, TrendingDown, Flame, Activity, Calendar, Zap, Heart, ArrowLeft, Minus, Gauge } from 'lucide-react';
-import { Session, ProgramRecord } from '../types';
+import { Session, ProgramRecord, QuestionnaireResponse } from '../types';
 import { AccentColorConfig } from '../presets';
 import { MetricsResult } from '../hooks/useMetrics';
 import { addDays, isDateInRange, parseLocalDate } from '../utils/dateUtils';
@@ -24,6 +24,7 @@ interface InsightsPageProps {
     basePower: number;
     currentMetrics: MetricsResult;  // Pre-calculated metrics from useMetrics (includes questionnaire adjustments, eCP, wPrime)
     activeProgram: ProgramRecord | null;  // For filtering sessions to match Dashboard
+    questionnaireHistory?: QuestionnaireResponse[];  // For trend analysis integration
     onClose: () => void;
 }
 
@@ -37,6 +38,7 @@ const InsightsPage: React.FC<InsightsPageProps> = ({
     basePower,
     currentMetrics,
     activeProgram,
+    questionnaireHistory = [],
     onClose
 }) => {
     const accentColor = isDarkMode ? currentAccent.dark : currentAccent.light;
@@ -70,10 +72,10 @@ const InsightsPage: React.FC<InsightsPageProps> = ({
     const personalRecords = useMemo(() => calculatePersonalRecords(filteredSessions), [filteredSessions]);
     const weeklyTrends = useMemo(() => calculateTrends(filteredSessions, 'week', currentDate), [filteredSessions, currentDate]);
 
-    // Calculate trend insights from filtered sessions
+    // Calculate trend insights from filtered sessions (now with questionnaire integration)
     const fatigueReadinessInsights = useMemo(() =>
-        calculateFatigueReadinessInsights(filteredSessions, startDate, currentDate, basePower),
-        [filteredSessions, startDate, currentDate, basePower]
+        calculateFatigueReadinessInsights(filteredSessions, startDate, currentDate, basePower, questionnaireHistory),
+        [filteredSessions, startDate, currentDate, basePower, questionnaireHistory]
     );
 
     // Use current values from useMetrics (includes questionnaire adjustments). 
@@ -231,6 +233,27 @@ const InsightsPage: React.FC<InsightsPageProps> = ({
                                 </div>
                                 <div className="text-[10px] uppercase tracking-widest text-neutral-500">Today's Fatigue</div>
                             </div>
+                        </div>
+
+                        {/* Compartment Status (MET/MSK) */}
+                        <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-800">
+                            <div className="flex justify-center gap-6 mb-3">
+                                <div className="text-center">
+                                    <div className="text-sm font-medium" style={{ color: fatigueReadiness.sMetabolicPct > 50 ? '#ef4444' : fatigueReadiness.sMetabolicPct > 30 ? '#f59e0b' : '#22c55e' }}>
+                                        {fatigueReadiness.sMetabolicPct}%
+                                    </div>
+                                    <div className="text-[9px] uppercase tracking-widest text-neutral-500">MET Load</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="text-sm font-medium" style={{ color: fatigueReadiness.sStructuralPct > 40 ? '#ef4444' : fatigueReadiness.sStructuralPct > 25 ? '#f59e0b' : '#22c55e' }}>
+                                        {fatigueReadiness.sStructuralPct}%
+                                    </div>
+                                    <div className="text-[9px] uppercase tracking-widest text-neutral-500">MSK Load</div>
+                                </div>
+                            </div>
+                            <p className="text-xs text-neutral-500 text-center italic">
+                                {fatigueReadiness.compartmentInsight}
+                            </p>
                         </div>
                     </div>
                 </section>

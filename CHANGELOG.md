@@ -2,6 +2,13 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.8.3] - 2026-01-07
+
+### Fixed
+
+- **Chronic Fatigue Model Integration**: Fixed Training Insights trend analysis to properly integrate with the new dual-compartment chronic fatigue model, including correct application of wellness modifiers, Bayesian corrections, and compartment-specific thresholds
+- **Test Infrastructure**: Fixed strict type checking errors in test files
+
 ## [1.8.2] - 2026-01-07
 
 ### Fixed
