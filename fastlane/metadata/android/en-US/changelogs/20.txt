@@ -1,0 +1,20 @@
+This release introduces a fundamentally redesigned fatigue and readiness system with dual-compartment modeling.
+
+New Features:
+• Chronic Fatigue Model with MET (metabolic) and MSK (musculoskeletal) compartments
+• Critical Power Engine that auto-estimates CP and W' from training history
+• Physiological Cost Engine with W'bal-style deficit tracking
+• RPE Correction Loop for model self-calibration
+• Recovery Efficiency display in Training Insights
+• Critical Power insights showing eCP and W' values
+
+Improvements:
+• Questionnaire now directly influences recovery calculations
+• Live session UI with phase progress semicircle
+• Session log UI with dynamic accent colors
+• Enhanced RPE slider with gradient background
+
+Fixes:
+• Dashboard now shows MET/MSK percentages
+• Monte Carlo simulation uses dual-compartment dynamics
+• W' calculation validation fixes

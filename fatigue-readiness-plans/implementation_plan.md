@@ -728,62 +728,62 @@ if (sessionStyle === 'steady-state') {
 
 | Requirement | Plan Reference | Status |
 |-------------|----------------|--------|
-| Extract MMP bests for T ∈ [3m, 5m, 12m, 20m, 40m] | `criticalPowerEngine.ts` → `extractMMPBests()` | ✅ Covered |
-| RPE Filter (RPE ≥ 9 for upper bound fit) | `criticalPowerEngine.ts` → RPE cross-checks | ✅ Covered |
-| Weighted least-squares regression P vs 1/t | `criticalPowerEngine.ts` → `fitCPModel()` | ✅ Covered |
-| Submaximal anchor (RPE ≤ 5, >20 min → CP ≥ P_sub) | `criticalPowerEngine.ts` → `applySubmaximalAnchor()` | ✅ Covered |
-| Supra-maximal flag (RPE=10 failure → W' cap) | `criticalPowerEngine.ts` → RPE cross-checks | ✅ Covered |
-| 28-day decay (-0.5%/week if no max efforts) | `criticalPowerEngine.ts` → `applyDecay()` | ✅ Covered |
+| Extract MMP bests for T ∈ [3m, 5m, 12m, 20m, 40m] | `criticalPowerEngine.ts` → `extractMMPBests()` | Covered |
+| RPE Filter (RPE ≥ 9 for upper bound fit) | `criticalPowerEngine.ts` → RPE cross-checks | Covered |
+| Weighted least-squares regression P vs 1/t | `criticalPowerEngine.ts` → `fitCPModel()` | Covered |
+| Submaximal anchor (RPE ≤ 5, >20 min → CP ≥ P_sub) | `criticalPowerEngine.ts` → `applySubmaximalAnchor()` | Covered |
+| Supra-maximal flag (RPE=10 failure → W' cap) | `criticalPowerEngine.ts` → RPE cross-checks | Covered |
+| 28-day decay (-0.5%/week if no max efforts) | `criticalPowerEngine.ts` → `applyDecay()` | Covered |
 
 ### Section 3: Daily Physiological Cost
 
 | Requirement | Plan Reference | Status |
 |-------------|----------------|--------|
-| Track Acute Deficit (W'bal-style) | `physiologicalCostEngine.ts` → `trackAcuteDeficit()` | ✅ Covered |
-| Cost(t) = P(t) × (1 + K_fatigue × D_acute/W') | `physiologicalCostEngine.ts` → `calculateInstantaneousCost()` | ✅ Covered |
-| K_fatigue ≈ 1.5 stress multiplier | Constants in `physiologicalCostEngine.ts` | ✅ Covered |
-| Integrate for daily load | `physiologicalCostEngine.ts` → `integrateDailyCost()` | ✅ Covered |
-| Second-by-second power data iteration | Extended `Session` interface + `useSessionTimer.ts` | ✅ Covered |
+| Track Acute Deficit (W'bal-style) | `physiologicalCostEngine.ts` → `trackAcuteDeficit()` | Covered |
+| Cost(t) = P(t) × (1 + K_fatigue × D_acute/W') | `physiologicalCostEngine.ts` → `calculateInstantaneousCost()` | Covered |
+| K_fatigue ≈ 1.5 stress multiplier | Constants in `physiologicalCostEngine.ts` | Covered |
+| Integrate for daily load | `physiologicalCostEngine.ts` → `integrateDailyCost()` | Covered |
+| Second-by-second power data iteration | Extended `Session` interface + `useSessionTimer.ts` | Covered |
 
 ### Section 4: Chronic Fatigue Compartments
 
 | Requirement | Plan Reference | Status |
 |-------------|----------------|--------|
-| S_meta dynamics with τ_meta ≈ 2 days | `chronicFatigueModel.ts` → `updateMetabolicFreshness()` | ✅ Covered |
-| S_struct dynamics with τ_struct ≈ 15 days | `chronicFatigueModel.ts` → `updateStructuralHealth()` | ✅ Covered |
-| σ_impact multiplier for S_struct | Constants + `updateStructuralHealth()` param | ✅ Covered |
+| S_meta dynamics with τ_meta ≈ 2 days | `chronicFatigueModel.ts` → `updateMetabolicFreshness()` | Covered |
+| S_struct dynamics with τ_struct ≈ 15 days | `chronicFatigueModel.ts` → `updateStructuralHealth()` | Covered |
+| σ_impact multiplier for S_struct | Constants + `updateStructuralHealth()` param | Covered |
 
 ### Section 5: Readiness & Feedback
 
 | Requirement | Plan Reference | Status |
 |-------------|----------------|--------|
-| Readiness = 100 - min(100, (w₁S_meta/Cap + w₂S_struct/Cap)×100) | `chronicFatigueModel.ts` → `calculateReadinessScore()` | ✅ Covered |
-| w₁ ≈ 0.6, w₂ ≈ 0.4 | Constants in `chronicFatigueModel.ts` | ✅ Covered |
-| Interpretive logic (High Readiness >80, Metabolic fatigue, Structural fatigue) | `chronicFatigueModel.ts` → `interpretReadinessState()` | ✅ Covered |
-| RPE Correction Loop | `rpeCorrectionLoop.ts` → full module | ✅ Covered |
-| Penalty Load on S_meta for 24h | `rpeCorrectionLoop.ts` → `applyPenaltyLoad()` | ✅ Covered |
-| CP downgrade after >3 mismatches | `rpeCorrectionLoop.ts` → `checkCPDowngradeTrigger()` | ✅ Covered |
+| Readiness = 100 - min(100, (w₁S_meta/Cap + w₂S_struct/Cap)×100) | `chronicFatigueModel.ts` → `calculateReadinessScore()` | Covered |
+| w₁ ≈ 0.6, w₂ ≈ 0.4 | Constants in `chronicFatigueModel.ts` | Covered |
+| Interpretive logic (High Readiness >80, Metabolic fatigue, Structural fatigue) | `chronicFatigueModel.ts` → `interpretReadinessState()` | Covered |
+| RPE Correction Loop | `rpeCorrectionLoop.ts` → full module | Covered |
+| Penalty Load on S_meta for 24h | `rpeCorrectionLoop.ts` → `applyPenaltyLoad()` | Covered |
+| CP downgrade after >3 mismatches | `rpeCorrectionLoop.ts` → `checkCPDowngradeTrigger()` | Covered |
 
 ### Section 6: Implementation Strategy
 
 | Requirement | Plan Reference | Status |
 |-------------|----------------|--------|
-| Backfill eCP on last 60 days | `criticalPowerEngine.ts` + Phase 14 migration | ✅ Covered |
-| Initialize S_meta and S_struct from t_-60 to t_now | `chronicFatigueModel.ts` → `initializeChronicState()` | ✅ Covered |
-| Forward simulation flow (session → CP → Load → State → Readiness) | `useMetrics.ts` refactor + session completion flow | ✅ Covered |
+| Backfill eCP on last 60 days | `criticalPowerEngine.ts` + Phase 14 migration | Covered |
+| Initialize S_meta and S_struct from t_-60 to t_now | `chronicFatigueModel.ts` → `initializeChronicState()` | Covered |
+| Forward simulation flow (session → CP → Load → State → Readiness) | `useMetrics.ts` refactor + session completion flow | Covered |
 
 ### Section 7: Questionnaire Integration
 
 | Requirement | Plan Reference | Status |
 |-------------|----------------|--------|
-| φ_recovery ∈ [0.5, 1.5] from Sleep, Nutrition, Stress | `questionnaireConfig.ts` → `calculateRecoveryEfficiency()` | ✅ Covered |
-| Apply φ to τ_meta in decay equation | `chronicFatigueModel.ts` → `updateMetabolicFreshness(phiRecovery)` | ✅ Covered |
-| Structural Correction (Soreness → force-inject S_struct) | `questionnaireConfig.ts` → `calculateStructuralCorrection()` | ✅ Covered |
-| ΔS_struct = max(0, 0.5×Cap - S_struct) formula | `calculateStructuralCorrection()` implementation | ✅ Covered |
-| Metabolic Correction (Energy → fatigue penalty) | `questionnaireConfig.ts` → `calculateMetabolicCorrection()` | ✅ Covered |
-| S_meta += 0.3×Cap formula | `calculateMetabolicCorrection()` implementation | ✅ Covered |
-| Retain Synergy & Cascade logic | Modified `questionnaireConfig.ts` retaining intelligence layers | ✅ Covered |
-| 7-day trend → CP estimate adjustment | Trend analysis integration | ✅ Covered |
+| φ_recovery ∈ [0.5, 1.5] from Sleep, Nutrition, Stress | `questionnaireConfig.ts` → `calculateRecoveryEfficiency()` | Covered |
+| Apply φ to τ_meta in decay equation | `chronicFatigueModel.ts` → `updateMetabolicFreshness(phiRecovery)` | Covered |
+| Structural Correction (Soreness → force-inject S_struct) | `questionnaireConfig.ts` → `calculateStructuralCorrection()` | Covered |
+| ΔS_struct = max(0, 0.5×Cap - S_struct) formula | `calculateStructuralCorrection()` implementation | Covered |
+| Metabolic Correction (Energy → fatigue penalty) | `questionnaireConfig.ts` → `calculateMetabolicCorrection()` | Covered |
+| S_meta += 0.3×Cap formula | `calculateMetabolicCorrection()` implementation | Covered |
+| Retain Synergy & Cascade logic | Modified `questionnaireConfig.ts` retaining intelligence layers | Covered |
+| 7-day trend → CP estimate adjustment | Trend analysis integration | Covered |
 
 ### Summary
 

@@ -85,7 +85,7 @@
             "adjustments": {
                 "volumeMultiplier": 0.5,
                 "powerMultiplier": 0.9,
-                "message": "🛑 Recovery needed. Taking it very easy today."
+                "message": "Recovery needed. Taking it very easy today."
             }
         },
         {
@@ -93,7 +93,7 @@
             "priority": 30,
             "adjustments": {
                 "volumeMultiplier": 0.8,
-                "message": "💤 Feeling tired. Reducing duration by 20% to ensure quality."
+                "message": "Feeling tired. Reducing duration by 20% to ensure quality."
             }
         },
         {
@@ -101,7 +101,7 @@
             "priority": 40,
             "adjustments": {
                 "volumeMultiplier": 1.1,
-                "message": "🌟 Great recovery! Feel free to extend the session by 10%."
+                "message": "Great recovery! Feel free to extend the session by 10%."
             }
         }
     ]

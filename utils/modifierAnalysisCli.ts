@@ -625,18 +625,18 @@ function runRigorousAnalysis(
     const numWeeks = weeks.length;
 
     if (options.verbose) {
-        console.log(`\n📊 Analyzing: ${program.name} (${numWeeks} weeks)`);
+        console.log(`\nAnalyzing: ${program.name} (${numWeeks} weeks)`);
         console.log(`   ${program.description}`);
     }
 
     // Step 1: Generate percentile data for auto-adaptive engine
-    if (options.verbose) console.log(`   🔧 Generating percentile data (${options.percentileSimulations} simulations)...`);
+    if (options.verbose) console.log(`   Generating percentile data (${options.percentileSimulations} simulations)...`);
     const weekPercentiles = generateWeekPercentiles(weeks, options.basePower, options.percentileSimulations);
 
-    if (options.verbose) console.log(`   ⚡ Generated percentile data for ${numWeeks} weeks`);
+    if (options.verbose) console.log(`   Generated percentile data for ${numWeeks} weeks`);
 
     // Step 2: Run Monte Carlo simulations
-    if (options.verbose) console.log(`   🔄 Running ${options.iterations} simulation iterations...`);
+    if (options.verbose) console.log(`   Running ${options.iterations} simulation iterations...`);
 
     const baselineFatigues: number[][] = Array(numWeeks).fill(null).map(() => []);
     const baselineReadinesses: number[][] = Array(numWeeks).fill(null).map(() => []);
@@ -826,7 +826,7 @@ function printSummary(results: AnalysisResult[]): void {
         const fatigueDelta = `${r.fatigueEffect.percentReduction >= 0 ? '-' : '+'}${Math.abs(r.fatigueEffect.percentReduction).toFixed(1)}%`;
         const effectLabel = `${r.fatigueEffect.cohensD.toFixed(2)} (${r.fatigueEffect.interpretation.slice(0, 3)})`;
         const peakDelta = `${r.peakFatigueEffect.percentReduction >= 0 ? '-' : '+'}${Math.abs(r.peakFatigueEffect.percentReduction).toFixed(1)}%`;
-        const sig = r.isSignificant ? '✅' : '❌';
+        const sig = r.isSignificant ? 'YES' : 'NO';
 
         console.log(
             `${r.programConfig.name.padEnd(31)} ${String(r.programConfig.weekCount).padStart(5)}  ` +
@@ -864,7 +864,7 @@ async function main(): Promise<void> {
 
     // Generate program library
     const programs = generateProgramLibrary(options.basePower);
-    console.log(`📚 Generated ${programs.length} program configurations for testing\n`);
+    console.log(`Generated ${programs.length} program configurations for testing\n`);
 
     const results: AnalysisResult[] = [];
 
@@ -876,7 +876,7 @@ async function main(): Promise<void> {
             const result = runRigorousAnalysis(program, options);
             results.push(result);
         } catch (e) {
-            console.error(`  ❌ Error analyzing ${program.name}: ${e}`);
+            console.error(`  Error analyzing ${program.name}: ${e}`);
         }
     }
 
@@ -895,10 +895,10 @@ async function main(): Promise<void> {
         }));
 
         fs.writeFileSync(options.outputFile, JSON.stringify(serializableResults, null, 2));
-        console.log(`\n💾 Full results saved to: ${options.outputFile}`);
+        console.log(`\nFull results saved to: ${options.outputFile}`);
     }
 
-    console.log('\n✨ Analysis complete!\n');
+    console.log('\nAnalysis complete!\n');
 }
 
 main().catch(console.error);

@@ -1,0 +1,47 @@
+CardioKinetic is an open-source training app for cyclists and runners who want smarter, data-driven workouts without subscriptions or cloud accounts.
+
+<b>Intelligent Fatigue Tracking</b>
+
+Unlike simple training load calculators, CardioKinetic uses a dual-compartment fatigue model that separately tracks:
+
+• <b>Metabolic fatigue (MET)</b> — Glycogen stores and CNS readiness, recovers in ~2 days
+• <b>Musculoskeletal fatigue (MSK)</b> — Muscle damage and joint stress, recovers in ~15 days
+
+This distinction matters because feeling energized doesn't mean your muscles are recovered, and vice versa.
+
+<b>Critical Power Estimation</b>
+
+Your aerobic ceiling (CP) and anaerobic reserve (W') are automatically calculated from your training history:
+
+• Learns from both maximal efforts and moderate steady-state sessions
+• Uses RPE proximity scoring to extract signal from every workout
+• Auto-decays when you haven't tested recently
+
+<b>Auto-Adaptive Training</b>
+
+The app runs Monte Carlo simulations (100,000 iterations) to establish your personal fatigue baselines. When your metrics deviate, training automatically adjusts:
+
+• Reduces power when you're stressed or fatigued
+• Extends rest intervals to protect recovery
+• Maintains intensity when you're fresh and primed
+
+<b>Flexible Session Types</b>
+
+• <b>Intervals</b> — Configurable work:rest ratios with audio cues
+• <b>Steady-state</b> — Zone 2 endurance with duration progression
+• <b>Custom</b> — Mix and match blocks in a single session
+
+<b>Privacy First</b>
+
+• No accounts required
+• All data stays on your device
+• Works fully offline
+• GPLv3 open-source license
+
+<b>Features</b>
+
+• Block-based periodization with reusable training blocks
+• Daily wellness questionnaire with Bayesian corrections
+• Material You theming with custom accent colors
+• Comprehensive analytics with power trends and work tracking
+• Full backup and restore functionality

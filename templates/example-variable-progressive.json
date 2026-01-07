@@ -56,7 +56,7 @@
             "adjustments": {
                 "powerMultiplier": 0.75,
                 "volumeMultiplier": 0.5,
-                "message": "🛑 Signs of overreaching detected. Significant reduction applied for safety."
+                "message": "Signs of overreaching detected. Significant reduction applied for safety."
             }
         },
         {
@@ -65,7 +65,7 @@
             "adjustments": {
                 "powerMultiplier": 0.85,
                 "restMultiplier": 1.5,
-                "message": "⚠️ High accumulated fatigue. Reducing intensity by 15% and extending rest periods."
+                "message": "High accumulated fatigue. Reducing intensity by 15% and extending rest periods."
             }
         },
         {
@@ -73,7 +73,7 @@
             "priority": 30,
             "adjustments": {
                 "rpeAdjust": -1,
-                "message": "😴 Fatigue elevated. Targeting lower RPE today to allow recovery."
+                "message": "Fatigue elevated. Targeting lower RPE today to allow recovery."
             }
         },
         {
@@ -81,7 +81,7 @@
             "priority": 40,
             "adjustments": {
                 "powerMultiplier": 1.05,
-                "message": "✅ Well recovered! Adding 5% intensity boost."
+                "message": "Well recovered! Adding 5% intensity boost."
             }
         }
     ]

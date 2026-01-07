@@ -2,6 +2,16 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.8.1] - 2026-01-07
+
+### Fixed
+
+- **Dashboard/Chart Synchronization**: Fixed discrepancy between dashboard and daily chart view for fatigue/readiness values by implementing wellness carryover logic in the chart
+
+### Documentation
+
+- **Contributing Guide**: Updated `CONTRIBUTING.md` formatting
+
 ## [1.8.0] - 2026-01-07
 
 This release introduces a fundamentally redesigned fatigue and readiness system, replacing the legacy EWMA-based approach with a scientifically grounded dual-compartment model that tracks metabolic and structural fatigue independently. The new system learns your Critical Power from training history, calculates physiologically-accurate session costs, and self-corrects based on your RPE feedback.

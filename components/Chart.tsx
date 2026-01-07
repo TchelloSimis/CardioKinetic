@@ -226,6 +226,7 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
   // --- DATA ENGINE: CHRONIC FATIGUE MODEL (Dual-Compartment) ---
   // Uses MET (Metabolic Energy Tank) and MSK (MusculoSkeletal) instead of EWMA
   // Questionnaire adjustments are applied via recovery efficiency (φ)
+  // Wellness carryover modifier decays questionnaire effects into subsequent days
   const generateMetrics = (
     totalDays: number,
     sessions: Session[],
@@ -241,6 +242,10 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
     let sStruct = 0;
     const capMeta = DEFAULT_CAP_METABOLIC;
     const capStruct = DEFAULT_CAP_STRUCTURAL;
+
+    // Wellness carryover modifier - decays questionnaire effects into subsequent days
+    let wellnessModifier = 0;
+    const wellnessAlpha = 2 / (3 + 1); // 3-day half-life
 
     for (let i = 0; i < totalDays; i++) {
       const dateStr = addDays(firstStartStr, i);
@@ -303,7 +308,7 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
       const avgRatio = (metaRatio * 0.6 + structRatio * 0.4);
       let fatigue = Math.round(Math.min(100, Math.max(0, avgRatio * 100)));
 
-      // Apply questionnaire adjustments to display values (Option B)
+      // Apply questionnaire adjustments to display values
       // This shows subjective perception influence on the chart
       if (dayResponse) {
         // Get recent responses for trend analysis (prior 7 days)
@@ -319,9 +324,24 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
           recentForDay
         );
 
+        // Track wellness modifier for carryover to subsequent days
+        const fatigueImpact = adjustment.fatigue - fatigue;
+        const readinessImpact = adjustment.readiness - readiness;
+        wellnessModifier = wellnessModifier * (1 - wellnessAlpha) +
+          ((readinessImpact - fatigueImpact) / 2) * wellnessAlpha;
+
         // Apply adjustments to final display values
         readiness = adjustment.readiness;
         fatigue = adjustment.fatigue;
+      } else {
+        // Decay wellness modifier on non-questionnaire days
+        wellnessModifier = wellnessModifier * (1 - wellnessAlpha);
+
+        // Apply carryover if significant (threshold of 0.5)
+        if (Math.abs(wellnessModifier) > 0.5) {
+          readiness = Math.max(0, Math.min(100, Math.round(readiness + wellnessModifier)));
+          fatigue = Math.max(0, Math.min(100, Math.round(fatigue - wellnessModifier)));
+        }
       }
 
       metrics.push({
