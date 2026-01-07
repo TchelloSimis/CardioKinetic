@@ -277,7 +277,7 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
         const capMeta = DEFAULT_CAP_METABOLIC;
         const capStruct = DEFAULT_CAP_STRUCTURAL;
 
-        // Build questionnaire lookup map
+        // Build questionnaire lookup map (includes all available responses)
         const questionnaireByDate = new Map<string, QuestionnaireResponse>();
         if (recentQuestionnaireResponses) {
             recentQuestionnaireResponses.forEach(r => questionnaireByDate.set(r.date, r));
@@ -285,6 +285,21 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
         if (todayQuestionnaireResponse) {
             questionnaireByDate.set(todayQuestionnaireResponse.date, todayQuestionnaireResponse);
         }
+
+        // Build complete list for trend analysis (same as Chart.tsx)
+        const allQuestionnaireResponses = [
+            ...(recentQuestionnaireResponses || []),
+            ...(todayQuestionnaireResponse ? [todayQuestionnaireResponse] : [])
+        ];
+
+        // Wellness carryover modifier - decays questionnaire effects into subsequent days
+        // This matches Chart.tsx exactly for consistency
+        let wellnessModifier = 0;
+        const wellnessAlpha = 2 / (3 + 1); // 3-day half-life
+
+        // Track daily metrics for final day extraction
+        let finalReadiness = 50;
+        let finalFatigue = 50;
 
         // Iterate from program start to simulated date
         for (let i = 0; i <= daysToSim; i++) {
@@ -297,30 +312,80 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
             const dayResponse = questionnaireByDate.get(dateStr);
             const phiRecovery = calculatePhiRecovery(dayResponse);
 
-            // Update compartments
+            // Update compartments with φ recovery efficiency
             sMeta = updateMetabolicFreshness(sMeta, dailyLoad, phiRecovery, capMeta);
             sStruct = updateStructuralHealth(sStruct, dailyLoad, SIGMA_IMPACT, capStruct);
-        }
 
-        // Apply today's questionnaire corrections (Bayesian updates)
-        if (todayQuestionnaireResponse) {
-            const soreness = todayQuestionnaireResponse.responses['soreness'];
-            const energy = todayQuestionnaireResponse.responses['energy'];
+            // Apply Bayesian corrections for questionnaire days (same as Chart.tsx)
+            // This injects hidden fatigue when user reports issues but model shows fresh
+            if (dayResponse) {
+                const soreness = dayResponse.responses['soreness'];
+                const energy = dayResponse.responses['energy'];
 
-            if (soreness && soreness <= 2) {
-                const correction = applyStructuralCorrection(
-                    { sMetabolic: sMeta, sStructural: sStruct, capMetabolic: capMeta, capStructural: capStruct, lastUpdated: '' },
-                    soreness
-                );
-                sStruct = correction.sStructural;
+                if (soreness && soreness <= 2) {
+                    const correction = applyStructuralCorrection(
+                        { sMetabolic: sMeta, sStructural: sStruct, capMetabolic: capMeta, capStructural: capStruct, lastUpdated: '' },
+                        soreness
+                    );
+                    sStruct = correction.sStructural;
+                }
+                if (energy && energy <= 2) {
+                    const correction = applyMetabolicCorrection(
+                        { sMetabolic: sMeta, sStructural: sStruct, capMetabolic: capMeta, capStructural: capStruct, lastUpdated: '' },
+                        energy
+                    );
+                    sMeta = correction.sMetabolic;
+                }
             }
-            if (energy && energy <= 2) {
-                const correction = applyMetabolicCorrection(
-                    { sMetabolic: sMeta, sStructural: sStruct, capMetabolic: capMeta, capStructural: capStruct, lastUpdated: '' },
-                    energy
+
+            // Calculate base readiness from chronic model (after Bayesian corrections)
+            let readiness = calculateChronicReadiness(sMeta, sStruct, capMeta, capStruct);
+
+            // Convert chronic state to fatigue score (higher state = higher fatigue)
+            const metaRatio = sMeta / capMeta;
+            const structRatio = sStruct / capStruct;
+            const avgRatio = (metaRatio * 0.6 + structRatio * 0.4);
+            let fatigue = Math.round(Math.min(100, Math.max(0, avgRatio * 100)));
+
+            // Apply questionnaire adjustments to display values (same as Chart.tsx)
+            // This shows subjective perception influence
+            if (dayResponse) {
+                // Get recent responses for trend analysis (prior 7 days)
+                const recentForDay = allQuestionnaireResponses
+                    .filter(r => r.date < dateStr)
+                    .sort((a, b) => b.date.localeCompare(a.date))
+                    .slice(0, 7);
+
+                const adjustment = applyQuestionnaireAdjustment(
+                    readiness,
+                    fatigue,
+                    dayResponse,
+                    recentForDay
                 );
-                sMeta = correction.sMetabolic;
+
+                // Track wellness modifier for carryover to subsequent days
+                const fatigueImpact = adjustment.fatigue - fatigue;
+                const readinessImpact = adjustment.readiness - readiness;
+                wellnessModifier = wellnessModifier * (1 - wellnessAlpha) +
+                    ((readinessImpact - fatigueImpact) / 2) * wellnessAlpha;
+
+                // Apply adjustments to final display values
+                readiness = adjustment.readiness;
+                fatigue = adjustment.fatigue;
+            } else {
+                // Decay wellness modifier on non-questionnaire days
+                wellnessModifier = wellnessModifier * (1 - wellnessAlpha);
+
+                // Apply carryover if significant (threshold of 0.5)
+                if (Math.abs(wellnessModifier) > 0.5) {
+                    readiness = Math.max(0, Math.min(100, Math.round(readiness + wellnessModifier)));
+                    fatigue = Math.max(0, Math.min(100, Math.round(fatigue - wellnessModifier)));
+                }
             }
+
+            // Store for final day (this will be overwritten each iteration, ending with simulatedDate)
+            finalReadiness = readiness;
+            finalFatigue = fatigue;
         }
 
         // Build final chronic state
@@ -332,8 +397,8 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
             lastUpdated: new Date().toISOString(),
         };
 
-        // Calculate readiness from chronic state
-        const chronicReadiness = calculateChronicReadiness(
+        // Calculate BASE readiness for interpretation (before questionnaire adjustment)
+        const baseChronicReadiness = calculateChronicReadiness(
             chronicState.sMetabolic,
             chronicState.sStructural,
             chronicState.capMetabolic,
@@ -341,15 +406,15 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
         );
 
         const readinessInterpretation = interpretReadinessState(
-            chronicReadiness,
+            baseChronicReadiness,
             chronicState.sMetabolic,
             chronicState.sStructural,
             chronicState.capMetabolic,
             chronicState.capStructural
         );
 
-        // Map to legacy fatigue score
-        const legacyFatigue = chronicStateToLegacyFatigue(
+        // Map to legacy fatigue score (base, before questionnaire adjustment)
+        const baseLegacyFatigue = chronicStateToLegacyFatigue(
             chronicState.sMetabolic,
             chronicState.sStructural,
             chronicState.capMetabolic,
@@ -363,29 +428,19 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
         }
 
         // ================================================================
-        // QUESTIONNAIRE ADJUSTMENT (for display purposes)
-        // Uses chronic model baseline values so badges match displayed values
+        // DISPLAY VALUES (with questionnaire adjustment from historical iteration)
+        // finalReadiness and finalFatigue already have questionnaire adjustments
+        // and wellnessModifier carryover applied from the iteration loop above
         // ================================================================
+        const displayReadiness = finalReadiness;
+        const displayFatigue = finalFatigue;
+
+        // Compute questionnaire adjustment badge values by comparing to base
         let questionnaireAdjustment: { readinessChange: number; fatigueChange: number } | undefined;
-        let displayReadiness = chronicReadiness;
-        let displayFatigue = legacyFatigue;
-
         if (todayQuestionnaireResponse) {
-            // Use chronic model values as baseline (these are what's displayed)
-            const adjustment = applyQuestionnaireAdjustment(
-                chronicReadiness,
-                legacyFatigue,
-                todayQuestionnaireResponse,
-                recentQuestionnaireResponses
-            );
-
-            // Apply adjustment to display values (not just compute badge)
-            displayReadiness = adjustment.readiness;
-            displayFatigue = adjustment.fatigue;
-
             questionnaireAdjustment = {
-                readinessChange: adjustment.readinessChange,
-                fatigueChange: adjustment.fatigueChange
+                readinessChange: displayReadiness - baseChronicReadiness,
+                fatigueChange: displayFatigue - baseLegacyFatigue
             };
         }
 

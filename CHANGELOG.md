@@ -2,6 +2,12 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.8.2] - 2026-01-07
+
+### Fixed
+
+- **Fatigue/Readiness Synchronization**: Fixed consistency issue between the dashboard and chart displays for fatigue and readiness values, ensuring questionnaire adjustments and wellness modifiers are applied correctly across both views.
+
 ## [1.8.1] - 2026-01-07
 
 ### Fixed

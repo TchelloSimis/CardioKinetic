@@ -1,58 +1,134 @@
 /**
  * Chart Metrics Integration Tests with Questionnaire Carryover
  * 
- * Tests the integration of questionnaire adjustments into the chart's EWMA
- * metrics calculation, verifying that adjustments carry forward to subsequent days.
+ * Tests the integration of questionnaire adjustments into the chart's Chronic
+ * Fatigue Model (MET/MSK dual-compartment) metrics calculation, verifying that
+ * adjustments carry forward to subsequent days.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { QuestionnaireResponse } from '../types';
-import {
-    calculateFatigueScore,
-    calculateReadinessScore,
-    calculateSessionLoad
-} from './metricsUtils';
+import { describe, it, expect } from 'vitest';
+import { QuestionnaireResponse, Session, CriticalPowerEstimate } from '../types';
 import { applyQuestionnaireAdjustment } from './questionnaireConfig';
 import { addDays } from './dateUtils';
+import {
+    updateMetabolicFreshness,
+    updateStructuralHealth,
+    calculateReadinessScore as calculateChronicReadiness,
+    applyStructuralCorrection,
+    applyMetabolicCorrection,
+    DEFAULT_PHI_RECOVERY,
+    DEFAULT_CAP_METABOLIC,
+    DEFAULT_CAP_STRUCTURAL,
+    SIGMA_IMPACT,
+} from './chronicFatigueModel';
+import { aggregateDailyLoad } from './physiologicalCostEngine';
 
 // ============================================================================
 // HELPER FUNCTIONS (mirroring Chart.tsx generateMetrics logic)
 // ============================================================================
 
+/** Mock CP estimate for testing */
+const mockCPEstimate: CriticalPowerEstimate = {
+    cp: 200,
+    wPrime: 15000,
+    confidence: 0.8,
+    contributingSessions: 5,
+    lastUpdated: new Date().toISOString()
+};
+
 /**
- * Generate metrics with questionnaire carryover.
+ * Calculate recovery efficiency (φ) from questionnaire response.
+ * Maps sleep, nutrition, and stress to a [0.5, 1.5] scalar.
+ */
+function calculatePhiRecovery(response: QuestionnaireResponse | undefined): number {
+    if (!response) return DEFAULT_PHI_RECOVERY;
+
+    const { responses } = response;
+    const sleepHours = responses['sleep_hours'] || 3;
+    const sleepQuality = responses['sleep_quality'] || 3;
+    const sleep = (sleepHours + sleepQuality) / 2;
+    const nutrition = responses['nutrition'] || 3;
+    const stress = responses['stress'] || 3;
+
+    const sleepNorm = (sleep - 1) / 4;
+    const nutritionNorm = (nutrition - 1) / 4;
+    const stressNorm = (stress - 1) / 4;
+
+    const avgFactor = (sleepNorm + nutritionNorm + stressNorm) / 3;
+    return Math.max(0.5, Math.min(1.5, 0.5 + avgFactor));
+}
+
+/**
+ * Generate metrics with questionnaire carryover using Chronic Fatigue Model.
  * This mirrors the generateMetrics function in Chart.tsx for testing.
  */
 function generateMetricsWithCarryover(
     totalDays: number,
-    dailyLoads: Float32Array,
+    sessions: Session[],
     firstStartStr: string,
     questionnaireByDate: Map<string, QuestionnaireResponse>,
-    allResponses: QuestionnaireResponse[]
+    allResponses: QuestionnaireResponse[],
+    cpEstimate: CriticalPowerEstimate = mockCPEstimate
 ): Array<{ fatigue: number; readiness: number }> {
-    const metrics = [];
-    let atl = 0;
-    let ctl = 10; // Seed baseline
-    let wellnessModifier = 0;
+    const metrics: Array<{ fatigue: number; readiness: number }> = [];
 
-    const atlAlpha = 2 / (7 + 1);
-    const ctlAlpha = 2 / (42 + 1);
-    const wellnessAlpha = 2 / (3 + 1);
+    // Initialize dual-compartment state
+    let sMeta = 0;
+    let sStruct = 0;
+    const capMeta = DEFAULT_CAP_METABOLIC;
+    const capStruct = DEFAULT_CAP_STRUCTURAL;
+
+    // Wellness carryover modifier - decays questionnaire effects into subsequent days
+    let wellnessModifier = 0;
+    const wellnessAlpha = 2 / (3 + 1); // 3-day half-life
 
     for (let i = 0; i < totalDays; i++) {
-        const load = dailyLoads[i];
         const dateStr = addDays(firstStartStr, i);
 
-        atl = atl * (1 - atlAlpha) + load * atlAlpha;
-        ctl = ctl * (1 - ctlAlpha) + load * ctlAlpha;
+        // Calculate daily load using physiological cost engine
+        const dailyLoad = aggregateDailyLoad(sessions, dateStr, cpEstimate);
 
-        const tsb = ctl - atl;
-
-        let fatigue = calculateFatigueScore(atl, ctl);
-        let readiness = calculateReadinessScore(tsb);
-
+        // Calculate recovery efficiency from questionnaire
         const dayResponse = questionnaireByDate.get(dateStr);
+        const phiRecovery = calculatePhiRecovery(dayResponse);
+
+        // Update compartments with φ recovery efficiency
+        sMeta = updateMetabolicFreshness(sMeta, dailyLoad, phiRecovery, capMeta);
+        sStruct = updateStructuralHealth(sStruct, dailyLoad, SIGMA_IMPACT, capStruct);
+
+        // Apply Bayesian corrections for questionnaire days
         if (dayResponse) {
+            const soreness = dayResponse.responses['soreness'];
+            const energy = dayResponse.responses['energy'];
+
+            if (soreness && soreness <= 2) {
+                const correction = applyStructuralCorrection(
+                    { sMetabolic: sMeta, sStructural: sStruct, capMetabolic: capMeta, capStructural: capStruct, lastUpdated: '' },
+                    soreness
+                );
+                sStruct = correction.sStructural;
+            }
+            if (energy && energy <= 2) {
+                const correction = applyMetabolicCorrection(
+                    { sMetabolic: sMeta, sStructural: sStruct, capMetabolic: capMeta, capStructural: capStruct, lastUpdated: '' },
+                    energy
+                );
+                sMeta = correction.sMetabolic;
+            }
+        }
+
+        // Calculate base readiness from chronic model (after Bayesian corrections)
+        let readiness = calculateChronicReadiness(sMeta, sStruct, capMeta, capStruct);
+
+        // Convert chronic state to fatigue score (higher state = higher fatigue)
+        const metaRatio = sMeta / capMeta;
+        const structRatio = sStruct / capStruct;
+        const avgRatio = (metaRatio * 0.6 + structRatio * 0.4);
+        let fatigue = Math.round(Math.min(100, Math.max(0, avgRatio * 100)));
+
+        // Apply questionnaire adjustments to display values
+        if (dayResponse) {
+            // Get recent responses for trend analysis (prior 7 days)
             const recentForDay = allResponses
                 .filter(r => r.date < dateStr)
                 .sort((a, b) => b.date.localeCompare(a.date))
@@ -65,16 +141,20 @@ function generateMetricsWithCarryover(
                 recentForDay
             );
 
-            fatigue = adjustment.fatigue;
-            readiness = adjustment.readiness;
-
-            const fatigueImpact = adjustment.fatigueChange;
-            const readinessImpact = adjustment.readinessChange;
+            // Track wellness modifier for carryover to subsequent days
+            const fatigueImpact = adjustment.fatigue - fatigue;
+            const readinessImpact = adjustment.readiness - readiness;
             wellnessModifier = wellnessModifier * (1 - wellnessAlpha) +
                 ((readinessImpact - fatigueImpact) / 2) * wellnessAlpha;
+
+            // Apply adjustments to final display values
+            readiness = adjustment.readiness;
+            fatigue = adjustment.fatigue;
         } else {
+            // Decay wellness modifier on non-questionnaire days
             wellnessModifier = wellnessModifier * (1 - wellnessAlpha);
 
+            // Apply carryover if significant (threshold of 0.5)
             if (Math.abs(wellnessModifier) > 0.5) {
                 readiness = Math.max(0, Math.min(100, Math.round(readiness + wellnessModifier)));
                 fatigue = Math.max(0, Math.min(100, Math.round(fatigue - wellnessModifier)));
@@ -87,31 +167,75 @@ function generateMetricsWithCarryover(
 }
 
 /**
- * Generate metrics WITHOUT questionnaire (baseline).
+ * Generate metrics WITHOUT questionnaire (baseline) using Chronic Fatigue Model.
  */
 function generateMetricsBaseline(
     totalDays: number,
-    dailyLoads: Float32Array
+    sessions: Session[],
+    firstStartStr: string,
+    cpEstimate: CriticalPowerEstimate = mockCPEstimate
 ): Array<{ fatigue: number; readiness: number }> {
-    const metrics = [];
-    let atl = 0;
-    let ctl = 10;
+    const metrics: Array<{ fatigue: number; readiness: number }> = [];
 
-    const atlAlpha = 2 / (7 + 1);
-    const ctlAlpha = 2 / (42 + 1);
+    // Initialize dual-compartment state
+    let sMeta = 0;
+    let sStruct = 0;
+    const capMeta = DEFAULT_CAP_METABOLIC;
+    const capStruct = DEFAULT_CAP_STRUCTURAL;
 
     for (let i = 0; i < totalDays; i++) {
-        const load = dailyLoads[i];
-        atl = atl * (1 - atlAlpha) + load * atlAlpha;
-        ctl = ctl * (1 - ctlAlpha) + load * ctlAlpha;
-        const tsb = ctl - atl;
+        const dateStr = addDays(firstStartStr, i);
 
-        metrics.push({
-            fatigue: calculateFatigueScore(atl, ctl),
-            readiness: calculateReadinessScore(tsb)
-        });
+        // Calculate daily load using physiological cost engine
+        const dailyLoad = aggregateDailyLoad(sessions, dateStr, cpEstimate);
+
+        // Update compartments (no questionnaire effects)
+        sMeta = updateMetabolicFreshness(sMeta, dailyLoad, DEFAULT_PHI_RECOVERY, capMeta);
+        sStruct = updateStructuralHealth(sStruct, dailyLoad, SIGMA_IMPACT, capStruct);
+
+        // Calculate readiness from chronic model
+        const readiness = calculateChronicReadiness(sMeta, sStruct, capMeta, capStruct);
+
+        // Convert chronic state to fatigue score
+        const metaRatio = sMeta / capMeta;
+        const structRatio = sStruct / capStruct;
+        const avgRatio = (metaRatio * 0.6 + structRatio * 0.4);
+        const fatigue = Math.round(Math.min(100, Math.max(0, avgRatio * 100)));
+
+        metrics.push({ fatigue, readiness });
     }
     return metrics;
+}
+
+/**
+ * Create a mock session.
+ */
+function createMockSession(date: string, power: number, duration: number): Session {
+    return {
+        id: `session-${date}`,
+        date,
+        power,
+        duration,
+        rpe: 5,
+        distance: 0,
+        workRestRatio: '1:1'
+    };
+}
+
+/**
+ * Create sessions for a given number of days at constant power.
+ */
+function createDailySessions(
+    totalDays: number,
+    firstStartStr: string,
+    power: number = 150,
+    duration: number = 30
+): Session[] {
+    const sessions: Session[] = [];
+    for (let i = 0; i < totalDays; i++) {
+        sessions.push(createMockSession(addDays(firstStartStr, i), power, duration));
+    }
+    return sessions;
 }
 
 /**
@@ -138,39 +262,28 @@ function createQuestionnaireResponse(
     };
 }
 
-/**
- * Create session load for a given number of days.
- */
-function createDailyLoads(totalDays: number, defaultLoad: number = 50): Float32Array {
-    const loads = new Float32Array(totalDays);
-    for (let i = 0; i < totalDays; i++) {
-        loads[i] = defaultLoad;
-    }
-    return loads;
-}
-
 // ============================================================================
 // TEST SUITES
 // ============================================================================
 
-describe('Chart Metrics with Questionnaire Carryover', () => {
+describe('Chart Metrics with Questionnaire Carryover (Chronic Fatigue Model)', () => {
     const startDate = '2026-01-01';
 
     describe('Base Metrics Without Questionnaire', () => {
         it('should calculate metrics correctly with no questionnaire data', () => {
             const totalDays = 7;
-            const dailyLoads = createDailyLoads(totalDays, 50);
+            const sessions = createDailySessions(totalDays, startDate, 150, 30);
             const emptyMap = new Map<string, QuestionnaireResponse>();
 
             const metrics = generateMetricsWithCarryover(
                 totalDays,
-                dailyLoads,
+                sessions,
                 startDate,
                 emptyMap,
                 []
             );
 
-            const baseline = generateMetricsBaseline(totalDays, dailyLoads);
+            const baseline = generateMetricsBaseline(totalDays, sessions, startDate);
 
             // Should match baseline exactly when no questionnaires
             expect(metrics.length).toBe(totalDays);
@@ -182,22 +295,22 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
 
         it('should produce consistent results with zero load', () => {
             const totalDays = 5;
-            const dailyLoads = createDailyLoads(totalDays, 0);
+            const sessions: Session[] = []; // No sessions = zero load
             const emptyMap = new Map<string, QuestionnaireResponse>();
 
             const metrics = generateMetricsWithCarryover(
                 totalDays,
-                dailyLoads,
+                sessions,
                 startDate,
                 emptyMap,
                 []
             );
 
             expect(metrics.length).toBe(totalDays);
-            // With zero load, fatigue should stay low and readiness high (near baseline)
+            // With zero load, fatigue should be zero and readiness should be 100
             for (let i = 0; i < totalDays; i++) {
-                expect(metrics[i].fatigue).toBeLessThanOrEqual(50);
-                expect(metrics[i].readiness).toBeGreaterThanOrEqual(50);
+                expect(metrics[i].fatigue).toBe(0);
+                expect(metrics[i].readiness).toBe(100);
             }
         });
     });
@@ -205,7 +318,7 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
     describe('Single Day Questionnaire Adjustment', () => {
         it('should apply negative adjustment when all answers are 1 (poor)', () => {
             const totalDays = 7;
-            const dailyLoads = createDailyLoads(totalDays, 50);
+            const sessions = createDailySessions(totalDays, startDate, 150, 30);
 
             // Day 3 has a poor questionnaire response
             const poorResponse = createQuestionnaireResponse(addDays(startDate, 3), {
@@ -224,13 +337,13 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
 
             const withQuestionnaire = generateMetricsWithCarryover(
                 totalDays,
-                dailyLoads,
+                sessions,
                 startDate,
                 questionnaireMap,
                 [poorResponse]
             );
 
-            const baseline = generateMetricsBaseline(totalDays, dailyLoads);
+            const baseline = generateMetricsBaseline(totalDays, sessions, startDate);
 
             // Day 3 should have HIGHER fatigue and LOWER readiness than baseline
             expect(withQuestionnaire[3].fatigue).toBeGreaterThan(baseline[3].fatigue);
@@ -239,7 +352,7 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
 
         it('should apply positive adjustment when all answers are 5 (excellent)', () => {
             const totalDays = 7;
-            const dailyLoads = createDailyLoads(totalDays, 50);
+            const sessions = createDailySessions(totalDays, startDate, 150, 30);
 
             // Day 3 has an excellent questionnaire response
             const excellentResponse = createQuestionnaireResponse(addDays(startDate, 3), {
@@ -258,13 +371,13 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
 
             const withQuestionnaire = generateMetricsWithCarryover(
                 totalDays,
-                dailyLoads,
+                sessions,
                 startDate,
                 questionnaireMap,
                 [excellentResponse]
             );
 
-            const baseline = generateMetricsBaseline(totalDays, dailyLoads);
+            const baseline = generateMetricsBaseline(totalDays, sessions, startDate);
 
             // Day 3 should have LOWER fatigue and HIGHER readiness than baseline
             expect(withQuestionnaire[3].fatigue).toBeLessThan(baseline[3].fatigue);
@@ -275,7 +388,7 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
     describe('Multi-Day Carryover Effect', () => {
         it('should carry poor wellness effects to subsequent days', () => {
             const totalDays = 10;
-            const dailyLoads = createDailyLoads(totalDays, 50);
+            const sessions = createDailySessions(totalDays, startDate, 150, 30);
 
             // Day 3 has a poor questionnaire response
             const poorResponse = createQuestionnaireResponse(addDays(startDate, 3), {
@@ -294,13 +407,13 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
 
             const withQuestionnaire = generateMetricsWithCarryover(
                 totalDays,
-                dailyLoads,
+                sessions,
                 startDate,
                 questionnaireMap,
                 [poorResponse]
             );
 
-            const baseline = generateMetricsBaseline(totalDays, dailyLoads);
+            const baseline = generateMetricsBaseline(totalDays, sessions, startDate);
 
             // Days 4, 5, 6 should also show some effect from day 3's poor response
             // The effect should decay over time
@@ -317,7 +430,7 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
 
         it('should carry excellent wellness effects to subsequent days', () => {
             const totalDays = 10;
-            const dailyLoads = createDailyLoads(totalDays, 50);
+            const sessions = createDailySessions(totalDays, startDate, 150, 30);
 
             // Day 3 has an excellent questionnaire response
             const excellentResponse = createQuestionnaireResponse(addDays(startDate, 3), {
@@ -336,13 +449,13 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
 
             const withQuestionnaire = generateMetricsWithCarryover(
                 totalDays,
-                dailyLoads,
+                sessions,
                 startDate,
                 questionnaireMap,
                 [excellentResponse]
             );
 
-            const baseline = generateMetricsBaseline(totalDays, dailyLoads);
+            const baseline = generateMetricsBaseline(totalDays, sessions, startDate);
 
             // Days 4, 5, 6 should show improved readiness from day 3's excellent response
             const day4ReadinessDiff = withQuestionnaire[4].readiness - baseline[4].readiness;
@@ -353,7 +466,7 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
 
         it('should show effects decaying to near-zero after several days', () => {
             const totalDays = 14;
-            const dailyLoads = createDailyLoads(totalDays, 50);
+            const sessions = createDailySessions(totalDays, startDate, 150, 30);
 
             // Day 3 has a poor questionnaire response
             const poorResponse = createQuestionnaireResponse(addDays(startDate, 3), {
@@ -372,13 +485,13 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
 
             const withQuestionnaire = generateMetricsWithCarryover(
                 totalDays,
-                dailyLoads,
+                sessions,
                 startDate,
                 questionnaireMap,
                 [poorResponse]
             );
 
-            const baseline = generateMetricsBaseline(totalDays, dailyLoads);
+            const baseline = generateMetricsBaseline(totalDays, sessions, startDate);
 
             // By day 10+ (7+ days after the questionnaire), effect should be minimal
             const day10Diff = Math.abs(withQuestionnaire[10].fatigue - baseline[10].fatigue);
@@ -389,7 +502,7 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
     describe('Multiple Questionnaire Responses', () => {
         it('should apply multiple questionnaires correctly', () => {
             const totalDays = 10;
-            const dailyLoads = createDailyLoads(totalDays, 50);
+            const sessions = createDailySessions(totalDays, startDate, 150, 30);
 
             // Day 2 has poor response, Day 5 has excellent response
             const poorResponse = createQuestionnaireResponse(addDays(startDate, 2), {
@@ -422,13 +535,13 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
 
             const withQuestionnaire = generateMetricsWithCarryover(
                 totalDays,
-                dailyLoads,
+                sessions,
                 startDate,
                 questionnaireMap,
                 allResponses
             );
 
-            const baseline = generateMetricsBaseline(totalDays, dailyLoads);
+            const baseline = generateMetricsBaseline(totalDays, sessions, startDate);
 
             // Day 2 should have higher fatigue (poor)
             expect(withQuestionnaire[2].fatigue).toBeGreaterThan(baseline[2].fatigue);
@@ -439,7 +552,7 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
 
         it('should use trend analysis when multiple responses exist', () => {
             const totalDays = 10;
-            const dailyLoads = createDailyLoads(totalDays, 50);
+            const sessions = createDailySessions(totalDays, startDate, 150, 30);
 
             // Create improving trend: days 2, 3, 4 get progressively better
             const resp1 = createQuestionnaireResponse(addDays(startDate, 2), {
@@ -461,13 +574,13 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
 
             const metrics = generateMetricsWithCarryover(
                 totalDays,
-                dailyLoads,
+                sessions,
                 startDate,
                 questionnaireMap,
                 allResponses
             );
 
-            const baseline = generateMetricsBaseline(totalDays, dailyLoads);
+            const baseline = generateMetricsBaseline(totalDays, sessions, startDate);
 
             // Day 4 (best response: 4s across the board) should have better readiness than day 2 (worst: 2s)
             // But carryover from day 2's poor response may still affect day 4
@@ -485,12 +598,12 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
     describe('Edge Cases', () => {
         it('should handle empty arrays', () => {
             const totalDays = 5;
-            const dailyLoads = createDailyLoads(totalDays, 0);
+            const sessions: Session[] = [];
             const emptyMap = new Map<string, QuestionnaireResponse>();
 
             const metrics = generateMetricsWithCarryover(
                 totalDays,
-                dailyLoads,
+                sessions,
                 startDate,
                 emptyMap,
                 []
@@ -501,7 +614,7 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
 
         it('should handle questionnaire on day 0', () => {
             const totalDays = 5;
-            const dailyLoads = createDailyLoads(totalDays, 50);
+            const sessions = createDailySessions(totalDays, startDate, 150, 30);
 
             const response = createQuestionnaireResponse(startDate, {
                 sleep_hours: 1,
@@ -514,13 +627,13 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
 
             const metrics = generateMetricsWithCarryover(
                 totalDays,
-                dailyLoads,
+                sessions,
                 startDate,
                 questionnaireMap,
                 [response]
             );
 
-            const baseline = generateMetricsBaseline(totalDays, dailyLoads);
+            const baseline = generateMetricsBaseline(totalDays, sessions, startDate);
 
             // Day 0 should show effect of poor response
             expect(metrics[0].fatigue).toBeGreaterThan(baseline[0].fatigue);
@@ -528,7 +641,7 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
 
         it('should handle questionnaire on last day', () => {
             const totalDays = 5;
-            const dailyLoads = createDailyLoads(totalDays, 50);
+            const sessions = createDailySessions(totalDays, startDate, 150, 30);
             const lastDayStr = addDays(startDate, totalDays - 1);
 
             const response = createQuestionnaireResponse(lastDayStr, {
@@ -542,13 +655,13 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
 
             const metrics = generateMetricsWithCarryover(
                 totalDays,
-                dailyLoads,
+                sessions,
                 startDate,
                 questionnaireMap,
                 [response]
             );
 
-            const baseline = generateMetricsBaseline(totalDays, dailyLoads);
+            const baseline = generateMetricsBaseline(totalDays, sessions, startDate);
 
             // Last day should show effect of excellent response
             expect(metrics[totalDays - 1].readiness).toBeGreaterThan(baseline[totalDays - 1].readiness);
@@ -556,7 +669,7 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
 
         it('should clamp fatigue and readiness to valid range [0, 100]', () => {
             const totalDays = 10;
-            const dailyLoads = createDailyLoads(totalDays, 50);
+            const sessions = createDailySessions(totalDays, startDate, 150, 30);
 
             // Create extreme poor response
             const extremePoor = createQuestionnaireResponse(addDays(startDate, 3), {
@@ -575,7 +688,7 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
 
             const metrics = generateMetricsWithCarryover(
                 totalDays,
-                dailyLoads,
+                sessions,
                 startDate,
                 questionnaireMap,
                 [extremePoor]
@@ -592,7 +705,7 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
 
         it('should handle questionnaire with partial responses (neutral defaults)', () => {
             const totalDays = 7;
-            const dailyLoads = createDailyLoads(totalDays, 50);
+            const sessions = createDailySessions(totalDays, startDate, 150, 30);
 
             // Only set sleep_hours, rest use defaults (3)
             const partialResponse = createQuestionnaireResponse(addDays(startDate, 3), {
@@ -604,13 +717,13 @@ describe('Chart Metrics with Questionnaire Carryover', () => {
 
             const metrics = generateMetricsWithCarryover(
                 totalDays,
-                dailyLoads,
+                sessions,
                 startDate,
                 questionnaireMap,
                 [partialResponse]
             );
 
-            const baseline = generateMetricsBaseline(totalDays, dailyLoads);
+            const baseline = generateMetricsBaseline(totalDays, sessions, startDate);
 
             // Should still show some effect (from sleep_hours=1)
             expect(metrics[3].fatigue).toBeGreaterThan(baseline[3].fatigue);

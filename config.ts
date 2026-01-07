@@ -5,7 +5,7 @@
  */
 
 /** Current app version - update this when releasing new versions */
-export const APP_VERSION = '1.8.1';
+export const APP_VERSION = '1.8.2';
 
 /** GitHub repository path for update checks */
 export const GITHUB_REPO = 'TchelloSimis/CardioKinetic';
