@@ -106,6 +106,66 @@ export function checkFatigueCondition(condition: FatigueCondition, context: Fati
 import { AutoAdaptiveAdjustment, BlockAdjustment } from './autoAdaptiveTypes';
 
 // ============================================================================
+// MESSAGE FORMATTING
+// ============================================================================
+
+/**
+ * Formats coach modifier messages with contextual fatigue/readiness data
+ * and adjustment details for more descriptive feedback.
+ */
+function formatCoachMessage(
+    baseMessage: string,
+    context: FatigueContext,
+    adjustments: FatigueModifier['adjustments']
+): string {
+    const parts: string[] = [];
+
+    // Add context info: fatigue and/or readiness
+    const contextParts: string[] = [];
+    if (context.fatigueScore !== undefined) {
+        contextParts.push(`fatigue at ${Math.round(context.fatigueScore)}%`);
+    }
+    if (context.readinessScore !== undefined) {
+        contextParts.push(`readiness at ${Math.round(context.readinessScore)}%`);
+    }
+
+    // Build adjustment string
+    const adjParts: string[] = [];
+    if (adjustments.powerMultiplier !== undefined && adjustments.powerMultiplier !== 1.0) {
+        const pct = Math.round((adjustments.powerMultiplier - 1) * 100);
+        adjParts.push(`${pct > 0 ? '+' : ''}${pct}% power`);
+    }
+    if (adjustments.durationMultiplier !== undefined && adjustments.durationMultiplier !== 1.0) {
+        const pct = Math.round((adjustments.durationMultiplier - 1) * 100);
+        adjParts.push(`${pct > 0 ? '+' : ''}${pct}% duration`);
+    }
+    if (adjustments.volumeMultiplier !== undefined && adjustments.volumeMultiplier !== 1.0) {
+        const pct = Math.round((adjustments.volumeMultiplier - 1) * 100);
+        adjParts.push(`${pct > 0 ? '+' : ''}${pct}% volume`);
+    }
+    if (adjustments.restMultiplier !== undefined && adjustments.restMultiplier !== 1.0) {
+        const pct = Math.round((adjustments.restMultiplier - 1) * 100);
+        adjParts.push(`${pct > 0 ? '+' : ''}${pct}% rest`);
+    }
+    if (adjustments.rpeAdjust !== undefined && adjustments.rpeAdjust !== 0) {
+        adjParts.push(`${adjustments.rpeAdjust > 0 ? '+' : ''}${adjustments.rpeAdjust} RPE`);
+    }
+
+    // Construct final message
+    if (contextParts.length > 0) {
+        parts.push(`${baseMessage} (${contextParts.join(', ')})`);
+    } else {
+        parts.push(baseMessage);
+    }
+
+    if (adjParts.length > 0) {
+        parts.push(adjParts.join(', ') + '.');
+    }
+
+    return parts.join(' ');
+}
+
+// ============================================================================
 // MODIFIER APPLICATION
 // ============================================================================
 
@@ -395,7 +455,7 @@ export function applyFatigueModifiers(
             }
 
             if (adj.message) {
-                messages.push(adj.message);
+                messages.push(formatCoachMessage(adj.message, context, adj));
             }
         }
 

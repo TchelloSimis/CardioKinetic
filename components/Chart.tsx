@@ -13,13 +13,11 @@ import {
   Legend,
   ReferenceArea
 } from 'recharts';
-import { Session, PlanWeek, ProgramRecord, QuestionnaireResponse } from '../types';
+import { Session, PlanWeek, ProgramRecord, QuestionnaireResponse, CriticalPowerEstimate } from '../types';
 import { ZoomIn, ZoomOut, RefreshCcw, Check, Square, CheckSquare } from 'lucide-react';
 import {
   calculateSessionLoad,
-  calculateRecentAveragePower,
-  calculateFatigueScore,
-  calculateReadinessScore
+  calculateRecentAveragePower
 } from '../utils/metricsUtils';
 import {
   getWeekNumber,
@@ -28,6 +26,21 @@ import {
 } from '../utils/chartUtils';
 import { getLocalDateString, getDayIndex, addDays, formatDateShort, parseLocalDate } from '../utils/dateUtils';
 import { applyQuestionnaireAdjustment } from '../utils/questionnaireConfig';
+// Chronic Fatigue Model - for updated metrics visualization
+import { calculateECP } from '../utils/criticalPowerEngine';
+import { aggregateDailyLoad } from '../utils/physiologicalCostEngine';
+import {
+  updateMetabolicFreshness,
+  updateStructuralHealth,
+  calculateReadinessScore as calculateChronicReadiness,
+  applyStructuralCorrection,
+  applyMetabolicCorrection,
+  DEFAULT_PHI_RECOVERY,
+  DEFAULT_CAP_METABOLIC,
+  DEFAULT_CAP_STRUCTURAL,
+  SIGMA_IMPACT,
+} from '../utils/chronicFatigueModel';
+
 
 interface ChartProps {
   sessions: Session[];
@@ -210,42 +223,90 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
     [sessions, selectedProgramIds, filteredPrograms]
   );
 
-  // --- DATA ENGINE: EWMA SMOOTHING WITH QUESTIONNAIRE CARRYOVER ---
-  // Questionnaire adjustments are applied during the loop so effects carry forward
+  // --- DATA ENGINE: CHRONIC FATIGUE MODEL (Dual-Compartment) ---
+  // Uses MET (Metabolic Energy Tank) and MSK (MusculoSkeletal) instead of EWMA
+  // Questionnaire adjustments are applied via recovery efficiency (φ)
   const generateMetrics = (
     totalDays: number,
-    dailyLoads: Float32Array,
+    sessions: Session[],
     firstStartStr: string,
     questionnaireByDate: Map<string, QuestionnaireResponse>,
-    allResponses: QuestionnaireResponse[]
+    allResponses: QuestionnaireResponse[],
+    cpEstimate: CriticalPowerEstimate
   ) => {
-    const metrics = [];
-    let atl = 0;
-    let ctl = 10; // Seed baseline
-    // Wellness modifier tracks cumulative questionnaire impact (EWMA smoothed)
-    let wellnessModifier = 0; // Range: roughly -15 to +15
+    const metrics: Array<{ fatigue: number; readiness: number }> = [];
 
-    const atlAlpha = 2 / (7 + 1);
-    const ctlAlpha = 2 / (42 + 1);
-    const wellnessAlpha = 2 / (3 + 1); // 3-day half-life for wellness effects
+    // Initialize dual-compartment state
+    let sMeta = 0;
+    let sStruct = 0;
+    const capMeta = DEFAULT_CAP_METABOLIC;
+    const capStruct = DEFAULT_CAP_STRUCTURAL;
 
     for (let i = 0; i < totalDays; i++) {
-      const load = dailyLoads[i];
       const dateStr = addDays(firstStartStr, i);
 
-      atl = atl * (1 - atlAlpha) + load * atlAlpha;
-      ctl = ctl * (1 - ctlAlpha) + load * ctlAlpha;
+      // Calculate daily load using new physiological cost engine
+      const dailyLoad = aggregateDailyLoad(sessions, dateStr, cpEstimate);
 
-      const tsb = ctl - atl;
-
-      // Calculate base scores
-      let fatigue = calculateFatigueScore(atl, ctl);
-      let readiness = calculateReadinessScore(tsb);
-
-      // Look up questionnaire for this day
+      // Calculate recovery efficiency from questionnaire
       const dayResponse = questionnaireByDate.get(dateStr);
+      let phiRecovery = DEFAULT_PHI_RECOVERY;
+
       if (dayResponse) {
-        // Get recent responses before this day for trend analysis
+        // Use actual questionnaire field names - average sleep metrics
+        const sleepHours = dayResponse.responses['sleep_hours'] || 3;
+        const sleepQuality = dayResponse.responses['sleep_quality'] || 3;
+        const sleep = (sleepHours + sleepQuality) / 2;
+        const nutrition = dayResponse.responses['nutrition'] || 3;
+        const stress = dayResponse.responses['stress'] || 3;
+
+        // Normalize to 0-1 range and calculate phi: [0.5, 1.5]
+        const sleepNorm = (sleep - 1) / 4;
+        const nutritionNorm = (nutrition - 1) / 4;
+        const stressNorm = (stress - 1) / 4;
+        const avgFactor = (sleepNorm + nutritionNorm + stressNorm) / 3;
+        phiRecovery = Math.max(0.5, Math.min(1.5, 0.5 + avgFactor));
+      }
+
+      // Update compartments with φ recovery efficiency
+      sMeta = updateMetabolicFreshness(sMeta, dailyLoad, phiRecovery, capMeta);
+      sStruct = updateStructuralHealth(sStruct, dailyLoad, SIGMA_IMPACT, capStruct);
+
+      // Apply Bayesian corrections for questionnaire days (same as useMetrics)
+      // This injects hidden fatigue when user reports issues but model shows fresh
+      if (dayResponse) {
+        const soreness = dayResponse.responses['soreness'];
+        const energy = dayResponse.responses['energy'];
+
+        if (soreness && soreness <= 2) {
+          const correction = applyStructuralCorrection(
+            { sMetabolic: sMeta, sStructural: sStruct, capMetabolic: capMeta, capStructural: capStruct, lastUpdated: '' },
+            soreness
+          );
+          sStruct = correction.sStructural;
+        }
+        if (energy && energy <= 2) {
+          const correction = applyMetabolicCorrection(
+            { sMetabolic: sMeta, sStructural: sStruct, capMetabolic: capMeta, capStructural: capStruct, lastUpdated: '' },
+            energy
+          );
+          sMeta = correction.sMetabolic;
+        }
+      }
+
+      // Calculate base readiness from chronic model (after Bayesian corrections)
+      let readiness = calculateChronicReadiness(sMeta, sStruct, capMeta, capStruct);
+
+      // Convert chronic state to fatigue score (higher state = higher fatigue)
+      const metaRatio = sMeta / capMeta;
+      const structRatio = sStruct / capStruct;
+      const avgRatio = (metaRatio * 0.6 + structRatio * 0.4);
+      let fatigue = Math.round(Math.min(100, Math.max(0, avgRatio * 100)));
+
+      // Apply questionnaire adjustments to display values (Option B)
+      // This shows subjective perception influence on the chart
+      if (dayResponse) {
+        // Get recent responses for trend analysis (prior 7 days)
         const recentForDay = allResponses
           .filter(r => r.date < dateStr)
           .sort((a, b) => b.date.localeCompare(a.date))
@@ -258,25 +319,9 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
           recentForDay
         );
 
-        // Apply the adjustment to today's display values
-        fatigue = adjustment.fatigue;
+        // Apply adjustments to final display values
         readiness = adjustment.readiness;
-
-        // Feed the adjustment magnitude into wellness modifier for carryover
-        // This creates a smoothed carryover effect to subsequent days
-        const fatigueImpact = adjustment.fatigueChange;
-        const readinessImpact = adjustment.readinessChange;
-        wellnessModifier = wellnessModifier * (1 - wellnessAlpha) +
-          ((readinessImpact - fatigueImpact) / 2) * wellnessAlpha;
-      } else {
-        // No questionnaire today, but apply smoothed carryover from previous days
-        wellnessModifier = wellnessModifier * (1 - wellnessAlpha);
-
-        // Apply decayed wellness modifier to scores
-        if (Math.abs(wellnessModifier) > 0.5) {
-          readiness = Math.max(0, Math.min(100, Math.round(readiness + wellnessModifier)));
-          fatigue = Math.max(0, Math.min(100, Math.round(fatigue - wellnessModifier)));
-        }
+        fatigue = adjustment.fatigue;
       }
 
       metrics.push({
@@ -288,6 +333,7 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
   };
 
   // Combine all programs into a single timeline
+
   const timelineData = useMemo(() => {
     if (filteredPrograms.length === 0) return { weekly: [], daily: [] };
 
@@ -307,30 +353,17 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
     const oneDay = 24 * 60 * 60 * 1000;
     const totalDays = getDayIndex(endStr, firstStartStr) + 1;
 
-    // Calculate Daily Loads
-    const dailyLoads = new Float32Array(totalDays).fill(0);
-
 
     // Calculate the current day index for fatigue/readiness display cutoff
     // Uses currentDate prop (simulated date) or today - timezone-agnostic
     const currentDateStr = currentDateProp || getLocalDateString();
     const currentDayIndex = getDayIndex(currentDateStr, firstStartStr);
 
-    // Get default basePower from first selected program (fallback for power ratio)
+    // Get default basePower from first selected program (fallback for CP estimation)
     const defaultBasePower = sortedPrograms[0]?.basePower || 150;
 
-    filteredSessions.forEach(s => {
-      // Session dates are stored as "YYYY-MM-DD" local date strings
-      // Use string-based day index calculation for timezone-agnostic behavior
-      const dayIndex = getDayIndex(s.date, firstStartStr);
-      if (dayIndex >= 0 && dayIndex < totalDays) {
-        // Calculate recent average power up to this session's date for power ratio
-        const sessionDate = parseLocalDate(s.date);
-        const recentAvgPower = calculateRecentAveragePower(filteredSessions, sessionDate, defaultBasePower);
-        const powerRatio = s.power / recentAvgPower;
-        dailyLoads[dayIndex] += calculateSessionLoad(s.rpe, s.duration, powerRatio);
-      }
-    });
+    // Calculate CP estimate for the chart (used by generateMetrics)
+    const cpEstimate = calculateECP(filteredSessions, new Date(), null, defaultBasePower);
 
     // Create date-keyed questionnaire map for O(1) lookup in generateMetrics
     const questionnaireByDate = new Map<string, QuestionnaireResponse>();
@@ -342,10 +375,11 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
 
     const dailyMetrics = generateMetrics(
       totalDays,
-      dailyLoads,
+      filteredSessions,
       firstStartStr,
       questionnaireByDate,
-      allQuestionnaireResponses
+      allQuestionnaireResponses,
+      cpEstimate
     );
 
     // Generate Daily Data

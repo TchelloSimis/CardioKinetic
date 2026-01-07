@@ -2,16 +2,11 @@
  * Suggest Modifiers Module - Simulation Engine
  * 
  * Contains Monte Carlo simulation functions for generating fatigue/readiness data.
+ * Uses Chronic Fatigue Model (dual-compartment) for fatigue/readiness calculations.
  */
 
 import { WeekDefinition } from '../../programTemplate';
 import {
-    ATL_ALPHA,
-    CTL_ALPHA,
-    FATIGUE_MIDPOINT,
-    FATIGUE_STEEPNESS,
-    READINESS_OPTIMAL_TSB,
-    READINESS_WIDTH,
     DEFAULT_SESSION_DURATION,
     DEFAULT_SESSIONS_PER_WEEK_MIN,
     DEFAULT_SESSIONS_PER_WEEK_MAX,
@@ -27,21 +22,31 @@ import {
     detectChangePoints,
     detectExtrema,
 } from './algorithms';
+import {
+    updateMetabolicFreshness,
+    updateStructuralHealth,
+    calculateReadinessScore as calculateChronicReadiness,
+    DEFAULT_CAP_METABOLIC,
+    DEFAULT_CAP_STRUCTURAL,
+    SIGMA_IMPACT,
+} from '../chronicFatigueModel';
+import { estimateCostFromAverage } from '../physiologicalCostEngine';
 
 // ============================================================================
-// SCORING FUNCTIONS
+// SCORING FUNCTIONS (Chronic Fatigue Model)
 // ============================================================================
 
-export function calculateFatigueScore(atl: number, ctl: number): number {
-    if (ctl <= 0.001) return atl > 0 ? Math.min(100, Math.round(atl * 2)) : 0;
-    const acwr = atl / ctl;
-    const score = 100 / (1 + Math.exp(-FATIGUE_STEEPNESS * (acwr - FATIGUE_MIDPOINT)));
-    return Math.round(Math.max(0, Math.min(100, score)));
+export function calculateFatigueScore(sMeta: number, sStruct: number): number {
+    const capMeta = DEFAULT_CAP_METABOLIC;
+    const capStruct = DEFAULT_CAP_STRUCTURAL;
+    const metaRatio = sMeta / capMeta;
+    const structRatio = sStruct / capStruct;
+    const avgRatio = (metaRatio * 0.6 + structRatio * 0.4);
+    return Math.round(Math.min(100, Math.max(0, avgRatio * 100)));
 }
 
-export function calculateReadinessScore(tsb: number): number {
-    const exponent = -Math.pow(tsb - READINESS_OPTIMAL_TSB, 2) / READINESS_WIDTH;
-    return Math.round(Math.max(0, Math.min(100, 100 * Math.exp(exponent))));
+export function calculateReadinessScore(sMeta: number, sStruct: number): number {
+    return calculateChronicReadiness(sMeta, sStruct, DEFAULT_CAP_METABOLIC, DEFAULT_CAP_STRUCTURAL);
 }
 
 // ============================================================================
@@ -55,6 +60,10 @@ export function runSingleSimulation(
     const numWeeks = weeks.length;
     const numDays = numWeeks * 7;
     const dailyLoads: number[] = new Array(numDays).fill(0);
+
+    // Estimate CP/W' from base power for load calculation
+    const estimatedCP = basePower * 0.85;
+    const estimatedWPrime = 15000;
 
     for (let weekIdx = 0; weekIdx < numWeeks; weekIdx++) {
         const week = weeks[weekIdx];
@@ -72,33 +81,45 @@ export function runSingleSimulation(
 
             const dayIdx = weekStart + day;
             const powerMult = week.powerMultiplier || 1.0;
-            const rpe = week.targetRPE || 6;
             const baseDuration = typeof week.durationMinutes === 'number'
                 ? week.durationMinutes : DEFAULT_SESSION_DURATION;
 
-            // Apply variability: ±5% power, ±0.5 RPE, ±5% duration
+            // Apply variability: ±5% power, ±5% duration
             const actualPower = basePower * powerMult * (1.0 + (Math.random() - 0.5) * 0.1);
-            const actualRPE = Math.max(1, Math.min(10, rpe + (Math.random() - 0.5)));
             const actualDuration = baseDuration * (1.0 + (Math.random() - 0.5) * 0.1);
 
-            const powerRatio = actualPower / basePower;
-            const clampedRatio = Math.max(0.25, Math.min(4.0, powerRatio));
-            const load = Math.pow(actualRPE, 1.5) * Math.pow(actualDuration, 0.75) *
-                Math.pow(clampedRatio, 0.5) * 0.3;
+            // Calculate load using physiological cost engine
+            const sessionStyle = week.sessionStyle || 'interval';
+            const load = estimateCostFromAverage(
+                actualPower,
+                actualDuration,
+                estimatedCP,
+                estimatedWPrime,
+                sessionStyle,
+                week.workRestRatio
+            );
 
             dailyLoads[dayIdx] += load;
         }
     }
 
+    // Use chronic model compartments instead of EWMA
     const dailyFatigue: number[] = [];
     const dailyReadiness: number[] = [];
-    let atl = 0, ctl = 10;
+    let sMeta = 0;
+    let sStruct = 0;
+    const capMeta = DEFAULT_CAP_METABOLIC;
+    const capStruct = DEFAULT_CAP_STRUCTURAL;
 
     for (let i = 0; i < numDays; i++) {
-        atl = atl * (1 - ATL_ALPHA) + dailyLoads[i] * ATL_ALPHA;
-        ctl = ctl * (1 - CTL_ALPHA) + dailyLoads[i] * CTL_ALPHA;
-        dailyFatigue.push(calculateFatigueScore(atl, ctl));
-        dailyReadiness.push(calculateReadinessScore(ctl - atl));
+        // Random recovery efficiency for Monte Carlo variation
+        const phiRecovery = 0.7 + Math.random() * 0.6;
+
+        sMeta = updateMetabolicFreshness(sMeta, dailyLoads[i], phiRecovery, capMeta);
+        sStruct = updateStructuralHealth(sStruct, dailyLoads[i], SIGMA_IMPACT, capStruct);
+
+        dailyFatigue.push(calculateFatigueScore(sMeta, sStruct));
+        dailyReadiness.push(calculateChronicReadiness(sMeta, sStruct, capMeta, capStruct));
     }
 
     return { dailyFatigue, dailyReadiness };

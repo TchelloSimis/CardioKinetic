@@ -1,6 +1,20 @@
 /**
  * Metrics utility functions for calculating training load, fatigue, and readiness.
  * 
+ * @deprecated This module uses the legacy EWMA-based Banister Impulse-Response model.
+ * New code should use the Chronic Fatigue Model from chronicFatigueModel.ts instead.
+ * 
+ * This file is kept for backward compatibility with test files and any remaining
+ * legacy integrations. The following functions are still in active use:
+ * - calculateSessionLoad (for legacy load calculations)
+ * - calculateRecentAveragePower (for power baseline estimation)
+ * - getCurrentMetrics (for dashboard display)
+ * 
+ * For new development, use:
+ * - chronicFatigueModel.ts for fatigue/readiness calculations
+ * - physiologicalCostEngine.ts for load/cost calculations
+ * 
+ * ---- LEGACY IMPLEMENTATION BELOW ----
  * This module implements a Daily-Cycle Approach based on the Banister Impulse-Response model.
  * Key features:
  * - Daily aggregation of session data (RPE, Duration, Power)

@@ -49,6 +49,78 @@ export interface RpeLogEntry {
   rpe: number;          // RPE value (1-10, supports 0.5 increments)
 }
 
+// ============================================================================
+// CHRONIC FATIGUE MODEL TYPES
+// ============================================================================
+
+/**
+ * Mean Maximal Power record for Critical Power estimation.
+ * Stores the best average power achieved for a specific duration.
+ */
+export interface MMPRecord {
+  /** Duration in seconds (e.g., 180 for 3 min, 1200 for 20 min) */
+  duration: number;
+  /** Best average power in watts for this duration */
+  power: number;
+  /** Date when this best effort was achieved (YYYY-MM-DD) */
+  date: string;
+  /** Session RPE when this effort was achieved */
+  rpe: number;
+  /** True if this was a maximal effort (RPE >= 9) */
+  isMaximalEffort: boolean;
+}
+
+/**
+ * Estimated Critical Power (eCP) and W' values.
+ * Auto-estimated from training history using MMP curve fitting.
+ */
+export interface CriticalPowerEstimate {
+  /** Critical Power in watts - the power at which W' is neither depleted nor recovered */
+  cp: number;
+  /** W' (W-prime) in joules - the finite work capacity above CP */
+  wPrime: number;
+  /** Confidence in estimate (0-1), based on data quality and quantity */
+  confidence: number;
+  /** ISO timestamp of last update */
+  lastUpdated: string;
+  /** Number of MMP data points used in the regression */
+  dataPoints: number;
+  /** True if decay has been applied due to inactivity */
+  decayApplied: boolean;
+}
+
+/**
+ * Dual-compartment chronic fatigue state.
+ * Tracks metabolic freshness (fast recovery) and structural health (slow recovery).
+ */
+export interface ChronicFatigueState {
+  /** Metabolic Freshness (MET) - glycogen, hormones, acute energy status */
+  sMetabolic: number;
+  /** Structural Health (MSK) - muscle fiber integrity, inflammation, joint stress */
+  sStructural: number;
+  /** Metabolic capacity - maximum MET value */
+  capMetabolic: number;
+  /** Structural capacity - maximum MSK value */
+  capStructural: number;
+  /** ISO timestamp of last update */
+  lastUpdated: string;
+}
+
+/**
+ * Recovery efficiency derived from questionnaire inputs.
+ * Modulates the time constant (τ) for metabolic recovery.
+ */
+export interface RecoveryEfficiency {
+  /** Combined recovery efficiency scalar [0.5, 1.5] */
+  phi: number;
+  /** Sleep contribution to recovery efficiency */
+  sleepFactor: number;
+  /** Nutrition contribution to recovery efficiency */
+  nutritionFactor: number;
+  /** Stress contribution (inverse - high stress = lower efficiency) */
+  stressFactor: number;
+}
+
 // How the program progresses over time - by increasing power, duration, or both
 export type ProgressionMode = 'power' | 'duration' | 'double';
 
@@ -75,6 +147,17 @@ export interface Session {
     targetRPE: number;
     initialTargetPower: number;
   };
+
+  // ---- Chronic Fatigue Model Fields ----
+
+  /** Power data sampled at 5-second intervals for physiological cost calculation */
+  secondBySecondPower?: number[];
+  /** Best efforts extracted from this session for MMP curve */
+  mmpBests?: MMPRecord[];
+  /** Calculated physiological cost for this session */
+  physiologicalCost?: number;
+  /** Session style used for cost calculation fallback */
+  sessionStyle?: SessionStyle;
 }
 
 export interface ProgramRecord {
@@ -91,6 +174,13 @@ export interface ProgramRecord {
   simulationDataByWeekCount?: Record<number, import('./utils/autoAdaptiveTypes').SimulationDataSet>;
   /** Current week count's simulation data (convenience reference) */
   simulationData?: import('./utils/autoAdaptiveTypes').SimulationDataSet;
+
+  // ---- Chronic Fatigue Model Fields ----
+
+  /** Estimated Critical Power and W' from MMP curve fitting */
+  criticalPowerEstimate?: CriticalPowerEstimate;
+  /** Current dual-compartment chronic fatigue state */
+  chronicFatigueState?: ChronicFatigueState;
 }
 
 export interface PlanWeek {

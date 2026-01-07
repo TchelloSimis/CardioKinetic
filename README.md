@@ -21,7 +21,7 @@
 
 ## Download
 
-**[Download APK (v1.7.0)](https://github.com/TchelloSimis/CardioKinetic/releases/latest/download/CardioKinetic.apk)** — Install directly on your Android device.
+**[Download APK (v1.8.0)](https://github.com/TchelloSimis/CardioKinetic/releases/latest/download/CardioKinetic.apk)** — Install directly on your Android device.
 
 > To install, enable "Install from unknown sources" in your Android settings when prompted.
 
@@ -87,23 +87,36 @@ Get a comprehensive view of your training status with the dedicated Insights pag
 
 ### Adaptive Fatigue System
 
-CardioKinetic uses an evidence-based **Fitness-Fatigue model** (Banister model) combined with advanced scoring algorithms:
+CardioKinetic uses a scientifically-grounded **Chronic Fatigue Model** that goes beyond simple training load tracking:
 
-| Metric | Description |
-|--------|-------------|
-| **ATL** (Acute Training Load) | 7-day exponentially weighted average — represents short-term fatigue |
-| **CTL** (Chronic Training Load) | 42-day exponentially weighted average — represents long-term fitness |
-| **ACWR** (Acute:Chronic Ratio) | ATL / CTL — values >1.5 indicate elevated injury risk |
-| **TSB** (Training Stress Balance) | CTL minus ATL — positive means fresh, negative means fatigued |
+#### Dual-Compartment Fatigue Tracking
 
-**Fatigue Score** uses the ACWR with a Logistic Sigmoid: `100 / (1 + e^(-4.5 × (ACWR - 1.15)))`
-- Sensitive to training load variations (ACWR > 1.15 = elevated load zone)
+| Compartment | Recovery | Description |
+|-------------|----------|-------------|
+| **MET** (Metabolic) | ~2 days | Glycogen stores, hormonal balance, CNS fatigue — "Do I have energy to train?" |
+| **MSK** (Musculoskeletal) | ~15 days | Muscle fiber damage, inflammation, joint stress — "Am I at injury risk?" |
 
-**Readiness Score** uses TSB with a Gaussian distribution: `100 × e^(-(TSB - 20)² / 1250)`
-- Peaks at TSB +20 (optimal freshness)
-- Penalizes both deep fatigue AND excessive rest (detraining)
+#### Critical Power Estimation
 
-**Fatigue Modifiers** can automatically adjust your training based on these scores — reducing intensity when you're tired or pushing harder when you're fresh.
+Your **eCP (Estimated Critical Power)** and **W' (W-Prime)** are automatically calculated from your training history:
+- **eCP**: The maximum power you can sustain indefinitely (your aerobic ceiling)
+- **W'**: Your finite work capacity above CP in kilojoules (your anaerobic reserve)
+- Learns from both maximal efforts and moderate steady-state sessions via RPE proximity scoring
+
+#### Physiological Cost Engine
+
+Training load is calculated using **W'bal-style deficit tracking**:
+- Working at high power when depleted costs more than when fresh
+- Non-linear integration captures the true stress of repeated high-intensity efforts
+- Session style (intervals vs. steady-state) influences load calculation
+
+#### Questionnaire Integration
+
+Your daily check-in directly modifies the fatigue model:
+- **Recovery Efficiency (φ)**: Sleep, nutrition, and stress affect how quickly metabolic fatigue clears
+- **Bayesian Corrections**: Reports of high soreness when the model shows fresh inject hidden structural damage
+
+**Readiness Score** blends both compartments (60% MET, 40% MSK) and provides actionable training suggestions based on your current state.
 
 ### Flexible Session Types
 

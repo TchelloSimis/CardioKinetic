@@ -31,10 +31,9 @@ const BATCH_SIZE = 5000;  // Process in batches to avoid blocking
  * Generate simulation data for a program at a specific week count.
  * Runs Monte Carlo iterations and calculates percentile thresholds.
  * 
- * Percentiles generated:
+ * Percentiles generated (legacy 2-tier system):
  * - P15/P85: Extreme thresholds (top/bottom 15%)
- * - P25/P75: Moderate thresholds (next 10%)
- * - P35/P65: Mild thresholds (next 10%)
+ * - P30/P70: Standard thresholds (next 15%)
  * 
  * @param weeks - Week definitions for the program
  * @param basePower - Base power in watts

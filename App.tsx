@@ -29,9 +29,7 @@ import {
 import {
     calculateSessionLoad,
     calculateRecentAveragePower,
-    getCurrentMetrics,
-    calculateFatigueScore,
-    calculateReadinessScore
+    getCurrentMetrics
 } from './utils/metricsUtils';
 import { useMetrics } from './hooks/useMetrics';
 import { requestNotificationPermission, isAndroid as isAndroidPlatform } from './utils/foregroundService';

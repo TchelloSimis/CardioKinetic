@@ -1,0 +1,6 @@
+{
+  "artifactType":  "ARTIFACT_TYPE_IMPLEMENTATION_PLAN",
+  "summary":  "Updated implementation plan with user decisions: replace old model immediately (no feature flag), show eCP in training insights, 5-second power resolution, graceful legacy migration with backfill. Added TEMPLATE_DOCUMENTATION.md to files requiring updates. Added section confirming steady-state session compatibility with the new model.",
+  "updatedAt":  "2026-01-06T16:51:45.657930800Z",
+  "version":  "2"
+}

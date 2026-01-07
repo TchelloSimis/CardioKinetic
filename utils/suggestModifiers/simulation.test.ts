@@ -2,6 +2,7 @@
  * Unit tests for suggestModifiers/simulation.ts
  * 
  * Tests simulation and analysis pipeline.
+ * Uses Chronic Fatigue Model (dual-compartment) function signatures.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -12,6 +13,7 @@ import {
     runFullAnalysis
 } from './simulation';
 import { WeekDefinition } from '../../programTemplate';
+import { DEFAULT_CAP_METABOLIC, DEFAULT_CAP_STRUCTURAL } from '../chronicFatigueModel';
 
 // ============================================================================
 // TEST FIXTURES
@@ -30,57 +32,64 @@ const createWeekDef = (overrides: Partial<WeekDefinition> = {}): WeekDefinition 
 });
 
 // ============================================================================
-// calculateFatigueScore TESTS
+// calculateFatigueScore TESTS (Chronic Model)
 // ============================================================================
 
 describe('calculateFatigueScore', () => {
-    it('should return low fatigue for low ACWR', () => {
-        const result = calculateFatigueScore(10, 50); // ACWR = 0.2
+    it('should return low fatigue when compartments are low', () => {
+        // Low chronic state = low fatigue
+        const result = calculateFatigueScore(5, 3);
         expect(result).toBeLessThan(30);
     });
 
-    it('should return ~50 for ACWR around 1.15', () => {
-        const result = calculateFatigueScore(57.5, 50); // ACWR ≈ 1.15
+    it('should return ~50 for moderate chronic state', () => {
+        // Mid-range chronic state
+        const capMeta = DEFAULT_CAP_METABOLIC;
+        const capStruct = DEFAULT_CAP_STRUCTURAL;
+        const result = calculateFatigueScore(capMeta * 0.5, capStruct * 0.5);
         expect(result).toBeGreaterThan(40);
         expect(result).toBeLessThan(60);
     });
 
-    it('should return high fatigue for high ACWR', () => {
-        const result = calculateFatigueScore(100, 50); // ACWR = 2.0
+    it('should return high fatigue when compartments are high', () => {
+        const capMeta = DEFAULT_CAP_METABOLIC;
+        const capStruct = DEFAULT_CAP_STRUCTURAL;
+        const result = calculateFatigueScore(capMeta * 0.9, capStruct * 0.9);
         expect(result).toBeGreaterThan(80);
     });
 
     it('should be bounded between 0 and 100', () => {
-        expect(calculateFatigueScore(0, 50)).toBeGreaterThanOrEqual(0);
-        expect(calculateFatigueScore(200, 50)).toBeLessThanOrEqual(100);
+        expect(calculateFatigueScore(0, 0)).toBeGreaterThanOrEqual(0);
+        expect(calculateFatigueScore(200, 200)).toBeLessThanOrEqual(100);
     });
 });
 
 // ============================================================================
-// calculateReadinessScore TESTS
+// calculateReadinessScore TESTS (Chronic Model)
 // ============================================================================
 
 describe('calculateReadinessScore', () => {
-    it('should return high readiness at optimal TSB', () => {
-        const result = calculateReadinessScore(20); // Optimal TSB
+    it('should return high readiness when compartments are low', () => {
+        // Low chronic state = high readiness
+        const result = calculateReadinessScore(0, 0);
         expect(result).toBeGreaterThan(80);
     });
 
-    it('should return lower readiness for negative TSB', () => {
-        const optimal = calculateReadinessScore(20);
-        const negative = calculateReadinessScore(-20);
-        expect(negative).toBeLessThan(optimal);
+    it('should return lower readiness when metabolic fatigue is high', () => {
+        const low = calculateReadinessScore(0, 0);
+        const high = calculateReadinessScore(50, 10);
+        expect(high).toBeLessThan(low);
     });
 
-    it('should return lower readiness for very high TSB', () => {
-        const optimal = calculateReadinessScore(20);
-        const veryHigh = calculateReadinessScore(60);
-        expect(veryHigh).toBeLessThan(optimal);
+    it('should return lower readiness when structural fatigue is high', () => {
+        const low = calculateReadinessScore(0, 0);
+        const high = calculateReadinessScore(10, 50);
+        expect(high).toBeLessThan(low);
     });
 
     it('should be bounded between 0 and 100', () => {
-        expect(calculateReadinessScore(-100)).toBeGreaterThanOrEqual(0);
-        expect(calculateReadinessScore(100)).toBeLessThanOrEqual(100);
+        expect(calculateReadinessScore(0, 0)).toBeLessThanOrEqual(100);
+        expect(calculateReadinessScore(200, 200)).toBeGreaterThanOrEqual(0);
     });
 });
 

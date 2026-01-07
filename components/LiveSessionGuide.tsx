@@ -561,50 +561,75 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
                     </>
                 )}
 
-                {/* Main Timer Display */}
-                <div className="text-center mb-3 relative z-10">
-                    <div className="text-7xl md:text-8xl font-mono font-bold tracking-tighter">
-                        {isComplete ? formatTime(state.sessionTimeElapsed) : formatTime(state.phaseTimeRemaining)}
-                    </div>
-                    <div className="text-white/60 text-xs uppercase tracking-widest mt-1">
-                        {isComplete ? 'Total Time' : (isSteadyState || isCustomSteadyBlock) ? 'Block Time' : 'Phase Time'}
-                    </div>
-                </div>
-
-                {/* Phase Progress Ring (for intervals only - not for steady-state or steady blocks in custom sessions) */}
-                {!isSteadyState && !isComplete && !isCustomSteadyBlock && (
-                    <div className="relative w-28 h-28 mb-3">
-                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 160 160">
-                            <circle
-                                cx="80"
-                                cy="80"
-                                r="72"
+                {/* Phase Progress Semicircle with timer inside */}
+                {!isComplete && (
+                    <div className="w-full max-w-xs mx-auto mb-2 relative">
+                        <svg className="w-full" viewBox="0 0 200 110" style={{ overflow: 'visible' }}>
+                            {/* Background arc */}
+                            <path
+                                d="M 10 100 A 90 90 0 0 1 190 100"
+                                fill="none"
                                 stroke="currentColor"
                                 strokeWidth="6"
-                                fill="none"
+                                strokeLinecap="round"
                                 className="text-white/10"
                             />
-                            <circle
-                                cx="80"
-                                cy="80"
-                                r="72"
+                            {/* Progress arc */}
+                            <path
+                                d="M 10 100 A 90 90 0 0 1 190 100"
+                                fill="none"
                                 stroke="currentColor"
                                 strokeWidth="6"
-                                fill="none"
                                 strokeLinecap="round"
-                                strokeDasharray={452}
-                                strokeDashoffset={452 - (452 * phaseProgress) / 100}
-                                className={isWorkPhase ? 'text-green-400' : 'text-blue-400'}
+                                strokeDasharray="283"
+                                strokeDashoffset={283 - (283 * ((isSteadyState || isCustomSteadyBlock) ? sessionProgress : phaseProgress)) / 100}
+                                className={(isSteadyState || isCustomSteadyBlock) ? 'text-white/60' : (isWorkPhase ? 'text-green-400' : 'text-blue-400')}
                                 style={{ transition: 'stroke-dashoffset 0.1s linear' }}
                             />
+                            {/* Timer text inside the arc */}
+                            <text x="100" y="70" textAnchor="middle" className="fill-white" style={{ fontSize: '42px', fontWeight: 'bold', fontFamily: 'ui-monospace, monospace' }}>
+                                {formatTime(state.phaseTimeRemaining)}
+                            </text>
+                            <text x="100" y="90" textAnchor="middle" className="fill-white/60 uppercase" style={{ fontSize: '9px', letterSpacing: '0.15em' }}>
+                                Remaining
+                            </text>
                         </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <div className="text-2xl font-bold">
-                                {state.currentInterval}/{state.totalIntervals}
-                            </div>
-                            <div className="text-white/60 text-[10px] uppercase tracking-widest">
-                                Intervals
-                            </div>
+                    </div>
+                )}
+
+                {/* Interval counter/% progress - small, below semicircle, above progress bar */}
+                {!isComplete && (
+                    <div className="text-center mb-2">
+                        {(isSteadyState || isCustomSteadyBlock) ? (
+                            <>
+                                <div className="text-lg font-bold">
+                                    {Math.round(sessionProgress)}%
+                                </div>
+                                <div className="text-white/60 text-[9px] uppercase tracking-widest">
+                                    Progress
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="text-lg font-bold">
+                                    {state.currentInterval}/{state.totalIntervals}
+                                </div>
+                                <div className="text-white/60 text-[9px] uppercase tracking-widest">
+                                    Intervals
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
+
+                {/* Completion screen timer */}
+                {isComplete && (
+                    <div className="text-center mb-3 relative z-10">
+                        <div className="text-7xl md:text-8xl font-mono font-bold tracking-tighter">
+                            {formatTime(state.sessionTimeElapsed)}
+                        </div>
+                        <div className="text-white/60 text-xs uppercase tracking-widest mt-1">
+                            Total Time
                         </div>
                     </div>
                 )}

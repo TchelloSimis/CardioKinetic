@@ -26,7 +26,7 @@ import {
  * 
  * Zones (for fatigue, higher = worse):
  * - >= P85: high, extreme
- * - >= P75: high, moderate  
+ * - >= P75: high, moderate
  * - >= P65: high, mild
  * - P35-P65: normal
  * - <= P35: low, mild
@@ -144,7 +144,7 @@ interface AdjustmentParams {
 
 /**
  * Get adjustments for interval sessions.
- * Magnitudes increased for greater statistical effect.
+ * Uses v1.5.4 aggressive magnitudes with 3-tier support.
  */
 function getIntervalAdjustments(state: AdaptiveState, tier: DeviationTier): AdjustmentParams {
     const isExtreme = tier === 'extreme';
@@ -193,7 +193,7 @@ function getIntervalAdjustments(state: AdaptiveState, tier: DeviationTier): Adju
 
 /**
  * Get adjustments for steady-state sessions.
- * Magnitudes increased for greater statistical effect.
+ * Uses v1.5.4 aggressive magnitudes with 3-tier support.
  */
 function getSteadyStateAdjustments(state: AdaptiveState, tier: DeviationTier): AdjustmentParams {
     const isExtreme = tier === 'extreme';
@@ -388,7 +388,7 @@ export function calculateAutoAdaptiveAdjustments(
     sessionType: SessionStyle,
     blocks?: SessionBlock[]
 ): AutoAdaptiveAdjustment {
-    // Classify deviations
+    // Classify deviations using 3-tier P25/P35/P65/P75 system
     const fatigueResult = classifyDeviation(
         context.fatigueScore,
         weekPercentiles.fatigueP15,
@@ -413,7 +413,7 @@ export function calculateAutoAdaptiveAdjustments(
 
     // Determine overall state and tier (use highest tier from either metric)
     const state = classifyState(fatigueResult.direction, readinessResult.direction);
-    const tierPriority = { 'extreme': 3, 'moderate': 2, 'mild': 1, 'none': 0 };
+    const tierPriority: Record<DeviationTier, number> = { 'extreme': 3, 'moderate': 2, 'mild': 1, 'none': 0 };
     const maxTierValue = Math.max(tierPriority[fatigueResult.tier], tierPriority[readinessResult.tier]);
     const tier: DeviationTier = maxTierValue === 3 ? 'extreme'
         : maxTierValue === 2 ? 'moderate'
@@ -470,7 +470,7 @@ export function calculateAutoAdaptiveAdjustments(
         adjustment = getSteadyStateAdjustments(state, tier);
     }
 
-    // Determine threshold values for message context (use appropriate percentile based on tier)
+    // Determine threshold values for message context (v1.5.4 3-tier system)
     const fatigueThreshold = fatigueResult.direction === 'high'
         ? (fatigueResult.tier === 'extreme' ? weekPercentiles.fatigueP85
             : fatigueResult.tier === 'moderate' ? weekPercentiles.fatigueP75

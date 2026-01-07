@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Session, PlanWeek, SessionBlock } from '../types';
 import { Calculator, ArrowRight, RefreshCw, X, Layers, ChevronDown, ChevronUp, BarChart2 } from 'lucide-react';
 import { getLocalDateString, getWeekNumber } from '../utils/dateUtils';
-import { RPE_DESCRIPTIONS } from './modals/sessionSetupUtils';
+import { RPE_DESCRIPTIONS, interpolateColor } from './modals/sessionSetupUtils';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip } from 'recharts';
 import { interpolateRpeData } from './liveSessionUtils';
 
@@ -405,9 +405,9 @@ const SessionLog: React.FC<SessionLogProps> = ({ onAddSession, onCancel, current
 
           {/* Power Input Section - Different UI for steady state vs interval */}
           <div className="p-5 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white/50 dark:bg-neutral-900/50">
-            <div className="flex items-center gap-2 text-neutral-900 dark:text-white mb-4">
-              <Calculator size={16} />
-              <span className="text-xs font-bold uppercase tracking-widest">
+            <div className="flex items-center gap-2 mb-4">
+              <Calculator size={16} style={{ color: accentColor }} />
+              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: accentColor }}>
                 {isActivePlanCustom ? 'Average Power' : useSimplifiedPowerInput ? 'Target Power' : 'Interval Power'}
               </span>
             </div>
@@ -494,23 +494,36 @@ const SessionLog: React.FC<SessionLogProps> = ({ onAddSession, onCancel, current
 
           {/* RPE */}
           <div>
-            <div className="flex justify-between items-end mb-2">
-              <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">RPE</label>
-              <span className="text-2xl font-bold font-mono text-neutral-900 dark:text-white">{formData.rpe}</span>
+            <label className="block text-xs font-bold uppercase tracking-widest text-neutral-400 mb-2">RPE</label>
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-xs text-neutral-500 w-6">1</span>
+              <input
+                type="range"
+                min="1"
+                max="10"
+                step="0.5"
+                value={formData.rpe}
+                onChange={(e) => setFormData({ ...formData, rpe: Number(e.target.value) })}
+                className={`flex-1 h-3 rounded-lg appearance-none cursor-pointer 
+                    [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white
+                    [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow-lg`}
+                style={{
+                  background: `linear-gradient(to right, ${accentColor}, ${accentAltColor})`,
+                }}
+              />
+              <span className="text-xs text-neutral-500 w-6 text-right">10</span>
+              <style>{`
+                input[type="range"]::-webkit-slider-thumb { background-color: ${interpolateColor(accentColor, accentAltColor, (formData.rpe - 1) / 9)}; }
+                input[type="range"]::-moz-range-thumb { background-color: ${interpolateColor(accentColor, accentAltColor, (formData.rpe - 1) / 9)}; }
+              `}</style>
             </div>
-            <input
-              type="range"
-              min="1"
-              max="10"
-              step="0.5"
-              value={formData.rpe}
-              onChange={(e) => setFormData({ ...formData, rpe: Number(e.target.value) })}
-              className="w-full h-2 bg-neutral-200 dark:bg-neutral-800 rounded-full appearance-none cursor-pointer accent-neutral-900 dark:accent-white"
-            />
-            <div className="mt-3 bg-neutral-100 dark:bg-neutral-900 p-3 rounded-lg border border-neutral-200 dark:border-neutral-800">
-              <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed font-medium">
-                {RPE_GUIDE[formData.rpe] || RPE_GUIDE[Math.round(formData.rpe)] || "Adjust slider to see description."}
-              </p>
+            <div className="flex justify-center items-center mb-3">
+              <span className="text-4xl font-mono font-bold" style={{ color: interpolateColor(accentColor, accentAltColor, (formData.rpe - 1) / 9) }}>
+                {formData.rpe}
+              </span>
+            </div>
+            <div className="text-center text-sm py-3 px-4 rounded-xl" style={{ backgroundColor: `${interpolateColor(accentColor, accentAltColor, (formData.rpe - 1) / 9)}20`, color: interpolateColor(accentColor, accentAltColor, (formData.rpe - 1) / 9) }}>
+              {RPE_GUIDE[formData.rpe] || RPE_GUIDE[Math.round(formData.rpe)] || "Adjust slider to see description."}
             </div>
           </div>
 
@@ -522,9 +535,9 @@ const SessionLog: React.FC<SessionLogProps> = ({ onAddSession, onCancel, current
                 onClick={() => setChartExpanded(!chartExpanded)}
                 className="w-full flex items-center justify-between p-4 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
               >
-                <div className="flex items-center gap-2 text-neutral-900 dark:text-white">
-                  <BarChart2 size={16} />
-                  <span className="text-xs font-bold uppercase tracking-widest">Session Chart</span>
+                <div className="flex items-center gap-2">
+                  <BarChart2 size={16} style={{ color: accentColor }} />
+                  <span className="text-xs font-bold uppercase tracking-widest" style={{ color: accentColor }}>Session Chart</span>
                 </div>
                 {chartExpanded ? (
                   <ChevronUp size={18} className="text-neutral-400" />
@@ -684,7 +697,8 @@ const SessionLog: React.FC<SessionLogProps> = ({ onAddSession, onCancel, current
 
           <button
             type="submit"
-            className="w-full py-4 bg-neutral-900 dark:bg-white text-white dark:text-black font-bold rounded-xl hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all shadow-lg shadow-neutral-200 dark:shadow-none flex justify-center items-center gap-3 text-xs uppercase tracking-widest"
+            className="w-full py-4 text-white font-bold rounded-xl active:opacity-80 transition-all shadow-lg flex justify-center items-center gap-3 text-xs uppercase tracking-widest"
+            style={{ backgroundColor: accentColor, boxShadow: `0 10px 25px -5px ${accentColor}40` }}
           >
             <span>{initialData ? 'Update Session' : 'Save Session'}</span>
             <ArrowRight size={16} />

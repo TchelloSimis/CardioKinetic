@@ -3,11 +3,22 @@
  * 
  * Analytics calculations for the Training Insights Dashboard.
  * Provides personal records, trend analysis, fatigue/readiness insights, and recent activity.
+ * 
+ * Uses Chronic Fatigue Model (dual-compartment) for fatigue/readiness calculations.
  */
 
 import { Session, ProgramRecord } from '../types';
-import { calculateDailyMetrics, DailyMetrics } from './metricsUtils';
 import { getLocalDateString, addDays, compareDates, isDateInRange, parseLocalDate } from './dateUtils';
+import {
+    updateMetabolicFreshness,
+    updateStructuralHealth,
+    calculateReadinessScore as calculateChronicReadiness,
+    DEFAULT_PHI_RECOVERY,
+    DEFAULT_CAP_METABOLIC,
+    DEFAULT_CAP_STRUCTURAL,
+    SIGMA_IMPACT,
+} from './chronicFatigueModel';
+import { estimateCostFromAverage } from './physiologicalCostEngine';
 
 // ============================================================================
 // TYPES
@@ -207,11 +218,21 @@ function calculatePeriodMetrics(sessions: Session[]) {
 }
 
 // ============================================================================
-// FATIGUE & READINESS INSIGHTS
+// FATIGUE & READINESS INSIGHTS (Chronic Fatigue Model)
 // ============================================================================
 
+// Helper to calculate fatigue score from chronic state
+function calculateFatigueFromChronic(sMeta: number, sStruct: number): number {
+    const capMeta = DEFAULT_CAP_METABOLIC;
+    const capStruct = DEFAULT_CAP_STRUCTURAL;
+    const metaRatio = sMeta / capMeta;
+    const structRatio = sStruct / capStruct;
+    const avgRatio = (metaRatio * 0.6 + structRatio * 0.4);
+    return Math.round(Math.min(100, Math.max(0, avgRatio * 100)));
+}
+
 /**
- * Calculate fatigue and readiness trend insights.
+ * Calculate fatigue and readiness trend insights using Chronic Fatigue Model.
  * Provides analysis, trend direction, and actionable recommendations.
  */
 export function calculateFatigueReadinessInsights(
@@ -235,13 +256,52 @@ export function calculateFatigueReadinessInsights(
 
     if (sessions.length === 0) return defaultInsights;
 
-    // Get daily metrics history
-    const dailyMetrics = calculateDailyMetrics(
-        sessions.map(s => ({ date: s.date, duration: s.duration, power: s.power, rpe: s.rpe })),
-        programStartDate,
-        currentDate,
-        basePower
-    );
+    // Estimate CP/W' from base power
+    const estimatedCP = basePower * 0.85;
+    const estimatedWPrime = 15000;
+
+    // Aggregate sessions by day
+    const dailyLoadMap = new Map<string, number>();
+    for (const session of sessions) {
+        const load = estimateCostFromAverage(
+            session.power || basePower,
+            session.duration || 15,
+            estimatedCP,
+            estimatedWPrime,
+            'interval',
+            undefined
+        );
+        dailyLoadMap.set(session.date, (dailyLoadMap.get(session.date) || 0) + load);
+    }
+
+    // Calculate metrics using chronic model
+    const oneDay = 24 * 60 * 60 * 1000;
+    const totalDays = Math.ceil((currentDate.getTime() - programStartDate.getTime()) / oneDay) + 1;
+
+    if (totalDays <= 0) return defaultInsights;
+
+    let sMeta = 0;
+    let sStruct = 0;
+    const capMeta = DEFAULT_CAP_METABOLIC;
+    const capStruct = DEFAULT_CAP_STRUCTURAL;
+
+    const dailyMetrics: Array<{ fatigueScore: number; readinessScore: number }> = [];
+
+    for (let i = 0; i < totalDays; i++) {
+        const day = new Date(programStartDate.getTime() + i * oneDay);
+        const dateStr = day.toISOString().split('T')[0];
+
+        const dailyLoad = dailyLoadMap.get(dateStr) || 0;
+
+        // Update chronic model with default recovery
+        sMeta = updateMetabolicFreshness(sMeta, dailyLoad, DEFAULT_PHI_RECOVERY, capMeta);
+        sStruct = updateStructuralHealth(sStruct, dailyLoad, SIGMA_IMPACT, capStruct);
+
+        const fatigueScore = calculateFatigueFromChronic(sMeta, sStruct);
+        const readinessScore = calculateChronicReadiness(sMeta, sStruct, capMeta, capStruct);
+
+        dailyMetrics.push({ fatigueScore, readinessScore });
+    }
 
     if (dailyMetrics.length === 0) return defaultInsights;
 

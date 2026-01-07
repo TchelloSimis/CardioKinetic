@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Trophy, TrendingUp, TrendingDown, Flame, Activity, Calendar, Zap, Heart, ArrowLeft, Minus } from 'lucide-react';
+import { Trophy, TrendingUp, TrendingDown, Flame, Activity, Calendar, Zap, Heart, ArrowLeft, Minus, Gauge } from 'lucide-react';
 import { Session, ProgramRecord } from '../types';
 import { AccentColorConfig } from '../presets';
 import { MetricsResult } from '../hooks/useMetrics';
@@ -22,7 +22,7 @@ interface InsightsPageProps {
     simulatedDate: string;
     programStartDate: string;
     basePower: number;
-    currentMetrics: MetricsResult;  // Pre-calculated metrics from useMetrics (includes questionnaire adjustments)
+    currentMetrics: MetricsResult;  // Pre-calculated metrics from useMetrics (includes questionnaire adjustments, eCP, wPrime)
     activeProgram: ProgramRecord | null;  // For filtering sessions to match Dashboard
     onClose: () => void;
 }
@@ -232,6 +232,72 @@ const InsightsPage: React.FC<InsightsPageProps> = ({
                                 <div className="text-[10px] uppercase tracking-widest text-neutral-500">Today's Fatigue</div>
                             </div>
                         </div>
+                    </div>
+                </section>
+
+                {/* Recovery Efficiency Section (φ) */}
+                <section>
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-neutral-400 mb-4 flex items-center gap-2">
+                        <Heart size={16} style={{ color: accentColor }} />
+                        Recovery Efficiency
+                    </h3>
+                    <div className="bg-white/60 dark:bg-neutral-900/60 backdrop-blur-md rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm p-6">
+                        <div className="flex items-center justify-center gap-6 mb-4">
+                            <div className="text-center">
+                                <div
+                                    className="text-4xl font-medium"
+                                    style={{
+                                        color: currentMetrics.recoveryEfficiency >= 1.2 ? '#22c55e' :
+                                            currentMetrics.recoveryEfficiency >= 0.9 ? accentColor :
+                                                currentMetrics.recoveryEfficiency >= 0.7 ? '#f59e0b' : '#ef4444'
+                                    }}
+                                >
+                                    {Math.round(currentMetrics.recoveryEfficiency * 100)}%
+                                </div>
+                                <div className="text-[10px] uppercase tracking-widest text-neutral-500 mt-1">
+                                    {currentMetrics.recoveryEfficiency >= 1.2 ? 'Excellent Recovery' :
+                                        currentMetrics.recoveryEfficiency >= 1.0 ? 'Good Recovery' :
+                                            currentMetrics.recoveryEfficiency >= 0.8 ? 'Moderate Recovery' : 'Impaired Recovery'}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="text-xs text-neutral-600 dark:text-neutral-400 text-center space-y-2">
+                            <p>
+                                Recovery efficiency (φ) is calculated from your questionnaire responses about sleep, nutrition, and stress.
+                            </p>
+                            <p>
+                                <span className="font-medium">100%</span> = baseline recovery rate.
+                                Higher values mean faster metabolic recovery between sessions.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Critical Power Insights Section (eCP) */}
+                <section>
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-neutral-400 mb-4 flex items-center gap-2">
+                        <Gauge size={16} style={{ color: accentAltColor }} />
+                        Critical Power
+                    </h3>
+                    <div className="bg-white/60 dark:bg-neutral-900/60 backdrop-blur-md rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm p-6">
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div className="text-center">
+                                <div className="text-3xl font-medium text-neutral-900 dark:text-white">
+                                    {currentMetrics.eCP}<span className="text-sm opacity-60 ml-1">W</span>
+                                </div>
+                                <div className="text-[10px] uppercase tracking-widest text-neutral-500">Estimated CP</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-3xl font-medium text-neutral-900 dark:text-white">
+                                    {Math.round(currentMetrics.wPrime / 1000)}<span className="text-sm opacity-60 ml-1">kJ</span>
+                                </div>
+                                <div className="text-[10px] uppercase tracking-widest text-neutral-500">W' (Anaerobic)</div>
+                            </div>
+                        </div>
+                        <p className="text-xs text-neutral-600 dark:text-neutral-400 text-center">
+                            Critical Power represents the highest power you can sustain for extended periods.
+                            W' is your anaerobic energy reserve for efforts above CP.
+                        </p>
                     </div>
                 </section>
 

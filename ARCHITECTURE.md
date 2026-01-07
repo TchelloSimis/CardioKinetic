@@ -126,31 +126,36 @@ flowchart TD
 
 ### Metrics Engine
 
-The fatigue/readiness system uses **EWMA (Exponentially Weighted Moving Average)**:
+The fatigue/readiness system uses the **Chronic Fatigue Model** with dual compartments:
 
 ```
-ATL (Acute Training Load)   = 7-day weighted average
-CTL (Chronic Training Load) = 42-day weighted average
-TSB (Training Stress Balance) = CTL - ATL
-
-Fatigue Score  = ACWR sigmoid function (injury risk)
-Readiness Score = TSB gaussian function (performance state)
+MET       (Metabolic Energy Tank)  - τ ≈ 2 days (fast recovery)
+MSK       (MusculoSkeletal)        - τ ≈ 15 days (slow recovery)
+Readiness = w1 × (1 - MET/Cap_meta) + w2 × (1 - MSK/Cap_struct)
 ```
+
+**Key Components**:
+- `criticalPowerEngine.ts` - Estimates Critical Power (eCP) and W' from session history
+- `physiologicalCostEngine.ts` - Calculates session cost using W'bal-style acute deficit
+- `chronicFatigueModel.ts` - Updates dual-compartment state with recovery efficiency
+- `rpeCorrectionLoop.ts` - Self-corrects model based on RPE mismatch patterns
+
+Legacy ATL/CTL/TSB values are still calculated for backward compatibility.
 
 ### Questionnaire System
 
-Daily readiness questionnaires adjust fatigue/readiness with **carryover effects**:
+Daily readiness questionnaires modulate recovery efficiency (φ):
 
-- **Same-day adjustment**: Direct impact from questionnaire responses
-- **Wellness modifier**: 3-day EWMA that carries effects forward
-- **Trend analysis**: Uses last 7 days to amplify/dampen adjustments
+- **Recovery Inputs**: sleep, nutrition, stress → φ_recovery ∈ [0.5, 1.5]
+- **State Inputs**: soreness, energy → Bayesian corrections to MET/MSK
+- **Trend analysis**: Uses last 7 days to detect progressive patterns
 
 ```
-Day with questionnaire: Apply full adjustment + update wellness modifier
-Day without: Apply decayed wellness modifier from previous days
+φ > 1.0: Faster recovery (good sleep, nutrition)  
+φ < 1.0: Slower recovery (stress, poor sleep)
 ```
 
-Both `useMetrics` (dashboard) and `Chart.tsx` use identical carryover logic.
+Both `useMetrics` (dashboard) and `Chart.tsx` use identical dual-compartment logic.
 
 ### Auto-Adaptive System
 

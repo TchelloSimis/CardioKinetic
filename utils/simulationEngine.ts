@@ -4,16 +4,23 @@
  * Runs Monte Carlo simulations of training programs to predict fatigue and
  * readiness distributions over time. Returns percentile bands for visualization.
  * 
- * MATCHES Python monte_carlo_simulation.py parameters:
- * - 2-4 sessions per week (varying)
- * - ±5% power variance
- * - ±0.5 RPE variance (float, not rounded)
- * - No duration variance
- * - CTL initialized to 10.0
+ * Uses the Chronic Fatigue Model (dual-compartment):
+ * - MET (Metabolic Energy Tank): τ ≈ 2 days (fast recovery)
+ * - MSK (MusculoSkeletal): τ ≈ 15 days (slow recovery)
  */
 
 import { ProgramPreset, PlanWeek } from '../types';
 import { calculateBlockMetricsFromTemplate } from './blockCalculations';
+import {
+    updateMetabolicFreshness,
+    updateStructuralHealth,
+    calculateReadinessScore as calculateChronicReadiness,
+    DEFAULT_PHI_RECOVERY,
+    DEFAULT_CAP_METABOLIC,
+    DEFAULT_CAP_STRUCTURAL,
+    SIGMA_IMPACT,
+} from './chronicFatigueModel';
+import { estimateCostFromAverage, REFERENCE_SCALE } from './physiologicalCostEngine';
 
 // ============================================================================
 // TYPES
@@ -54,58 +61,33 @@ export interface SimulationParams {
 }
 
 // ============================================================================
-// CONSTANTS (matching Python exactly)
+// CONSTANTS
 // ============================================================================
 
-const ATL_ALPHA = 2 / (7 + 1);   // ~0.25 for 7-day EWMA
-const CTL_ALPHA = 2 / (42 + 1);  // ~0.047 for 42-day EWMA
-const FATIGUE_MIDPOINT = 1.15;
-const FATIGUE_STEEPNESS = 4.5;
-const READINESS_OPTIMAL_TSB = 20.0;
-const READINESS_WIDTH = 1250.0;
 const DEFAULT_DURATION_MINUTES = 15;
 const DEFAULT_ITERATIONS = 50000;
 
 // ============================================================================
-// SCORE CALCULATIONS (matching Python exactly)
+// SCORE CALCULATIONS (Chronic Fatigue Model)
 // ============================================================================
 
 /**
- * Calculate fatigue score using ACWR sigmoid (matches Python vectorized_fatigue_score)
+ * Calculate fatigue score from chronic model compartments
+ * Higher MET/MSK = higher fatigue
  */
-function calculateFatigueScore(atl: number, ctl: number): number {
-    // Avoid division by zero (Python uses max(ctl, 0.001))
-    const ctlSafe = Math.max(ctl, 0.001);
-    const acwr = atl / ctlSafe;
-    const score = 100.0 / (1.0 + Math.exp(-FATIGUE_STEEPNESS * (acwr - FATIGUE_MIDPOINT)));
-    return Math.round(Math.max(0, Math.min(100, score)));
-}
-
-/**
- * Calculate readiness score using TSB Gaussian (matches Python vectorized_readiness_score)
- */
-function calculateReadinessScore(tsb: number): number {
-    const exponent = -Math.pow(tsb - READINESS_OPTIMAL_TSB, 2) / READINESS_WIDTH;
-    const score = 100.0 * Math.exp(exponent);
-    return Math.round(Math.max(0, Math.min(100, score)));
+function calculateFatigueFromChronic(sMeta: number, sStruct: number): number {
+    const capMeta = DEFAULT_CAP_METABOLIC;
+    const capStruct = DEFAULT_CAP_STRUCTURAL;
+    const metaRatio = sMeta / capMeta;
+    const structRatio = sStruct / capStruct;
+    // Weight metabolic fatigue higher for short-term feel
+    const avgRatio = (metaRatio * 0.6 + structRatio * 0.4);
+    return Math.round(Math.min(100, Math.max(0, avgRatio * 100)));
 }
 
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
-
-/**
- * Calculate session load (matches Python vectorized_session_load)
- * Load = RPE^1.5 × Duration^0.75 × PowerRatio^0.5 × 0.3
- */
-function calculateSessionLoad(
-    rpe: number,
-    durationMinutes: number,
-    powerRatio: number
-): number {
-    const clampedRatio = Math.max(0.25, Math.min(4.0, powerRatio));
-    return Math.pow(rpe, 1.5) * Math.pow(durationMinutes, 0.75) * Math.pow(clampedRatio, 0.5) * 0.3;
-}
 
 /**
  * Calculate percentile from sorted array
@@ -146,16 +128,19 @@ function shuffleArray<T>(arr: T[]): T[] {
 }
 
 /**
- * Run a single simulation iteration (matches Python run_single_simulation_fast)
+ * Run a single simulation iteration using Chronic Fatigue Model
+ * Uses dual-compartment MET/MSK dynamics
  */
 function runSingleSimulation(
     plan: PlanWeek[],
     basePower: number,
     weekCount: number
 ): { fatigueByWeek: number[], readinessByWeek: number[] } {
-    // ATL=9, CTL=10 gives TSB≈1 → ~75% starting readiness (neutral state)
-    let atl = 9;
-    let ctl = 10.0; // Matches Python: initial=10.0
+    // Initialize chronic state at baseline (low fatigue)
+    let sMeta = 0;
+    let sStruct = 0;
+    const capMeta = DEFAULT_CAP_METABOLIC;
+    const capStruct = DEFAULT_CAP_STRUCTURAL;
 
     const fatigueByWeek: number[] = [];
     const readinessByWeek: number[] = [];
@@ -166,7 +151,7 @@ function runSingleSimulation(
         const targetRPE = weekPlan.targetRPE;
         const duration = weekPlan.targetDurationMinutes || DEFAULT_DURATION_MINUTES;
 
-        // Generate random sessions per week: 2, 3, or 4 (matches Python: rng.integers(2, 5))
+        // Generate random sessions per week: 2, 3, or 4
         const sessionsThisWeek = 2 + Math.floor(Math.random() * 3);
 
         // Random days within the week (0-6), no replacement
@@ -177,30 +162,49 @@ function runSingleSimulation(
         // Generate daily loads (initialize all to 0)
         const dailyLoads = new Array(7).fill(0);
 
+        // Estimate CP/W' from base power for consistent load calculation
+        // These match the default estimates used in criticalPowerEngine
+        const estimatedCP = basePower * 0.85; // ~85% of FTP is typical CP
+        const estimatedWPrime = 15000;        // Default W' in joules
+
         for (const day of sessionDays) {
-            // Power with ±5% variation (matches Python: 1.0 + rng.uniform(-0.05, 0.05))
+            // Power with ±5% variation
             const actualPowerMult = powerMultiplier * (1.0 + (Math.random() * 0.1 - 0.05));
+            const actualPower = basePower * actualPowerMult;
 
-            // RPE with ±0.5 variation, clamped 1-10 (matches Python: clip(rpe + uniform(-0.5, 0.5), 1, 10))
-            const actualRPE = Math.max(1, Math.min(10, targetRPE + (Math.random() - 0.5)));
+            // Calculate load using physiological cost engine (matches chart)
+            // Determine session style based on week plan
+            const sessionStyle = weekPlan.sessionStyle ||
+                (weekPlan.workRestRatio && weekPlan.workRestRatio !== 'steady' ? 'interval' : 'steady-state');
 
-            // Calculate load (power ratio is the multiplier itself, like Python)
-            const powerRatio = actualPowerMult;
-            const load = calculateSessionLoad(actualRPE, duration, powerRatio);
+            const load = estimateCostFromAverage(
+                actualPower,
+                duration,
+                estimatedCP,
+                estimatedWPrime,
+                sessionStyle,
+                weekPlan.workRestRatio
+            );
 
             dailyLoads[day] = load;
         }
 
-        // Update EWMA for each day (matches Python EWMA loop)
+        // Update chronic model compartments for each day
         for (const dailyLoad of dailyLoads) {
-            atl = atl * (1 - ATL_ALPHA) + dailyLoad * ATL_ALPHA;
-            ctl = ctl * (1 - CTL_ALPHA) + dailyLoad * CTL_ALPHA;
+            // Random recovery efficiency (φ) for Monte Carlo variation: 0.7 to 1.3
+            const phiRecovery = 0.7 + Math.random() * 0.6;
+
+            // Update compartments using chronic model dynamics
+            sMeta = updateMetabolicFreshness(sMeta, dailyLoad, phiRecovery, capMeta);
+            sStruct = updateStructuralHealth(sStruct, dailyLoad, SIGMA_IMPACT, capStruct);
         }
 
-        // Calculate end-of-week metrics
-        const tsb = ctl - atl;
-        fatigueByWeek.push(calculateFatigueScore(atl, ctl));
-        readinessByWeek.push(calculateReadinessScore(tsb));
+        // Calculate end-of-week metrics using chronic model
+        const fatigue = calculateFatigueFromChronic(sMeta, sStruct);
+        const readiness = calculateChronicReadiness(sMeta, sStruct, capMeta, capStruct);
+
+        fatigueByWeek.push(fatigue);
+        readinessByWeek.push(readiness);
     }
 
     return { fatigueByWeek, readinessByWeek };

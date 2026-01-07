@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Session, ProgramRecord, ProgramPreset, QuestionnaireResponse } from '../types';
+import { Session, ProgramRecord, ProgramPreset, QuestionnaireResponse, CriticalPowerEstimate, ChronicFatigueState } from '../types';
 import { DEFAULT_PRESETS, AccentColor, AccentModifierState } from '../presets';
 import { hydratePreset } from '../utils/templateUtils';
 import { getLocalDateString } from '../utils/dateUtils';
@@ -49,6 +49,14 @@ export interface AppStateReturn {
     autoAdaptiveEnabled: boolean;
     setAutoAdaptiveEnabled: React.Dispatch<React.SetStateAction<boolean>>;
 
+    // Chronic Fatigue Model
+    globalCPEstimate: CriticalPowerEstimate | null;
+    setGlobalCPEstimate: React.Dispatch<React.SetStateAction<CriticalPowerEstimate | null>>;
+    globalChronicState: ChronicFatigueState | null;
+    setGlobalChronicState: React.Dispatch<React.SetStateAction<ChronicFatigueState | null>>;
+    chronicModelInitialized: boolean;
+    setChronicModelInitialized: React.Dispatch<React.SetStateAction<boolean>>;
+
     // Computed values
     activePresets: ProgramPreset[];
     activeProgram: ProgramRecord | undefined;
@@ -87,6 +95,11 @@ export function useAppState(): AppStateReturn {
     const [questionnaireResponses, setQuestionnaireResponses] = useState<QuestionnaireResponse[]>([]);
     // Auto-adaptive training enabled
     const [autoAdaptiveEnabled, setAutoAdaptiveEnabled] = useState(false);
+
+    // Chronic Fatigue Model global state (stored separately for cross-program persistence)
+    const [globalCPEstimate, setGlobalCPEstimate] = useState<CriticalPowerEstimate | null>(null);
+    const [globalChronicState, setGlobalChronicState] = useState<ChronicFatigueState | null>(null);
+    const [chronicModelInitialized, setChronicModelInitialized] = useState(false);
 
     // Get today's questionnaire response
     const getTodayQuestionnaireResponse = () => {
@@ -273,6 +286,26 @@ export function useAppState(): AppStateReturn {
                     setAutoAdaptiveEnabled(true);
                 }
 
+                // Load chronic fatigue model global state
+                const savedCPEstimate = localStorage.getItem('ck_global_cp_estimate');
+                if (savedCPEstimate) {
+                    try {
+                        setGlobalCPEstimate(JSON.parse(savedCPEstimate));
+                    } catch (e) {
+                        console.error('Failed to load CP estimate', e);
+                    }
+                }
+
+                const savedChronicState = localStorage.getItem('ck_global_chronic_state');
+                if (savedChronicState) {
+                    try {
+                        setGlobalChronicState(JSON.parse(savedChronicState));
+                        setChronicModelInitialized(true);
+                    } catch (e) {
+                        console.error('Failed to load chronic state', e);
+                    }
+                }
+
                 setLoadingStatus("Ready.");
                 setIsLoading(false);
 
@@ -350,6 +383,19 @@ export function useAppState(): AppStateReturn {
         }
     }, [autoAdaptiveEnabled, isLoading]);
 
+    // Save chronic fatigue model state
+    useEffect(() => {
+        if (!isLoading && globalCPEstimate) {
+            localStorage.setItem('ck_global_cp_estimate', JSON.stringify(globalCPEstimate));
+        }
+    }, [globalCPEstimate, isLoading]);
+
+    useEffect(() => {
+        if (!isLoading && globalChronicState) {
+            localStorage.setItem('ck_global_chronic_state', JSON.stringify(globalChronicState));
+        }
+    }, [globalChronicState, isLoading]);
+
     const activeProgram = useMemo(() => programs.find(p => p.status === 'active'), [programs]);
 
     return {
@@ -383,6 +429,12 @@ export function useAppState(): AppStateReturn {
         getTodayQuestionnaireResponse,
         autoAdaptiveEnabled,
         setAutoAdaptiveEnabled,
+        globalCPEstimate,
+        setGlobalCPEstimate,
+        globalChronicState,
+        setGlobalChronicState,
+        chronicModelInitialized,
+        setChronicModelInitialized,
         activePresets,
         activeProgram,
         isDefaultPreset,

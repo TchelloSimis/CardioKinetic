@@ -212,7 +212,7 @@ describe('applyFatigueModifiers', () => {
         const result = applyFatigueModifiers(week, context, modifiers);
 
         expect(result.messages).toHaveLength(1);
-        expect(result.messages[0]).toBe('High fatigue detected');
+        expect(result.messages[0]).toContain('High fatigue detected');
     });
 
     it('should clamp RPE between 1 and 10', () => {

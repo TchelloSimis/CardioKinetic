@@ -2,23 +2,13 @@
  * Suggest Modifiers Module - Constants and Types
  * 
  * Contains all constants and TypeScript interfaces used across the modifier suggestion system.
+ * Note: Legacy EWMA constants (ATL_ALPHA, CTL_ALPHA, etc.) have been removed.
+ *       The system now uses the Chronic Fatigue Model (dual-compartment) from chronicFatigueModel.ts
  */
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
-
-// ATL/CTL EWMA parameters
-export const ATL_DAYS = 7;
-export const CTL_DAYS = 42;
-export const ATL_ALPHA = 2.0 / (ATL_DAYS + 1);
-export const CTL_ALPHA = 2.0 / (CTL_DAYS + 1);
-
-// Fatigue/Readiness scoring parameters
-export const FATIGUE_MIDPOINT = 1.15;
-export const FATIGUE_STEEPNESS = 4.5;
-export const READINESS_OPTIMAL_TSB = 20.0;
-export const READINESS_WIDTH = 1250.0;
 
 // Simulation defaults
 export const DEFAULT_SESSION_DURATION = 15;

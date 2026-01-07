@@ -1,30 +1,75 @@
 /**
- * useMetrics Hook
+ * useMetrics Hook - Revised Chronic Fatigue Model
  * 
- * Calculates ATL, CTL, TSB, fatigue scores, readiness scores, and generates advice.
- * Applies fatigue modifiers from program templates and auto-adaptive adjustments.
+ * Calculates metrics using the dual-compartment fatigue model:
+ * - MET (Metabolic Energy Tank): Fast recovery τ ≈ 2 days
+ * - MSK (MusculoSkeletal): Slow recovery τ ≈ 15 days
+ * 
+ * Also estimates Critical Power (eCP) from training history.
+ * 
+ * Legacy ATL/CTL/TSB/ACWR values are still calculated for backward compatibility.
  */
 
-import { useMemo } from 'react';
-import { Session, PlanWeek, ReadinessState, ProgramRecord, QuestionnaireResponse } from '../types';
+import { useMemo, useEffect } from 'react';
+import {
+    Session, PlanWeek, ReadinessState, ProgramRecord,
+    QuestionnaireResponse, CriticalPowerEstimate, ChronicFatigueState
+} from '../types';
 import {
     calculateSessionLoad,
     calculateRecentAveragePower,
-    calculateFatigueScore,
-    calculateReadinessScore
+    calculateFatigueScore as calculateLegacyFatigueScore,
+    calculateReadinessScore as calculateLegacyReadinessScore
 } from '../utils/metricsUtils';
 import { applyFatigueModifiers } from '../utils/templateUtils';
 import { applyQuestionnaireAdjustment } from '../utils/questionnaireConfig';
-import { parseLocalDate, getDayIndex, addDays, isDateInRange } from '../utils/dateUtils';
+import { parseLocalDate, getDayIndex, addDays, isDateInRange, getLocalDateString } from '../utils/dateUtils';
 import { calculateAutoAdaptiveAdjustments } from '../utils/autoAdaptiveModifiers';
 import type { AutoAdaptiveAdjustment } from '../utils/autoAdaptiveTypes';
 
+// New chronic fatigue model imports
+import { calculateECP, shouldRecalculateECP } from '../utils/criticalPowerEngine';
+import { calculateSessionCost, aggregateDailyLoad } from '../utils/physiologicalCostEngine';
+import {
+    updateMetabolicFreshness,
+    updateStructuralHealth,
+    calculateReadinessScore as calculateChronicReadiness,
+    interpretReadinessState,
+    initializeChronicState,
+    createDefaultChronicState,
+    applyStructuralCorrection,
+    applyMetabolicCorrection,
+    DEFAULT_PHI_RECOVERY,
+    DEFAULT_CAP_METABOLIC,
+    DEFAULT_CAP_STRUCTURAL,
+    SIGMA_IMPACT,
+} from '../utils/chronicFatigueModel';
+import { analyzeSessionForCorrections } from '../utils/rpeCorrectionLoop';
+
+// ============================================================================
+// INTERFACES
+// ============================================================================
+
 export interface MetricsResult {
-    fatigue: number;
-    readiness: number;
+    // NEW: Chronic fatigue model values
+    sMetabolic: number;
+    sStructural: number;
+    eCP: number;
+    wPrime: number;
+    readinessInterpretation: {
+        status: 'green_light' | 'metabolic_fatigue' | 'structural_fatigue' | 'both_fatigued' | 'recovering';
+        recommendation: string;
+        sessionSuggestion: 'high_intensity' | 'endurance' | 'active_recovery' | 'rest';
+    };
+
+    // LEGACY: Kept for backward compatibility during transition
+    fatigue: number;        // Mapped from avg(MET, MSK) normalized
+    readiness: number;      // From new readiness calculation
+    tsb: number;            // Approximated from legacy EWMA
+    acwr: number;           // Approximated from legacy EWMA
+
+    // Unchanged
     status: ReadinessState;
-    tsb: number;
-    acwr: number;
     advice: string | null;
     /** Whether the current advice is from auto-adaptive system vs coach modifiers */
     isAutoAdaptiveAdvice?: boolean;
@@ -36,6 +81,8 @@ export interface MetricsResult {
     };
     /** Auto-adaptive adjustment details (for debugging/display) */
     autoAdaptiveAdjustment?: AutoAdaptiveAdjustment;
+    /** Recovery efficiency (φ) from today's questionnaire: 0.5 (poor) to 1.5 (excellent), 1.0 is baseline */
+    recoveryEfficiency: number;
 }
 
 interface UseMetricsOptions {
@@ -51,10 +98,87 @@ interface UseMetricsOptions {
     recentQuestionnaireResponses?: QuestionnaireResponse[];  // Last 7 days for trend analysis
     /** Whether auto-adaptive modifiers are enabled in settings */
     autoAdaptiveEnabled?: boolean;
+    /** Global CP estimate from app state */
+    globalCPEstimate?: CriticalPowerEstimate | null;
+    /** Global chronic state from app state */
+    globalChronicState?: ChronicFatigueState | null;
+    /** Callback to update global CP estimate */
+    onCPEstimateUpdate?: (estimate: CriticalPowerEstimate) => void;
+    /** Callback to update global chronic state */
+    onChronicStateUpdate?: (state: ChronicFatigueState) => void;
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Calculate recovery efficiency (φ) from questionnaire response.
+ */
+function calculatePhiRecovery(response: QuestionnaireResponse | undefined): number {
+    if (!response) return DEFAULT_PHI_RECOVERY;
+
+    const { responses } = response;
+    // Use actual questionnaire field names - average sleep metrics
+    const sleepHours = responses['sleep_hours'] || 3;
+    const sleepQuality = responses['sleep_quality'] || 3;
+    const sleep = (sleepHours + sleepQuality) / 2;
+    const nutrition = responses['nutrition'] || 3;
+    const stress = responses['stress'] || 3;
+
+    // Normalize to 0-1 range
+    const sleepNorm = (sleep - 1) / 4;
+    const nutritionNorm = (nutrition - 1) / 4;
+    const stressNorm = (stress - 1) / 4;
+
+    // Calculate phi: 0.5 at worst, 1.5 at best
+    const avgFactor = (sleepNorm + nutritionNorm + stressNorm) / 3;
+    return Math.max(0.5, Math.min(1.5, 0.5 + avgFactor));
 }
 
 /**
- * Hook for calculating training metrics (ATL, CTL, TSB) and applying fatigue modifiers
+ * Map chronic model readiness to legacy ReadinessState enum.
+ */
+function mapToLegacyReadinessState(
+    interpretation: ReturnType<typeof interpretReadinessState>
+): ReadinessState {
+    switch (interpretation.status) {
+        case 'green_light':
+            return ReadinessState.PROGRESS;
+        case 'metabolic_fatigue':
+        case 'recovering':
+            return ReadinessState.MAINTAIN;
+        case 'structural_fatigue':
+        case 'both_fatigued':
+            return ReadinessState.RECOVERY_NEEDED;
+        default:
+            return ReadinessState.MAINTAIN;
+    }
+}
+
+/**
+ * Convert chronic state to legacy fatigue score (0-100).
+ * Higher state values = higher fatigue.
+ */
+function chronicStateToLegacyFatigue(
+    sMeta: number,
+    sStruct: number,
+    capMeta: number,
+    capStruct: number
+): number {
+    const metaRatio = sMeta / capMeta;
+    const structRatio = sStruct / capStruct;
+    const avgRatio = (metaRatio * 0.6 + structRatio * 0.4);
+    return Math.round(Math.min(100, Math.max(0, avgRatio * 100)));
+}
+
+// ============================================================================
+// MAIN HOOK
+// ============================================================================
+
+/**
+ * Hook for calculating training metrics using the Revised Chronic Fatigue Model.
+ * Provides both new dual-compartment metrics and legacy compatibility values.
  */
 export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
     const {
@@ -68,36 +192,54 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
         activeProgram,
         todayQuestionnaireResponse,
         recentQuestionnaireResponses,
-        autoAdaptiveEnabled = false
+        autoAdaptiveEnabled = false,
+        globalCPEstimate,
+        globalChronicState,
+        onCPEstimateUpdate,
+        onChronicStateUpdate,
     } = options;
 
-    // Filter sessions to active program only (matching Chart behavior)
+    // Filter sessions to active program only
     const filteredSessions = useMemo(() => {
         if (!activeProgram) return sessions;
 
-        // Calculate program end date string
         const programWeeks = activeProgram.plan?.length || 12;
         const programEndStr = addDays(activeProgram.startDate, (programWeeks * 7));
 
         return sessions.filter(s => {
-            // Include if session has matching programId
             if (s.programId === activeProgram.id) return true;
-
-            // For legacy sessions without programId, include if within program date range
             if (!s.programId) {
                 return isDateInRange(s.date, activeProgram.startDate, programEndStr);
             }
-
             return false;
         });
     }, [sessions, activeProgram]);
 
+    // Calculate or use existing CP estimate
+    const cpEstimate = useMemo(() => {
+        if (globalCPEstimate && globalCPEstimate.confidence > 0) {
+            return globalCPEstimate;
+        }
+        // Calculate from session history
+        return calculateECP(filteredSessions, new Date(), globalCPEstimate, basePower);
+    }, [filteredSessions, globalCPEstimate, basePower]);
+
+    // Update CP estimate if needed (side effect)
+    useEffect(() => {
+        if (onCPEstimateUpdate && cpEstimate &&
+            (!globalCPEstimate || cpEstimate.lastUpdated !== globalCPEstimate.lastUpdated)) {
+            onCPEstimateUpdate(cpEstimate);
+        }
+    }, [cpEstimate, globalCPEstimate, onCPEstimateUpdate]);
+
     return useMemo(() => {
-        // Use timezone-agnostic day calculations
+        // ================================================================
+        // LEGACY CALCULATIONS (for backward compatibility)
+        // ================================================================
         const daysToSim = getDayIndex(simulatedDate, startDate);
         const totalCalcDays = Math.max(1, daysToSim + 1);
 
-        // Build daily load array
+        // Build daily load array (legacy method)
         const dailyLoads = new Float32Array(totalCalcDays).fill(0);
         filteredSessions.forEach(s => {
             const dayIndex = getDayIndex(s.date, startDate);
@@ -109,127 +251,184 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
             }
         });
 
-        // Create questionnaire lookup map for carryover calculation
-        const questionnaireByDate = new Map<string, typeof todayQuestionnaireResponse>();
-        const allQuestionnaireResponses = [
-            ...(recentQuestionnaireResponses || []),
-            ...(todayQuestionnaireResponse ? [todayQuestionnaireResponse] : [])
-        ];
-        allQuestionnaireResponses.forEach(r => {
-            if (r) questionnaireByDate.set(r.date, r);
-        });
-
-        // Calculate exponential moving averages WITH questionnaire carryover
+        // Calculate legacy EWMA for TSB/ACWR (still needed for some displays)
         let atl = 0;
         let ctl = 10;
-        let wellnessModifier = 0; // Tracks cumulative questionnaire impact
         const atlAlpha = 2 / (7 + 1);
         const ctlAlpha = 2 / (42 + 1);
-        const wellnessAlpha = 2 / (3 + 1); // 3-day half-life for wellness effects
-
-        let fatigueScore = 0;
-        let readinessScore = 0;
-        let questionnaireAdjustment: { readinessChange: number; fatigueChange: number } | undefined;
 
         for (let i = 0; i < totalCalcDays; i++) {
             const load = dailyLoads[i];
-            const dateStr = addDays(startDate, i);
-
             atl = atl * (1 - atlAlpha) + load * atlAlpha;
             ctl = ctl * (1 - ctlAlpha) + load * ctlAlpha;
+        }
 
-            const tsb = ctl - atl;
-            fatigueScore = calculateFatigueScore(atl, ctl);
-            readinessScore = calculateReadinessScore(tsb);
+        const legacyTsb = ctl - atl;
+        const legacyAcwr = ctl > 0 ? atl / ctl : 0;
 
-            // Look up questionnaire for this day and apply adjustment with carryover
+        // ================================================================
+        // NEW CHRONIC FATIGUE MODEL CALCULATIONS
+        // ================================================================
+
+        // Calculate chronic state from program startDate to simulatedDate
+        // This matches Chart.tsx approach exactly for consistency
+        let sMeta = 0;
+        let sStruct = 0;
+        const capMeta = DEFAULT_CAP_METABOLIC;
+        const capStruct = DEFAULT_CAP_STRUCTURAL;
+
+        // Build questionnaire lookup map
+        const questionnaireByDate = new Map<string, QuestionnaireResponse>();
+        if (recentQuestionnaireResponses) {
+            recentQuestionnaireResponses.forEach(r => questionnaireByDate.set(r.date, r));
+        }
+        if (todayQuestionnaireResponse) {
+            questionnaireByDate.set(todayQuestionnaireResponse.date, todayQuestionnaireResponse);
+        }
+
+        // Iterate from program start to simulated date
+        for (let i = 0; i <= daysToSim; i++) {
+            const dateStr = addDays(startDate, i);
+
+            // Calculate daily load using physiological cost engine
+            const dailyLoad = aggregateDailyLoad(filteredSessions, dateStr, cpEstimate);
+
+            // Get recovery efficiency from questionnaire
             const dayResponse = questionnaireByDate.get(dateStr);
-            if (dayResponse) {
-                // Get recent responses before this day for trend analysis
-                const recentForDay = allQuestionnaireResponses
-                    .filter(r => r && r.date < dateStr)
-                    .sort((a, b) => b!.date.localeCompare(a!.date))
-                    .slice(0, 7) as typeof recentQuestionnaireResponses;
+            const phiRecovery = calculatePhiRecovery(dayResponse);
 
-                const adjustment = applyQuestionnaireAdjustment(
-                    readinessScore,
-                    fatigueScore,
-                    dayResponse,
-                    recentForDay
+            // Update compartments
+            sMeta = updateMetabolicFreshness(sMeta, dailyLoad, phiRecovery, capMeta);
+            sStruct = updateStructuralHealth(sStruct, dailyLoad, SIGMA_IMPACT, capStruct);
+        }
+
+        // Apply today's questionnaire corrections (Bayesian updates)
+        if (todayQuestionnaireResponse) {
+            const soreness = todayQuestionnaireResponse.responses['soreness'];
+            const energy = todayQuestionnaireResponse.responses['energy'];
+
+            if (soreness && soreness <= 2) {
+                const correction = applyStructuralCorrection(
+                    { sMetabolic: sMeta, sStructural: sStruct, capMetabolic: capMeta, capStructural: capStruct, lastUpdated: '' },
+                    soreness
                 );
-
-                fatigueScore = adjustment.fatigue;
-                readinessScore = adjustment.readiness;
-
-                // Track adjustment for current day (last iteration)
-                if (i === totalCalcDays - 1) {
-                    questionnaireAdjustment = {
-                        readinessChange: adjustment.readinessChange,
-                        fatigueChange: adjustment.fatigueChange
-                    };
-                }
-
-                // Feed adjustment into wellness modifier for carryover
-                wellnessModifier = wellnessModifier * (1 - wellnessAlpha) +
-                    ((adjustment.readinessChange - adjustment.fatigueChange) / 2) * wellnessAlpha;
-            } else {
-                // No questionnaire today, apply smoothed carryover from previous days
-                wellnessModifier = wellnessModifier * (1 - wellnessAlpha);
-
-                if (Math.abs(wellnessModifier) > 0.5) {
-                    readinessScore = Math.max(0, Math.min(100, Math.round(readinessScore + wellnessModifier)));
-                    fatigueScore = Math.max(0, Math.min(100, Math.round(fatigueScore - wellnessModifier)));
-                }
+                sStruct = correction.sStructural;
+            }
+            if (energy && energy <= 2) {
+                const correction = applyMetabolicCorrection(
+                    { sMetabolic: sMeta, sStructural: sStruct, capMetabolic: capMeta, capStructural: capStruct, lastUpdated: '' },
+                    energy
+                );
+                sMeta = correction.sMetabolic;
             }
         }
 
-        const tsb = ctl - atl;
-        const acwr = ctl > 0 ? atl / ctl : 0;
+        // Build final chronic state
+        const chronicState: ChronicFatigueState = {
+            sMetabolic: sMeta,
+            sStructural: sStruct,
+            capMetabolic: capMeta,
+            capStructural: capStruct,
+            lastUpdated: new Date().toISOString(),
+        };
 
-        // Handle missing week plan
-        if (!currentWeekPlan) {
-            return {
-                fatigue: fatigueScore,
-                readiness: readinessScore,
-                status: ReadinessState.MAINTAIN,
-                tsb: Math.round(tsb),
-                acwr: Math.round(acwr * 100) / 100,
-                advice: null,
-                modifiedWeekPlan: null,
-                modifierMessages: [],
-                questionnaireAdjustment
+        // Calculate readiness from chronic state
+        const chronicReadiness = calculateChronicReadiness(
+            chronicState.sMetabolic,
+            chronicState.sStructural,
+            chronicState.capMetabolic,
+            chronicState.capStructural
+        );
+
+        const readinessInterpretation = interpretReadinessState(
+            chronicReadiness,
+            chronicState.sMetabolic,
+            chronicState.sStructural,
+            chronicState.capMetabolic,
+            chronicState.capStructural
+        );
+
+        // Map to legacy fatigue score
+        const legacyFatigue = chronicStateToLegacyFatigue(
+            chronicState.sMetabolic,
+            chronicState.sStructural,
+            chronicState.capMetabolic,
+            chronicState.capStructural
+        );
+
+        // Update chronic state in app state
+        if (onChronicStateUpdate && chronicState.lastUpdated !== globalChronicState?.lastUpdated) {
+            // Defer to avoid state update during render
+            setTimeout(() => onChronicStateUpdate(chronicState), 0);
+        }
+
+        // ================================================================
+        // QUESTIONNAIRE ADJUSTMENT (for display purposes)
+        // Uses chronic model baseline values so badges match displayed values
+        // ================================================================
+        let questionnaireAdjustment: { readinessChange: number; fatigueChange: number } | undefined;
+        let displayReadiness = chronicReadiness;
+        let displayFatigue = legacyFatigue;
+
+        if (todayQuestionnaireResponse) {
+            // Use chronic model values as baseline (these are what's displayed)
+            const adjustment = applyQuestionnaireAdjustment(
+                chronicReadiness,
+                legacyFatigue,
+                todayQuestionnaireResponse,
+                recentQuestionnaireResponses
+            );
+
+            // Apply adjustment to display values (not just compute badge)
+            displayReadiness = adjustment.readiness;
+            displayFatigue = adjustment.fatigue;
+
+            questionnaireAdjustment = {
+                readinessChange: adjustment.readinessChange,
+                fatigueChange: adjustment.fatigueChange
             };
         }
 
-        // Apply fatigue modifiers from program template
+        // ================================================================
+        // HANDLE MISSING WEEK PLAN
+        // ================================================================
+        if (!currentWeekPlan) {
+            return {
+                sMetabolic: chronicState.sMetabolic,
+                sStructural: chronicState.sStructural,
+                eCP: cpEstimate.cp,
+                wPrime: cpEstimate.wPrime,
+                readinessInterpretation,
+                fatigue: displayFatigue,
+                readiness: displayReadiness,
+                status: mapToLegacyReadinessState(readinessInterpretation),
+                tsb: Math.round(legacyTsb),
+                acwr: Math.round(legacyAcwr * 100) / 100,
+                advice: readinessInterpretation.recommendation,
+                modifiedWeekPlan: null,
+                modifierMessages: [],
+                questionnaireAdjustment,
+                recoveryEfficiency: calculatePhiRecovery(todayQuestionnaireResponse)
+            };
+        }
+
+        // ================================================================
+        // APPLY FATIGUE MODIFIERS
+        // Use questionnaire-adjusted display values for consistent behavior
+        // ================================================================
         const programModifiers = activeProgram?.fatigueModifiers || [];
         const fatigueContext = {
-            fatigueScore,
-            readinessScore,
-            tsbValue: tsb,
+            fatigueScore: displayFatigue,
+            readinessScore: displayReadiness,
+            tsbValue: legacyTsb,
             weekNumber: currentWeekNum,
             totalWeeks: programLength,
             phase: currentWeekPlan.focus,
             phaseName: currentWeekPlan.phaseName,
         };
 
-        // Calculate auto-adaptive adjustment if enabled and simulation data exists
+        // Calculate auto-adaptive adjustment if enabled
         let autoAdaptiveAdjustment: AutoAdaptiveAdjustment | undefined;
-
-        // Debug: Log the auto-adaptive check conditions (remove before release)
-        if (autoAdaptiveEnabled) {
-            console.log('[useMetrics] Auto-adaptive check:', {
-                autoAdaptiveEnabled,
-                hasActiveProgram: !!activeProgram,
-                programId: activeProgram?.id,
-                hasSimulationData: !!activeProgram?.simulationData,
-                simulationWeekCount: activeProgram?.simulationData?.weekCount,
-                hasWeekPercentiles: !!activeProgram?.simulationData?.weekPercentiles,
-                percentilesLength: activeProgram?.simulationData?.weekPercentiles?.length,
-                currentWeekNum,
-                weekPercentileExists: !!activeProgram?.simulationData?.weekPercentiles?.[currentWeekNum - 1]
-            });
-        }
 
         if (autoAdaptiveEnabled && activeProgram?.simulationData?.weekPercentiles?.[currentWeekNum - 1]) {
             autoAdaptiveAdjustment = calculateAutoAdaptiveAdjustments(
@@ -249,65 +448,40 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
         const modifierMessages = modifierResult.messages;
         const modifiedWeekPlan = modifierResult.week;
 
-        const phaseFocus = currentWeekPlan.focus;
-
-        // Calculate readiness-based advice
-        const isFresh = readinessScore > 75;
-        const isTired = readinessScore < 50;
-        const isOverloaded = fatigueScore > 60;
-
-        let readinessText = ReadinessState.MAINTAIN;
-        let advice = "";
-
-        if (isOverloaded) {
-            readinessText = ReadinessState.RECOVERY_NEEDED;
-            advice = "Critical fatigue detected. Regardless of the planned phase, prioritize recovery. Reduce volume by 50% or take a complete rest day to avoid non-functional overreaching.";
-        } else if (isTired) {
-            readinessText = ReadinessState.MAINTAIN;
-            if (phaseFocus === 'Intensity' || phaseFocus === 'Density') {
-                advice = "Fatigue is high. You may struggle to hit peak power output. Focus on completing the intervals at 90% effort rather than failing at 100%. Do not add extra sets.";
-            } else if (phaseFocus === 'Volume') {
-                advice = "Accumulated fatigue is expected in this volume block. Keep intensity strictly in Zone 2/Low-Aerobic to allow recovery while maintaining duration.";
-            } else {
-                advice = "Recovery phase indicated. Respect the lower intensity caps. Your body is synthesizing recent gains.";
-            }
-        } else if (isFresh) {
-            readinessText = ReadinessState.PROGRESS;
-            if (phaseFocus === 'Intensity') {
-                advice = "You are prime for high output. Attack the work intervals aggressively. Aim to exceed target wattage by 5-10 watts if RPE remains stable.";
-            } else if (phaseFocus === 'Density') {
-                advice = "Excellent readiness. Focus on minimizing recovery time. Strictly adhere to the rest intervals, or even shorten them by 5 seconds if the session feels easy.";
-            } else if (phaseFocus === 'Volume') {
-                advice = "You are well-recovered. This is a good opportunity to extend the session duration by 5-10 minutes while keeping power steady.";
-            } else {
-                advice = "You are fresh, but this is a recovery week. Resist the urge to go hard. Save this energy for the next block.";
-            }
-        } else {
-            readinessText = ReadinessState.MAINTAIN;
-            advice = "Training stress is balanced. Execute the session exactly as prescribed. Focus on form and breathing.";
-        }
-
-        // Use modifier messages if available, otherwise check for auto-adaptive, otherwise null
+        // ================================================================
+        // GENERATE ADVICE
+        // ================================================================
         let fullAdvice: string | null = null;
         const isAutoAdaptiveAdvice = modifierResult.isAutoAdaptive;
 
         if (modifierMessages.length > 0) {
             fullAdvice = modifierMessages.join(' ');
         }
-        // Otherwise fullAdvice stays null (no advice shown)
+        // No fallback - only auto-adaptive or coach modifier messages are shown
 
         return {
-            fatigue: fatigueScore,
-            readiness: readinessScore,
-            status: readinessText,
-            tsb: Math.round(tsb),
-            acwr: Math.round(acwr * 100) / 100,
+            sMetabolic: chronicState.sMetabolic,
+            sStructural: chronicState.sStructural,
+            eCP: cpEstimate.cp,
+            wPrime: cpEstimate.wPrime,
+            readinessInterpretation,
+            fatigue: displayFatigue,
+            readiness: displayReadiness,
+            status: mapToLegacyReadinessState(readinessInterpretation),
+            tsb: Math.round(legacyTsb),
+            acwr: Math.round(legacyAcwr * 100) / 100,
             advice: fullAdvice,
             isAutoAdaptiveAdvice,
             modifiedWeekPlan,
             modifierMessages,
             questionnaireAdjustment,
-            autoAdaptiveAdjustment
+            autoAdaptiveAdjustment,
+            recoveryEfficiency: calculatePhiRecovery(todayQuestionnaireResponse)
         };
-    }, [filteredSessions, simulatedDate, startDate, basePower, currentWeekNum, programLength, currentWeekPlan, activeProgram, todayQuestionnaireResponse, recentQuestionnaireResponses, autoAdaptiveEnabled]);
+    }, [
+        filteredSessions, simulatedDate, startDate, basePower,
+        currentWeekNum, programLength, currentWeekPlan, activeProgram,
+        todayQuestionnaireResponse, recentQuestionnaireResponses,
+        autoAdaptiveEnabled, cpEstimate, globalChronicState, onChronicStateUpdate
+    ]);
 };

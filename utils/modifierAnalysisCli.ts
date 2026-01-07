@@ -8,6 +8,8 @@
  * The legacy suggestModifiers() system has been removed in favor of the percentile-based
  * auto-adaptive engine.
  * 
+ * Uses Chronic Fatigue Model (dual-compartment) for fatigue/readiness calculations.
+ * 
  * Usage: npx tsx utils/modifierAnalysisCli.ts [options]
  * 
  * Key features:
@@ -28,6 +30,15 @@ import type { WeekPercentiles } from './autoAdaptiveTypes.ts';
 import type { WeekDefinition, FatigueModifier, FatigueContext } from '../programTemplate.ts';
 import type { SessionStyle } from '../types.ts';
 import * as fs from 'fs';
+import {
+    updateMetabolicFreshness,
+    updateStructuralHealth,
+    calculateReadinessScore as calculateChronicReadiness,
+    DEFAULT_CAP_METABOLIC,
+    DEFAULT_CAP_STRUCTURAL,
+    SIGMA_IMPACT,
+} from './chronicFatigueModel.ts';
+import { estimateCostFromAverage } from './physiologicalCostEngine.ts';
 
 // ============================================================================
 // TYPES
@@ -449,7 +460,7 @@ function generateWeekPercentiles(
         }
     }
 
-    // Calculate percentiles for each week (P15/P25/P35/P65/P75/P85)
+    // Calculate percentiles for each week (v1.5.4 3-tier: P15/P25/P35/P65/P75/P85)
     const weekPercentiles: WeekPercentiles[] = [];
     for (let w = 0; w < numWeeks; w++) {
         weekPercentiles.push({
@@ -474,31 +485,22 @@ function generateWeekPercentiles(
 }
 
 // ============================================================================
-// SIMULATION ENGINE (Using Auto-Adaptive Modifier System)
+// SIMULATION ENGINE (Using Chronic Fatigue Model + Auto-Adaptive System)
 // ============================================================================
-
-const ATL_ALPHA = 2.0 / 8;
-const CTL_ALPHA = 2.0 / 43;
 
 function seededRandom(seed: number): number {
     const x = Math.sin(seed) * 10000;
     return x - Math.floor(x);
 }
 
-function calculateFatigue(atl: number, ctl: number): number {
-    if (ctl <= 0.001) return atl > 0 ? Math.min(100, Math.round(atl * 2)) : 0;
-    const acwr = atl / ctl;
-    return Math.round(Math.max(0, Math.min(100, 100 / (1 + Math.exp(-4.5 * (acwr - 1.15))))));
-}
-
-function calculateReadiness(tsb: number): number {
-    const exponent = -Math.pow(tsb - 20.0, 2) / 1250.0;
-    return Math.round(Math.max(0, Math.min(100, 100 * Math.exp(exponent))));
-}
-
-function calculateLoad(power: number, basePower: number, duration: number, rpe: number): number {
-    const powerRatio = Math.max(0.25, Math.min(4.0, power / basePower));
-    return Math.pow(rpe, 1.5) * Math.pow(duration, 0.75) * Math.pow(powerRatio, 0.5) * 0.3;
+// Chronic model fatigue calculation
+function calculateFatigueFromChronic(sMeta: number, sStruct: number): number {
+    const capMeta = DEFAULT_CAP_METABOLIC;
+    const capStruct = DEFAULT_CAP_STRUCTURAL;
+    const metaRatio = sMeta / capMeta;
+    const structRatio = sStruct / capStruct;
+    const avgRatio = (metaRatio * 0.6 + structRatio * 0.4);
+    return Math.round(Math.min(100, Math.max(0, avgRatio * 100)));
 }
 
 function runSimulationIteration(
@@ -514,8 +516,16 @@ function runSimulationIteration(
     triggerMessages: string[][];
     autoAdaptiveStates: string[][];
 } {
-    let atl = 9, ctl = 10;
-    const fatigueHistory: number[] = [];
+    // Initialize chronic model compartments
+    let sMeta = 0;
+    let sStruct = 0;
+    const capMeta = DEFAULT_CAP_METABOLIC;
+    const capStruct = DEFAULT_CAP_STRUCTURAL;
+
+    // Estimate CP/W' from base power
+    const estimatedCP = basePower * 0.85;
+    const estimatedWPrime = 15000;
+
     let randomIdx = 0;
     const getRandom = () => seededRandom(seed + randomIdx++);
 
@@ -541,26 +551,24 @@ function runSimulationIteration(
 
             if (isSession) {
                 const powerVariance = (getRandom() * 0.1) - 0.05;
-                const rpeVariance = Math.round(getRandom() * 2 - 1);
                 let power = Math.round(basePower * (week.powerMultiplier || 1.0) * (1 + powerVariance));
                 let duration = 15;
-                let rpe = Math.max(1, Math.min(10, (week.targetRPE || 6) + rpeVariance));
+                const sessionStyle: SessionStyle = week.sessionStyle || 'interval';
 
                 if (useModifiers && weekPercentiles[weekIdx]) {
-                    const fatigue = calculateFatigue(atl, ctl);
-                    const readiness = calculateReadiness(ctl - atl);
+                    const fatigue = calculateFatigueFromChronic(sMeta, sStruct);
+                    const readiness = calculateChronicReadiness(sMeta, sStruct, capMeta, capStruct);
 
                     const context: FatigueContext = {
                         fatigueScore: fatigue,
                         readinessScore: readiness,
-                        tsbValue: ctl - atl,
+                        tsbValue: readiness - fatigue, // Approximation for legacy compatibility
                         weekNumber: weekIdx + 1,
                         totalWeeks: weeks.length,
                         phaseName: week.phaseName,
                     };
 
                     // Use auto-adaptive engine
-                    const sessionStyle: SessionStyle = week.sessionStyle || 'interval';
                     const autoAdj = calculateAutoAdaptiveAdjustments(
                         context,
                         weekPercentiles[weekIdx],
@@ -569,7 +577,6 @@ function runSimulationIteration(
 
                     if (autoAdj.isActive) {
                         power = Math.round(power * autoAdj.powerMultiplier);
-                        rpe = Math.max(1, Math.min(10, rpe + autoAdj.rpeAdjust));
                         if (autoAdj.durationMultiplier) {
                             duration *= autoAdj.durationMultiplier;
                         }
@@ -578,15 +585,26 @@ function runSimulationIteration(
                         weekStates.push(autoAdj.state);
                     }
                 }
-                load = calculateLoad(power, basePower, duration, rpe);
-                fatigueHistory.push(calculateFatigue(atl, ctl));
+
+                // Calculate load using physiological cost engine
+                load = estimateCostFromAverage(
+                    power,
+                    duration,
+                    estimatedCP,
+                    estimatedWPrime,
+                    sessionStyle,
+                    week.workRestRatio
+                );
             }
-            atl = atl * (1 - ATL_ALPHA) + load * ATL_ALPHA;
-            ctl = ctl * (1 - CTL_ALPHA) + load * CTL_ALPHA;
+
+            // Update chronic model compartments daily
+            const phiRecovery = 0.7 + getRandom() * 0.6;
+            sMeta = updateMetabolicFreshness(sMeta, load, phiRecovery, capMeta);
+            sStruct = updateStructuralHealth(sStruct, load, SIGMA_IMPACT, capStruct);
         }
 
-        weeklyFatigue.push(calculateFatigue(atl, ctl));
-        weeklyReadiness.push(calculateReadiness(ctl - atl));
+        weeklyFatigue.push(calculateFatigueFromChronic(sMeta, sStruct));
+        weeklyReadiness.push(calculateChronicReadiness(sMeta, sStruct, capMeta, capStruct));
         triggers.push(weekTriggers);
         triggerMessages.push(weekModMessages);
         autoAdaptiveStates.push(weekStates);

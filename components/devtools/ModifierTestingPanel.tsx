@@ -3,7 +3,7 @@
  * 
  * Monte Carlo simulation comparing baseline vs adaptive execution.
  * Uses the new auto-adaptive modifier engine + coach-created modifiers.
- * Features: zoom controls, power overlay, fatigue & readiness charts.
+ * Uses Chronic Fatigue Model (dual-compartment) for fatigue/readiness.
  */
 
 import React, { useState, useMemo, useRef, useCallback } from 'react';
@@ -15,6 +15,15 @@ import { calculateAutoAdaptiveAdjustments } from '../../utils/autoAdaptiveModifi
 import { WeekPercentiles, AutoAdaptiveAdjustment } from '../../utils/autoAdaptiveTypes';
 import { runSingleSimulation } from '../../utils/suggestModifiers/simulation';
 import { calculatePercentile } from '../../utils/suggestModifiers/algorithms';
+import {
+    updateMetabolicFreshness,
+    updateStructuralHealth,
+    calculateReadinessScore as calculateChronicReadiness,
+    DEFAULT_CAP_METABOLIC,
+    DEFAULT_CAP_STRUCTURAL,
+    SIGMA_IMPACT,
+} from '../../utils/chronicFatigueModel';
+import { estimateCostFromAverage } from '../../utils/physiologicalCostEngine';
 
 interface ModifierTestingPanelProps {
     preset: ProgramPreset | null;
@@ -44,28 +53,20 @@ interface WeeklySummary {
     triggerBreakdown: Map<string, number>; // modifier message -> count
 }
 
-// Constants
-const ATL_ALPHA = 2.0 / 8;
-const CTL_ALPHA = 2.0 / 43;
-const FATIGUE_MIDPOINT = 1.15;
-const FATIGUE_STEEPNESS = 4.5;
-const READINESS_OPTIMAL_TSB = 20.0;
-const READINESS_WIDTH = 1250.0;
-
-const calculateFatigue = (atl: number, ctl: number): number => {
-    if (ctl <= 0.001) return atl > 0 ? Math.min(100, Math.round(atl * 2)) : 0;
-    const acwr = atl / ctl;
-    return Math.round(Math.max(0, Math.min(100, 100 / (1 + Math.exp(-FATIGUE_STEEPNESS * (acwr - FATIGUE_MIDPOINT))))));
+// Chronic fatigue model helper functions
+const calculateFatigueFromChronic = (sMeta: number, sStruct: number): number => {
+    const capMeta = DEFAULT_CAP_METABOLIC;
+    const capStruct = DEFAULT_CAP_STRUCTURAL;
+    const metaRatio = sMeta / capMeta;
+    const structRatio = sStruct / capStruct;
+    const avgRatio = (metaRatio * 0.6 + structRatio * 0.4);
+    return Math.round(Math.min(100, Math.max(0, avgRatio * 100)));
 };
 
-const calculateReadiness = (tsb: number): number => {
-    const exponent = -Math.pow(tsb - READINESS_OPTIMAL_TSB, 2) / READINESS_WIDTH;
-    return Math.round(Math.max(0, Math.min(100, 100 * Math.exp(exponent))));
-};
-
-const calculateLoad = (power: number, basePower: number, duration: number, rpe: number): number => {
-    const powerRatio = Math.max(0.25, Math.min(4.0, power / basePower));
-    return Math.pow(rpe, 1.5) * Math.pow(duration, 0.75) * Math.pow(powerRatio, 0.5) * 0.3;
+const calculateLoad = (power: number, basePower: number, duration: number, sessionStyle: SessionStyle = 'interval', workRestRatio?: string): number => {
+    const estimatedCP = basePower * 0.85;
+    const estimatedWPrime = 15000;
+    return estimateCostFromAverage(power, duration, estimatedCP, estimatedWPrime, sessionStyle, workRestRatio);
 };
 
 const seededRandom = (seed: number): number => {
@@ -153,7 +154,7 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
     }, [preset]);
 
     /**
-     * Simulation - uses new auto-adaptive engine
+     * Simulation - uses chronic fatigue model + auto-adaptive engine
      */
     const runSingleIteration = (
         weeks: WeekDefinition[],
@@ -162,8 +163,12 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
         useAdaptive: boolean,
         seed: number
     ) => {
-        let atl = 9, ctl = 10;
-        const fatigueHistory: number[] = [];
+        // Initialize chronic model compartments at baseline
+        let sMeta = 0;
+        let sStruct = 0;
+        const capMeta = DEFAULT_CAP_METABOLIC;
+        const capStruct = DEFAULT_CAP_STRUCTURAL;
+
         let randomIdx = 0;
         const getRandom = () => seededRandom(seed + randomIdx++);
 
@@ -190,19 +195,19 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
 
                 if (isSession) {
                     const powerVariance = (getRandom() * 0.1) - 0.05;
-                    const rpeVariance = Math.round(getRandom() * 2 - 1);
                     let power = Math.round(basePower * (week.powerMultiplier || 1.0) * (1 + powerVariance));
                     let duration = 15;
-                    let rpe = Math.max(1, Math.min(10, (week.targetRPE || 6) + rpeVariance));
+                    const sessionStyle: SessionStyle = week.sessionStyle || 'interval';
 
                     if (useAdaptive) {
-                        const fatigue = calculateFatigue(atl, ctl);
-                        const readiness = calculateReadiness(ctl - atl);
+                        // Calculate current fatigue and readiness from chronic model
+                        const fatigue = calculateFatigueFromChronic(sMeta, sStruct);
+                        const readiness = calculateChronicReadiness(sMeta, sStruct, capMeta, capStruct);
 
                         const context: FatigueContext = {
                             fatigueScore: fatigue,
                             readinessScore: readiness,
-                            tsbValue: ctl - atl,
+                            tsbValue: readiness - fatigue, // Approximation for legacy compatibility
                             weekNumber: weekIdx + 1,
                             totalWeeks: weeks.length,
                             phaseName: week.phaseName,
@@ -214,14 +219,13 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
                         if (coachMods.length > 0) {
                             for (const mod of coachMods.sort((a, b) => (a.priority || 0) - (b.priority || 0))) {
                                 const { messages } = applyFatigueModifiers(
-                                    { sessions: [{ targetPower: power, duration, rpe }] } as any,
+                                    { sessions: [{ targetPower: power, duration, rpe: week.targetRPE || 6 }] } as any,
                                     context,
                                     [mod]
                                 );
                                 if (messages.length > 0) {
                                     const adj = mod.adjustments;
                                     if (adj.powerMultiplier) power = Math.round(power * adj.powerMultiplier);
-                                    if (adj.rpeAdjust) rpe = Math.max(1, Math.min(10, rpe + adj.rpeAdjust));
                                     if (adj.volumeMultiplier) duration *= adj.volumeMultiplier;
                                     weekTriggerCount++;
                                     weekCoachTriggers++;
@@ -234,7 +238,6 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
 
                         // 2. If no coach modifier triggered, try auto-adaptive
                         if (!coachModifierTriggered && weekPercentiles[weekIdx]) {
-                            const sessionStyle: SessionStyle = week.sessionStyle || 'interval';
                             const autoAdj = calculateAutoAdaptiveAdjustments(
                                 context,
                                 weekPercentiles[weekIdx],
@@ -243,7 +246,6 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
 
                             if (autoAdj.isActive) {
                                 power = Math.round(power * autoAdj.powerMultiplier);
-                                rpe = Math.max(1, Math.min(10, rpe + autoAdj.rpeAdjust));
                                 if (autoAdj.durationMultiplier) {
                                     duration *= autoAdj.durationMultiplier;
                                 }
@@ -254,14 +256,19 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
                         }
                     }
 
-                    load = calculateLoad(power, basePower, duration, rpe);
-                    fatigueHistory.push(calculateFatigue(atl, ctl));
+                    load = calculateLoad(power, basePower, duration, week.sessionStyle || 'interval', week.workRestRatio);
                 }
-                atl = atl * (1 - ATL_ALPHA) + load * ATL_ALPHA;
-                ctl = ctl * (1 - CTL_ALPHA) + load * CTL_ALPHA;
+
+                // Update chronic model compartments daily
+                // Random recovery efficiency for Monte Carlo variation: 0.7 to 1.3
+                const phiRecovery = 0.7 + getRandom() * 0.6;
+                sMeta = updateMetabolicFreshness(sMeta, load, phiRecovery, capMeta);
+                sStruct = updateStructuralHealth(sStruct, load, SIGMA_IMPACT, capStruct);
             }
-            weeklyFatigue.push(calculateFatigue(atl, ctl));
-            weeklyReadiness.push(calculateReadiness(ctl - atl));
+
+            // Record end-of-week metrics
+            weeklyFatigue.push(calculateFatigueFromChronic(sMeta, sStruct));
+            weeklyReadiness.push(calculateChronicReadiness(sMeta, sStruct, capMeta, capStruct));
             triggers.push(weekTriggerCount);
             coachTriggers.push(weekCoachTriggers);
             autoAdaptiveTriggers.push(weekAutoAdaptiveTriggers);
@@ -302,7 +309,7 @@ export const ModifierTestingPanel: React.FC<ModifierTestingPanelProps> = ({ pres
                 }
             }
 
-            // Calculate percentiles for each week
+            // Calculate percentiles for each week (v1.5.4 3-tier: P15/P25/P35/P65/P75/P85)
             const weekPercentiles: WeekPercentiles[] = [];
             for (let w = 0; w < numWeeks; w++) {
                 weekPercentiles.push({

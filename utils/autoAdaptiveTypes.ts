@@ -15,7 +15,7 @@ import { SessionBlock, SessionStyle } from '../types';
  * Simulation percentile data for a single week.
  * Stores percentile thresholds for fatigue and readiness.
  * 
- * Threshold zones:
+ * Threshold zones (v1.5.4 3-tier system):
  * - P15/P85: Extreme deviation (top/bottom 15%)
  * - P25/P75: Moderate deviation (next 10%)
  * - P35/P65: Mild deviation (next 10%)

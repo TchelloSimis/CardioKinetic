@@ -2,6 +2,104 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.8.0] - 2026-01-07
+
+This release introduces a fundamentally redesigned fatigue and readiness system, replacing the legacy EWMA-based approach with a scientifically grounded dual-compartment model that tracks metabolic and structural fatigue independently. The new system learns your Critical Power from training history, calculates physiologically-accurate session costs, and self-corrects based on your RPE feedback.
+
+### Added
+
+#### Chronic Fatigue Model
+
+A complete overhaul of how CardioKinetic tracks training load and recovery. The new system consists of four interconnected engines:
+
+##### Critical Power Engine
+Your aerobic ceiling and anaerobic reserve are now estimated automatically from your training history:
+
+- **eCP (Estimated Critical Power)**: The maximum power you can sustain indefinitely, derived from the power-duration relationship across your sessions
+- **W' (W-Prime)**: Your finite work capacity above CP, representing your anaerobic reserve in kilojoules
+- **MMP Extraction**: Analyzes mean maximal power across durations from 3 to 40 minutes using second-by-second data when available
+- **RPE Proximity Scoring**: Learns from moderate-effort steady-state work—higher stable RPE indicates power closer to your CP threshold
+- **Automatic Decay**: CP estimates degrade gradually if you haven't performed maximal efforts recently, ensuring the model stays calibrated
+
+##### Physiological Cost Engine
+Training load is no longer calculated linearly. The new engine uses W'bal-style acute deficit tracking to capture the true physiological cost of each session:
+
+- **State-Dependent Cost**: Working at 300W when depleted costs significantly more than when fresh
+- **W' Deficit Tracking**: Monitors your anaerobic reserve depletion and recovery throughout each session
+- **Non-Linear Integration**: Sessions with repeated high-intensity efforts generate proportionally higher load than pure duration would suggest
+- **Intelligent Fallback**: When detailed power data isn't available, the engine infers cost from session style, intensity, and work:rest ratios
+
+##### Dual-Compartment Fatigue Tracking
+Fatigue is now split into two reservoirs with distinct recovery dynamics:
+
+- **MET (Metabolic)**: Fast-recovering fatigue with a 2-day time constant, representing glycogen stores, hormonal balance, and CNS readiness—answers "Do I have the energy to train?"
+- **MSK (Musculoskeletal)**: Slow-recovering fatigue with a 15-day time constant, representing muscle fiber damage, inflammation, and joint stress—answers "Does my body hurt? Am I at injury risk?"
+- **Weighted Readiness**: Your readiness score blends both compartments (60% MET, 40% MSK) for actionable training guidance
+
+##### RPE Correction Loop
+The model now self-corrects when your perceived effort doesn't match predictions:
+
+- **Mismatch Detection**: Compares your actual RPE against model-predicted difficulty based on intensity relative to CP
+- **Penalty Load Injection**: If sessions feel harder than expected, hidden fatigue is added to MET
+- **CP Recalibration**: Persistent RPE mismatches trigger gradual CP downgrades to keep estimates honest
+
+#### Critical Power Insights
+A new section in the Training Insights dashboard displays your estimated CP (in watts) and W' (in kilojoules), giving you visibility into the values driving your training recommendations.
+
+#### Recovery Efficiency Display
+The Insights tab now shows your current recovery efficiency (φ) as a percentage, derived from your questionnaire responses. Color-coded display indicates whether your recovery conditions are excellent, good, moderate, or impaired.
+
+### Improved
+
+#### Questionnaire Integration
+Your daily check-in now directly influences the fatigue model:
+
+- **Recovery Efficiency (φ)**: Sleep, nutrition, and stress responses modulate how quickly MET fatigue clears—poor recovery means fatigue lingers longer
+- **Bayesian Corrections**: When you report high soreness but the model shows fresh MSK, hidden structural fatigue is injected (and vice versa for energy/MET)
+- **Chart Visualization**: Questionnaire effects now appear correctly in the analytics chart with proper historical carryover
+
+#### Live Session UI
+- Phase progress semicircle indicator wraps around the remaining time display
+- Interval counter (X/Y) for interval sessions and percentage progress for steady-state sessions displayed below the timer
+- Clearer "Remaining" label for the countdown timer
+
+#### Session Log UI
+- Dynamic accent colors applied throughout the modal, matching the v1.5.0 design language
+- RPE slider redesigned with gradient background, interpolated thumb color, and min/max labels
+- Power input and session chart headers use accent-colored icons and labels
+
+### Fixed
+
+#### Chronic Model Integration
+- Dashboard tiles now display MET/MSK percentages instead of legacy TSB/ACWR badges
+- Monte Carlo simulation engine updated to use dual-compartment dynamics
+- Chart and dashboard fatigue/readiness values now calculate consistently from program start date
+- Modifier Testing Lab and Auto-Adaptive percentile generation now use the chronic model
+
+#### Auto-Adaptive Modifier Restoration
+- Reverted to legacy 2-tier percentile thresholds (P30/P70) for better detection sensitivity
+- Restored original adjustment magnitudes: 0.80/0.85 for critical states, 1.12/1.10 for primed states
+- Training Insights Dashboard now uses chronic model for all fatigue/readiness insights
+
+#### W' Calculation
+- Fixed validation bug where W' = 0 incorrectly passed through—now correctly returns null and uses default fallback
+- Root cause: sessions without second-by-second power data produce flat MMP curves where regression calculates W' = 0
+
+### Technical Details
+
+The new system represents a significant architectural advancement:
+
+| Aspect | Legacy (EWMA) | New (Dual-Compartment) |
+|--------|---------------|------------------------|
+| **Fatigue Types** | Single ATL/CTL | Separate MET (fast) + MSK (slow) |
+| **Load Calculation** | Linear power × duration | Non-linear W'bal (state-dependent cost) |
+| **Recovery** | Fixed time constants | φ-modulated from questionnaire |
+| **Self-Correction** | None | RPE mismatch → penalty + CP downgrade |
+| **Subjective Data** | Ignored | Bayesian corrections from soreness/energy |
+| **CP Estimation** | External/manual | Built-in eCP with decay + submaximal anchor |
+
+---
+
 ## [1.7.0] - 2026-01-05
 
 ### Added
