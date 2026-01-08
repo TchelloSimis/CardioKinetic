@@ -575,6 +575,30 @@ The readiness score uses **Training Stress Balance (TSB = CTL - ATL)**, with an 
 > [!TIP]
 > The asymmetric curve recognizes that overtraining is more dangerous than undertraining.
 
+### Detraining Penalty
+
+Extended rest periods trigger automatic readiness reduction using a **harmonic-weighted** average of your 5 most recent sessions:
+
+**Formula:** `Σ (wᵢ × e^(-(kᵢ/42)²))` where `wᵢ = 1/i`
+
+This means one session after a long break won't fully restore your fitness:
+
+| Scenario | Readiness |
+|----------|-----------|
+| Consistent training (3x/week) | ~99% |
+| Infrequent training (1x/week) | ~92% |
+| 6 weeks off | ~25% |
+| 6 weeks off + 1 session back | ~63% |
+| 6 weeks off + 5 sessions back | ~99% |
+
+**Scientific Basis:**
+- Detraining effects become measurable after ~1 week of inactivity
+- VO2max can decline 5-10% within 2-4 weeks
+- Returning to training restores fitness gradually, not instantly
+
+> [!NOTE]
+> Resuming training after a break takes multiple sessions to fully restore readiness.
+
 ### Initial State
 
 | Metric | Initial Value | Starting Readiness |

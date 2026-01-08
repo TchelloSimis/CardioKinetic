@@ -18,6 +18,7 @@ import {
     calculateReadinessScore as calculateChronicReadiness,
     applyStructuralCorrection,
     applyMetabolicCorrection,
+    applyDetrainingPenalty,
     DEFAULT_PHI_RECOVERY,
     DEFAULT_CAP_METABOLIC,
     DEFAULT_CAP_STRUCTURAL,
@@ -383,3 +384,72 @@ describe('Dashboard vs Chart Metrics Consistency', () => {
         });
     });
 });
+
+// ============================================================================
+// DETRAINING PENALTY TESTS
+// ============================================================================
+
+describe('Detraining Penalty (Harmonic Weighted)', () => {
+    it('should return original readiness with empty session array', () => {
+        expect(applyDetrainingPenalty(100, [])).toBe(100);
+        expect(applyDetrainingPenalty(75, [])).toBe(75);
+    });
+
+    it('should return original readiness when most recent session is today (single)', () => {
+        expect(applyDetrainingPenalty(100, [0])).toBe(100);
+    });
+
+    it('should apply small penalty for infrequent trainer with session today', () => {
+        // [0, 7, 14, 21, 28] - harmonic weighted gives ~92%
+        const result = applyDetrainingPenalty(100, [0, 7, 14, 21, 28]);
+        expect(result).toBeGreaterThanOrEqual(88);
+        expect(result).toBeLessThanOrEqual(96);
+    });
+
+    it('should apply penalty for single session 7 days ago', () => {
+        // Single session: just the decay for k=7
+        const result = applyDetrainingPenalty(100, [7]);
+        expect(result).toBeGreaterThanOrEqual(96);
+        expect(result).toBeLessThanOrEqual(98);
+    });
+
+    it('should apply higher penalty for single session 42 days ago (τ)', () => {
+        const result = applyDetrainingPenalty(100, [42]);
+        expect(result).toBeGreaterThanOrEqual(35);
+        expect(result).toBeLessThanOrEqual(40);
+    });
+
+    it('should apply partial recovery after 1 session back from 6-week break', () => {
+        // 6 weeks off, then 1 session: [0, 42, 44, 47, 49]
+        // Harmonic weighted: ~0.63
+        const result = applyDetrainingPenalty(100, [0, 42, 44, 47, 49]);
+        expect(result).toBeGreaterThanOrEqual(55);
+        expect(result).toBeLessThanOrEqual(70);
+    });
+
+    it('should recover more with multiple sessions after 6-week break', () => {
+        const oneSessionBack = applyDetrainingPenalty(100, [0, 42, 44, 47, 49]);
+        const threSessionsBack = applyDetrainingPenalty(100, [0, 2, 4, 47, 49]);
+        const fiveSessionsBack = applyDetrainingPenalty(100, [0, 2, 4, 6, 8]);
+
+        // More recent sessions = higher readiness
+        expect(threSessionsBack).toBeGreaterThan(oneSessionBack);
+        expect(fiveSessionsBack).toBeGreaterThan(threSessionsBack);
+        // Fully recovered after 5 sessions
+        expect(fiveSessionsBack).toBeGreaterThanOrEqual(95);
+    });
+
+    it('should handle infrequent trainer (1x/week) reasonably', () => {
+        // 1 session per week: [0, 7, 14, 21, 28]
+        const result = applyDetrainingPenalty(100, [0, 7, 14, 21, 28]);
+        // Harmonic weighted should give ~92%
+        expect(result).toBeGreaterThanOrEqual(88);
+        expect(result).toBeLessThanOrEqual(96);
+    });
+
+    it('should never return negative values', () => {
+        expect(applyDetrainingPenalty(10, [100, 107, 114, 121, 128])).toBeGreaterThanOrEqual(0);
+        expect(applyDetrainingPenalty(5, [200])).toBeGreaterThanOrEqual(0);
+    });
+});
+

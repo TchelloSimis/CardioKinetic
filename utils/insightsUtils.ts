@@ -15,6 +15,7 @@ import {
     calculateReadinessScore as calculateChronicReadiness,
     applyStructuralCorrection,
     applyMetabolicCorrection,
+    applyDetrainingPenalty,
     DEFAULT_PHI_RECOVERY,
     DEFAULT_CAP_METABOLIC,
     DEFAULT_CAP_STRUCTURAL,
@@ -84,9 +85,40 @@ export interface RecentActivitySummary {
     sessionCount: number;
 }
 
+/**
+ * Direction of a single metric's trend over time.
+ */
+export type MetricTrendDirection = 'rising' | 'stable' | 'falling';
+
+/**
+ * Combined pattern describing how fatigue and readiness are moving together.
+ */
+export type TrendPattern =
+    | 'adaptation'           // Fatigue ↓ + Readiness ↑ - ideal response to training
+    | 'accumulation'         // Fatigue ↑ + Readiness stable - building load
+    | 'recovery'             // Fatigue stable + Readiness ↑ - recovering well
+    | 'overreaching'         // Fatigue ↑ + Readiness ↓ - exceeding recovery capacity
+    | 'stable'               // Both stable - maintenance phase
+    | 'diverging_positive'   // Fatigue ↓ + Readiness ↓ - detraining or external factors
+    | 'diverging_negative'   // Fatigue ↑ + Readiness ↑ - functional overreaching
+    | 'readiness_lag'        // Fatigue stable + Readiness ↓ - external stressor impact
+    | 'fatigue_lag';         // Fatigue ↓ + Readiness stable - incomplete recovery
+
+/**
+ * Result of independent trend analysis for fatigue and readiness.
+ */
+export interface TrendAnalysisResult {
+    fatigueTrend: MetricTrendDirection;
+    readinessTrend: MetricTrendDirection;
+    fatigueSlope: number;    // Points change per week (positive = rising)
+    readinessSlope: number;  // Points change per week (positive = rising)
+    combinedPattern: TrendPattern;
+}
+
 // ============================================================================
 // PERSONAL RECORDS
 // ============================================================================
+
 
 /**
  * Calculates personal records for power, duration, and total work.
@@ -229,7 +261,68 @@ function calculatePeriodMetrics(sessions: Session[]) {
 // FATIGUE & READINESS INSIGHTS (Chronic Fatigue Model)
 // ============================================================================
 
+/**
+ * Classify the direction of a metric's change.
+ * @param change - Week-over-week change in points
+ * @returns 'rising' if >3, 'falling' if <-3, else 'stable'
+ */
+function classifyTrendDirection(change: number): MetricTrendDirection {
+    if (change > 3) return 'rising';
+    if (change < -3) return 'falling';
+    return 'stable';
+}
+
+/**
+ * Determine the combined trend pattern from independent fatigue and readiness trends.
+ */
+function determineCombinedPattern(
+    fatigueTrend: MetricTrendDirection,
+    readinessTrend: MetricTrendDirection
+): TrendPattern {
+    // Ideal: fatigue down, readiness up
+    if (fatigueTrend === 'falling' && readinessTrend === 'rising') return 'adaptation';
+
+    // Concerning: fatigue up, readiness down
+    if (fatigueTrend === 'rising' && readinessTrend === 'falling') return 'overreaching';
+
+    // Paradoxical states
+    if (fatigueTrend === 'rising' && readinessTrend === 'rising') return 'diverging_negative';
+    if (fatigueTrend === 'falling' && readinessTrend === 'falling') return 'diverging_positive';
+
+    // One stable, one moving
+    if (fatigueTrend === 'stable' && readinessTrend === 'falling') return 'readiness_lag';
+    if (fatigueTrend === 'falling' && readinessTrend === 'stable') return 'fatigue_lag';
+    if (fatigueTrend === 'rising' && readinessTrend === 'stable') return 'accumulation';
+    if (fatigueTrend === 'stable' && readinessTrend === 'rising') return 'recovery';
+
+    return 'stable';
+}
+
+/**
+ * Analyze independent trends for fatigue and readiness.
+ * @param fatigueChange - Week-over-week fatigue change
+ * @param readinessChange - Week-over-week readiness change
+ * @returns Comprehensive trend analysis result
+ */
+export function analyzeMetricTrends(
+    fatigueChange: number,
+    readinessChange: number
+): TrendAnalysisResult {
+    const fatigueTrend = classifyTrendDirection(fatigueChange);
+    const readinessTrend = classifyTrendDirection(readinessChange);
+    const combinedPattern = determineCombinedPattern(fatigueTrend, readinessTrend);
+
+    return {
+        fatigueTrend,
+        readinessTrend,
+        fatigueSlope: fatigueChange,
+        readinessSlope: readinessChange,
+        combinedPattern
+    };
+}
+
 // Helper to calculate fatigue score from chronic state
+
 function calculateFatigueFromChronic(sMeta: number, sStruct: number): number {
     const capMeta = DEFAULT_CAP_METABOLIC;
     const capStruct = DEFAULT_CAP_STRUCTURAL;
@@ -343,6 +436,9 @@ export function calculateFatigueReadinessInsights(
     let wellnessModifier = 0;
     const wellnessAlpha = 2 / (3 + 1); // 3-day half-life
 
+    // Track recent session day indices for harmonic-weighted detraining
+    let recentSessionDayIndices: number[] = [];
+
     const dailyMetrics: Array<{ fatigueScore: number; readinessScore: number; sMeta: number; sStruct: number }> = [];
 
     for (let i = 0; i < totalDays; i++) {
@@ -351,6 +447,12 @@ export function calculateFatigueReadinessInsights(
 
         const dailyLoad = dailyLoadMap.get(dateStr) || 0;
         const dayResponse = questionnaireByDate.get(dateStr);
+
+        // Track sessions for detraining (non-zero load = session occurred)
+        if (dailyLoad > 0) {
+            recentSessionDayIndices.unshift(i); // Add to front (most recent first)
+            if (recentSessionDayIndices.length > 5) recentSessionDayIndices.pop();
+        }
 
         // Get recovery efficiency from questionnaire (matches useMetrics.ts)
         const phiRecovery = dayResponse
@@ -414,6 +516,10 @@ export function calculateFatigueReadinessInsights(
                 fatigue = Math.max(0, Math.min(100, Math.round(fatigue - wellnessModifier)));
             }
         }
+
+        // Apply harmonic-weighted detraining penalty
+        const daysSinceRecentSessions = recentSessionDayIndices.map(idx => i - idx);
+        readiness = applyDetrainingPenalty(readiness, daysSinceRecentSessions);
 
         dailyMetrics.push({
             fatigueScore: fatigue,
@@ -621,7 +727,77 @@ function generateInsightMessage(
     }
 
     // ============================================================================
-    // PRIORITY 5: Excellent Recovery Window (supercompensation opportunity)
+    // PRIORITY 5: Low Fatigue + Low Readiness (Undertrained/Underfueled/External)
+    // ============================================================================
+    if (fatigue < 20 && readiness < 55) {
+        return {
+            insight: `Unusual pattern detected: fatigue is low at ${fatigue}% but readiness is also low at ${readiness}%. This combination can indicate an undertrained state, inadequate fueling, accumulated life stress, or early signs of illness. Your body isn't accumulating training stress but also isn't feeling ready.`,
+            recommendation: 'Assess whether you have been training enough, eating and sleeping adequately, or if non-training factors are affecting you. Light movement may help determine whether this is a training issue or a recovery issue.'
+        };
+    }
+
+    // ============================================================================
+    // PRIORITY 6: High Fatigue + High Readiness (Functional Overreaching)
+    // ============================================================================
+    if (fatigue > 40 && readiness > 70) {
+        return {
+            insight: `Functional overreaching state: fatigue is elevated at ${fatigue}% while readiness remains high at ${readiness}%. This paradoxical combination often occurs during peak training phases when your nervous system and motivation are keeping pace with accumulated physical strain.`,
+            recommendation: 'You can continue training but should plan a recovery period within the next 1-2 weeks. Monitor closely for any drop in readiness, which would signal time to back off immediately.'
+        };
+    }
+
+    // ============================================================================
+    // PRIORITY 7: Fatigue Falling + Readiness Rising (Post-Recovery Surge)
+    // ============================================================================
+    if (fatigueChange < -5 && readinessChange > 5) {
+        return {
+            insight: `Excellent adaptation pattern: fatigue dropped ${Math.abs(fatigueChange)} points while readiness rose ${readinessChange} points compared to last week. Your body is successfully supercompensating from recent training stress, indicating your recovery strategies are working well.`,
+            recommendation: 'This is a prime window for challenging work. Consider a harder training block, a test session, or breakthrough efforts. Your body is primed to handle and benefit from increased demands.'
+        };
+    }
+
+    // ============================================================================
+    // PRIORITY 8: Fatigue Rising + Readiness Stable (Resilient Overload)
+    // ============================================================================
+    if (fatigueChange > 5 && Math.abs(readinessChange) < 3) {
+        return {
+            insight: `Resilient loading pattern: fatigue has risen ${fatigueChange} points this week but readiness remains stable at ${readiness}%. Your body is handling the increased training stress without performance decrements, which suggests good recovery capacity.`,
+            recommendation: 'You can maintain current load, but avoid adding more stress. Plan a lighter phase soon to allow the accumulated fatigue to dissipate and adaptation to occur.'
+        };
+    }
+
+    // ============================================================================
+    // PRIORITY 9: Fatigue Stable + Readiness Falling (External Stressor Impact)
+    // ============================================================================
+    if (Math.abs(fatigueChange) < 3 && readinessChange < -5) {
+        return {
+            insight: `Readiness declining without training cause: fatigue is stable at ${fatigue}% but readiness dropped ${Math.abs(readinessChange)} points compared to last week. This pattern often indicates external stressors such as sleep debt, work stress, or illness rather than training fatigue.`,
+            recommendation: 'Investigate non-training factors affecting your recovery. Reduce training load proportionally until the underlying issue is addressed. Forcing training through external stress often leads to poor adaptation.'
+        };
+    }
+
+    // ============================================================================
+    // PRIORITY 10: Both Falling (Diverging Positive - Paradox)
+    // ============================================================================
+    if (fatigueChange < -3 && readinessChange < -3) {
+        return {
+            insight: `Unusual trend: both fatigue (${fmtChange(fatigueChange)}) and readiness (${fmtChange(readinessChange)}) declined this week. This can indicate a detraining effect, inadequate fueling to support recovery, or external factors that are masking the benefits of reduced training stress.`,
+            recommendation: 'Ensure your training stimulus is adequate and recovery inputs (sleep, nutrition) are optimized. If you have taken intentional time off, readiness may lag until consistent training resumes.'
+        };
+    }
+
+    // ============================================================================
+    // PRIORITY 11: Both Rising (Diverging Negative - Functional Overreach)
+    // ============================================================================
+    if (fatigueChange > 3 && readinessChange > 3) {
+        return {
+            insight: `Functional overreach pattern: both fatigue (${fmtChange(fatigueChange)}) and readiness (${fmtChange(readinessChange)}) increased this week. Your nervous system and motivation are keeping pace with physical strain. This is sustainable short-term but requires planned recovery.`,
+            recommendation: 'This pattern is sustainable for 1-2 weeks maximum. Plan a recovery period soon. Monitor for signs of readiness plateau or drop, which would signal time to back off immediately.'
+        };
+    }
+
+    // ============================================================================
+    // PRIORITY 12: Excellent Recovery Window (supercompensation opportunity)
     // ============================================================================
     if (recoveryEfficiency > RECOVERY_EXCELLENT && fatigue < 25 && readiness > 75) {
         return {
@@ -630,8 +806,9 @@ function generateInsightMessage(
         };
     }
 
+
     // ============================================================================
-    // PRIORITY 6: Peak Performance State
+    // PRIORITY 13: Peak Performance State
     // ============================================================================
     if (readiness > 85 && fatigue < 20) {
         const compartmentDetail = metaPct < 15
@@ -644,7 +821,7 @@ function generateInsightMessage(
     }
 
     // ============================================================================
-    // PRIORITY 7: Low Readiness Warning (recovery deficit)
+    // PRIORITY 14: Low Readiness Warning (recovery deficit)
     // ============================================================================
     if (readiness < 55) {
         const compartmentDetail = metaPct > 40 || structPct > 35
@@ -657,7 +834,7 @@ function generateInsightMessage(
     }
 
     // ============================================================================
-    // PRIORITY 8: Elevated Fatigue (adaptation in progress)
+    // PRIORITY 15: Elevated Fatigue (adaptation in progress)
     // ============================================================================
     if (fatigue > 45) {
         return {
@@ -667,7 +844,7 @@ function generateInsightMessage(
     }
 
     // ============================================================================
-    // PRIORITY 9: Moderate Compartment Stress (approaching thresholds)
+    // PRIORITY 16: Moderate Compartment Stress (approaching thresholds)
     // ============================================================================
     if (metaPct > MET_MODERATE && structPct > MSK_MODERATE) {
         return {
@@ -677,7 +854,7 @@ function generateInsightMessage(
     }
 
     // ============================================================================
-    // PRIORITY 10: Declining Trend (readiness dropping week-over-week)
+    // PRIORITY 17: Declining Readiness Trend (readiness dropping week-over-week)
     // ============================================================================
     if (readinessChange < -5) {
         return {
@@ -687,7 +864,7 @@ function generateInsightMessage(
     }
 
     // ============================================================================
-    // PRIORITY 11: Accumulating Fatigue Trend
+    // PRIORITY 18: Accumulating Fatigue Trend
     // ============================================================================
     if (fatigueChange > 5) {
         return {
@@ -697,7 +874,7 @@ function generateInsightMessage(
     }
 
     // ============================================================================
-    // PRIORITY 12: Positive Adaptation Pattern
+    // PRIORITY 19: Positive Adaptation Pattern
     // ============================================================================
     if (readinessChange > 3 && fatigueChange < 0) {
         return {
@@ -707,7 +884,7 @@ function generateInsightMessage(
     }
 
     // ============================================================================
-    // PRIORITY 13: Metabolic Recovery Opportunity
+    // PRIORITY 20: Metabolic Recovery Opportunity
     // ============================================================================
     if (metaPct > MET_MODERATE && structPct < MSK_MODERATE && recoveryEfficiency > 1.0) {
         return {
@@ -717,7 +894,7 @@ function generateInsightMessage(
     }
 
     // ============================================================================
-    // PRIORITY 14: Stable and Balanced State
+    // PRIORITY 21: Stable and Balanced State
     // ============================================================================
     if (Math.abs(readinessChange) < 3 && Math.abs(fatigueChange) < 3) {
         const loadContext = metaPct > 20 || structPct > 15
@@ -728,6 +905,7 @@ function generateInsightMessage(
             recommendation: 'Maintain your current consistency. This equilibrium is a good foundation for either continued steady training or a deliberate push if your goals require it.'
         };
     }
+
 
     // ============================================================================
     // DEFAULT: General Guidance

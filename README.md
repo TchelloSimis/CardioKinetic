@@ -21,7 +21,7 @@
 
 ## Download
 
-**[Download APK (v1.8.4)](https://github.com/TchelloSimis/CardioKinetic/releases/latest/download/CardioKinetic.apk)** — Install directly on your Android device.
+**[Download APK (v1.9.0)](https://github.com/TchelloSimis/CardioKinetic/releases/latest/download/CardioKinetic.apk)** — Install directly on your Android device.
 
 > To install, enable "Install from unknown sources" in your Android settings when prompted.
 
@@ -62,7 +62,7 @@ Fine-tune your training with a daily wellness check-in that adjusts fatigue and 
 The new heart of CardioKinetic's training intelligence:
 
 - **Monte Carlo Analysis** — Runs 100k simulations to determine your optimal training zones
-- **6-State Adaptation** — Automatically identifies if you are Critical, Stressed, Tired, Baseline, Fresh, or Primed
+- **9-State Adaptation** — Automatically identifies your status using a full 3x3 fatigue/readiness matrix (including Rested, Recovering, and Overreaching)
 - **Smart Session Adjustments** — Intelligently modifies interval sets, rest periods, and steady-state duration based on your state
 - **Coach Priority** — Respects manual overrides while keeping your training safe and effective
 
@@ -117,6 +117,11 @@ Your daily check-in directly modifies the fatigue model:
 - **Bayesian Corrections**: Reports of high soreness when the model shows fresh inject hidden structural damage
 
 **Readiness Score** blends both compartments (60% MET, 40% MSK) and provides actionable training suggestions based on your current state.
+
+#### Smart Detraining
+
+- **Harmonic-Weighted Decay**: Readiness decay during extended rest uses a harmonic-weighted average, preventing artificial "instant recovery" after long breaks.
+- **Realistic Re-acclimatization**: Ensures your readiness score accurately reflects the gradual return of fitness after time off.
 
 ### Flexible Session Types
 

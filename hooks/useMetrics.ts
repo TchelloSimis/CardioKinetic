@@ -39,6 +39,7 @@ import {
     createDefaultChronicState,
     applyStructuralCorrection,
     applyMetabolicCorrection,
+    applyDetrainingPenalty,
     DEFAULT_PHI_RECOVERY,
     DEFAULT_CAP_METABOLIC,
     DEFAULT_CAP_STRUCTURAL,
@@ -432,7 +433,17 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
         // finalReadiness and finalFatigue already have questionnaire adjustments
         // and wellnessModifier carryover applied from the iteration loop above
         // ================================================================
-        const displayReadiness = finalReadiness;
+
+        // Calculate days since recent sessions for harmonic-weighted detraining
+        const simulatedDateTime = parseLocalDate(simulatedDate).getTime();
+        const daysSinceRecentSessions = filteredSessions
+            .map(s => parseLocalDate(s.date).getTime())
+            .sort((a, b) => b - a) // Most recent first
+            .slice(0, 5) // Take up to 5 most recent
+            .map(sessionTime => Math.max(0, Math.floor((simulatedDateTime - sessionTime) / (1000 * 60 * 60 * 24))));
+
+        // Apply detraining penalty: readiness decays with extended rest
+        const displayReadiness = applyDetrainingPenalty(finalReadiness, daysSinceRecentSessions);
         const displayFatigue = finalFatigue;
 
         // Compute questionnaire adjustment badge values by comparing to base

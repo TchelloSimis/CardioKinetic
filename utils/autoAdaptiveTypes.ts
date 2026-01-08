@@ -84,14 +84,25 @@ export interface BlockAdjustment {
 
 /**
  * Fatigue/readiness state classification.
+ * 
+ * Complete 3×3 matrix covering all combinations:
+ * 
+ *                | Low Readiness | Normal Readiness | High Readiness
+ * Low Fatigue    | recovering    | rested           | primed
+ * Normal Fatigue | tired         | baseline         | fresh
+ * High Fatigue   | critical      | stressed         | overreaching
  */
 export type AdaptiveState =
-    | 'critical'   // High fatigue + Low readiness
-    | 'stressed'   // High fatigue + Normal readiness
-    | 'tired'      // Normal fatigue + Low readiness
-    | 'baseline'   // Normal fatigue + Normal readiness
-    | 'fresh'      // Normal fatigue + High readiness
-    | 'primed';    // Low fatigue + High readiness
+    | 'critical'      // High fatigue + Low readiness - needs immediate recovery
+    | 'stressed'      // High fatigue + Normal readiness - managing but strained
+    | 'tired'         // Normal fatigue + Low readiness - recovery deficit
+    | 'baseline'      // Normal fatigue + Normal readiness - expected state
+    | 'fresh'         // Normal fatigue + High readiness - ready for quality work
+    | 'primed'        // Low fatigue + High readiness - optimal performance window
+    | 'rested'        // Low fatigue + Normal readiness - well recovered
+    | 'recovering'    // Low fatigue + Low readiness - body restoring (post-illness, early taper)
+    | 'overreaching'; // High fatigue + High readiness - functional overload, monitor closely
+
 
 /**
  * Deviation tier based on percentile comparison.

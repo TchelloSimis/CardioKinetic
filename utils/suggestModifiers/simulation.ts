@@ -26,6 +26,7 @@ import {
     updateMetabolicFreshness,
     updateStructuralHealth,
     calculateReadinessScore as calculateChronicReadiness,
+    applyDetrainingPenalty,
     DEFAULT_CAP_METABOLIC,
     DEFAULT_CAP_STRUCTURAL,
     SIGMA_IMPACT,
@@ -111,15 +112,29 @@ export function runSingleSimulation(
     const capMeta = DEFAULT_CAP_METABOLIC;
     const capStruct = DEFAULT_CAP_STRUCTURAL;
 
+    // Track recent session day indices for harmonic-weighted detraining
+    let recentSessionDayIndices: number[] = [];
+
     for (let i = 0; i < numDays; i++) {
+        // Track sessions for detraining (non-zero load = session occurred)
+        if (dailyLoads[i] > 0) {
+            recentSessionDayIndices.unshift(i); // Add to front (most recent first)
+            if (recentSessionDayIndices.length > 5) recentSessionDayIndices.pop();
+        }
+
         // Random recovery efficiency for Monte Carlo variation
         const phiRecovery = 0.7 + Math.random() * 0.6;
 
         sMeta = updateMetabolicFreshness(sMeta, dailyLoads[i], phiRecovery, capMeta);
         sStruct = updateStructuralHealth(sStruct, dailyLoads[i], SIGMA_IMPACT, capStruct);
 
+        // Calculate base readiness and apply harmonic-weighted detraining penalty
+        const daysSinceRecentSessions = recentSessionDayIndices.map(idx => i - idx);
+        const baseReadiness = calculateChronicReadiness(sMeta, sStruct, capMeta, capStruct);
+        const adjustedReadiness = applyDetrainingPenalty(baseReadiness, daysSinceRecentSessions);
+
         dailyFatigue.push(calculateFatigueScore(sMeta, sStruct));
-        dailyReadiness.push(calculateChronicReadiness(sMeta, sStruct, capMeta, capStruct));
+        dailyReadiness.push(adjustedReadiness);
     }
 
     return { dailyFatigue, dailyReadiness };

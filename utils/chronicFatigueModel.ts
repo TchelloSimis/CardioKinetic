@@ -56,6 +56,9 @@ export const LOW_STATE_THRESHOLD = 0.3; // 30% of capacity
 /** High state threshold for fatigue detection */
 export const HIGH_STATE_THRESHOLD = 0.6; // 60% of capacity
 
+/** Detraining time constant (days) - fitness decay without training */
+export const DETRAINING_TAU = 42;
+
 // ============================================================================
 // COMPARTMENT DYNAMICS
 // ============================================================================
@@ -455,3 +458,64 @@ export function applyMetabolicCorrection(
 
     return currentState;
 }
+
+// ============================================================================
+// DETRAINING PENALTY
+// ============================================================================
+
+/** Number of recent sessions to consider for detraining calculation */
+export const DETRAINING_SESSION_COUNT = 5;
+
+/**
+ * Calculate Gaussian decay multiplier for a given number of days.
+ * Uses e^(-(k/τ)²) where τ = 42 days.
+ */
+function gaussianDecay(daysSinceSession: number): number {
+    if (daysSinceSession <= 0) return 1.0;
+    return Math.exp(-Math.pow(daysSinceSession / DETRAINING_TAU, 2));
+}
+
+/**
+ * Apply detraining penalty using harmonic-weighted average of recent sessions.
+ * 
+ * Formula: Σ (wᵢ × e^(-(kᵢ/42)²)) where wᵢ = 1/i (harmonic weights)
+ * 
+ * This prevents instant recovery after a long break by considering:
+ * - The G most recent sessions
+ * - More recent sessions weighted more heavily (1, 1/2, 1/3, 1/4, 1/5)
+ * 
+ * Example after 6-week break + 1 session back:
+ * - k values: [0, 42, 44, 47, 49] → multipliers: [1.0, 0.37, 0.31, 0.24, 0.19]
+ * - Harmonic weighted: ~0.63 (not 1.0)
+ * 
+ * @param readiness - Base readiness score (0-100)
+ * @param daysSinceRecentSessions - Array of days since each recent session (most recent first)
+ * @returns Adjusted readiness with detraining penalty applied
+ */
+export function applyDetrainingPenalty(
+    readiness: number,
+    daysSinceRecentSessions: number[]
+): number {
+    if (daysSinceRecentSessions.length === 0) return readiness;
+
+    // Use up to G sessions
+    const sessionsToUse = daysSinceRecentSessions.slice(0, DETRAINING_SESSION_COUNT);
+
+    // Calculate harmonic weights: 1, 1/2, 1/3, 1/4, 1/5...
+    let weightSum = 0;
+    let weightedMultiplierSum = 0;
+
+    for (let i = 0; i < sessionsToUse.length; i++) {
+        const weight = 1 / (i + 1); // Harmonic: 1, 0.5, 0.33, 0.25, 0.2
+        const multiplier = gaussianDecay(sessionsToUse[i]);
+
+        weightedMultiplierSum += weight * multiplier;
+        weightSum += weight;
+    }
+
+    const detrainingMultiplier = weightSum > 0 ? weightedMultiplierSum / weightSum : 1.0;
+
+    return Math.round(Math.max(0, Math.min(100, readiness * detrainingMultiplier)));
+}
+
+

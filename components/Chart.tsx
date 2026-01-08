@@ -35,6 +35,7 @@ import {
   calculateReadinessScore as calculateChronicReadiness,
   applyStructuralCorrection,
   applyMetabolicCorrection,
+  applyDetrainingPenalty,
   DEFAULT_PHI_RECOVERY,
   DEFAULT_CAP_METABOLIC,
   DEFAULT_CAP_STRUCTURAL,
@@ -247,11 +248,21 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
     let wellnessModifier = 0;
     const wellnessAlpha = 2 / (3 + 1); // 3-day half-life
 
+    // Track recent session day indices for harmonic-weighted detraining
+    let recentSessionDayIndices: number[] = [];
+
     for (let i = 0; i < totalDays; i++) {
       const dateStr = addDays(firstStartStr, i);
 
       // Calculate daily load using new physiological cost engine
       const dailyLoad = aggregateDailyLoad(sessions, dateStr, cpEstimate);
+
+      // Track sessions for detraining calculation
+      const hasSession = sessions.some(s => s.date === dateStr);
+      if (hasSession) {
+        recentSessionDayIndices.unshift(i); // Add to front (most recent first)
+        if (recentSessionDayIndices.length > 5) recentSessionDayIndices.pop(); // Keep only 5
+      }
 
       // Calculate recovery efficiency from questionnaire
       const dayResponse = questionnaireByDate.get(dateStr);
@@ -343,6 +354,10 @@ const Chart: React.FC<ChartProps> = ({ sessions, programs, isDarkMode, accentCol
           fatigue = Math.max(0, Math.min(100, Math.round(fatigue - wellnessModifier)));
         }
       }
+
+      // Apply detraining penalty based on days since recent sessions
+      const daysSinceRecentSessions = recentSessionDayIndices.map(idx => i - idx);
+      readiness = applyDetrainingPenalty(readiness, daysSinceRecentSessions);
 
       metrics.push({
         fatigue,

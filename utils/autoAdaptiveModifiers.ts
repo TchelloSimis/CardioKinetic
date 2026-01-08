@@ -70,29 +70,32 @@ function classifyDeviation(
 
 /**
  * Classify the overall adaptive state from fatigue and readiness deviations.
+ * Implements a complete 3×3 matrix covering all combinations.
  */
 function classifyState(
     fatigueDir: DeviationDirection,
     readinessDir: DeviationDirection
 ): AdaptiveState {
-    // High fatigue + Low readiness = Critical
-    if (fatigueDir === 'high' && readinessDir === 'low') return 'critical';
+    // Low fatigue states
+    if (fatigueDir === 'low') {
+        if (readinessDir === 'low') return 'recovering';   // Body restoring, not ready yet
+        if (readinessDir === 'high') return 'primed';      // Optimal performance window
+        return 'rested';  // Normal readiness - well recovered
+    }
 
-    // High fatigue + Normal readiness = Stressed
-    if (fatigueDir === 'high' && readinessDir === 'normal') return 'stressed';
+    // High fatigue states
+    if (fatigueDir === 'high') {
+        if (readinessDir === 'low') return 'critical';     // Needs immediate recovery
+        if (readinessDir === 'high') return 'overreaching'; // Functional overload
+        return 'stressed';  // Normal readiness - managing but strained
+    }
 
-    // Normal fatigue + Low readiness = Tired
-    if (fatigueDir === 'normal' && readinessDir === 'low') return 'tired';
-
-    // Low fatigue + High readiness = Primed
-    if (fatigueDir === 'low' && readinessDir === 'high') return 'primed';
-
-    // Normal fatigue + High readiness = Fresh
-    if (fatigueDir === 'normal' && readinessDir === 'high') return 'fresh';
-
-    // All other cases = Baseline
-    return 'baseline';
+    // Normal fatigue states
+    if (readinessDir === 'low') return 'tired';   // Recovery deficit
+    if (readinessDir === 'high') return 'fresh';  // Ready for quality work
+    return 'baseline';  // Expected state
 }
+
 
 // ============================================================================
 // BLOCK ROLE IDENTIFICATION
@@ -183,6 +186,27 @@ function getIntervalAdjustments(state: AdaptiveState, tier: DeviationTier): Adju
                 rpeAdjust: 0.5,
                 restMultiplier: 0.85,
             };
+        case 'rested':
+            // Well recovered, slight boost available
+            return {
+                powerMultiplier: 1.03,
+                rpeAdjust: 0,
+                restMultiplier: 0.95,
+            };
+        case 'recovering':
+            // Low fatigue but not ready - stay conservative
+            return {
+                powerMultiplier: isMild ? 0.92 : 0.88,
+                rpeAdjust: isMild ? -0.5 : -1.0,
+                restMultiplier: isMild ? 1.25 : 1.5,
+            };
+        case 'overreaching':
+            // Functional overload - maintain but don't push
+            return {
+                powerMultiplier: 0.95,
+                rpeAdjust: -0.5,
+                restMultiplier: 1.2,
+            };
         default: // baseline
             return {
                 powerMultiplier: 1.0,
@@ -230,6 +254,26 @@ function getSteadyStateAdjustments(state: AdaptiveState, tier: DeviationTier): A
                 powerMultiplier: isExtreme ? 1.08 : 1.05,
                 rpeAdjust: 0.5,
                 durationMultiplier: 1.10,
+            };
+        case 'rested':
+            // Well recovered, slight boost available
+            return {
+                powerMultiplier: 1.03,
+                rpeAdjust: 0,
+            };
+        case 'recovering':
+            // Low fatigue but not ready - stay conservative
+            return {
+                powerMultiplier: isMild ? 0.92 : 0.88,
+                rpeAdjust: isMild ? -0.5 : -1.0,
+                durationMultiplier: isMild ? 0.85 : 0.75,
+            };
+        case 'overreaching':
+            // Functional overload - maintain but don't push
+            return {
+                powerMultiplier: 0.95,
+                rpeAdjust: -0.5,
+                durationMultiplier: 0.90,
             };
         default: // baseline
             return {
@@ -364,6 +408,33 @@ function generateMessage(
                 `${getPositiveAdjustmentDetails()}. ` +
                 `Great opportunity for a breakthrough session.`;
 
+        case 'rested':
+            return `Well-recovered state: fatigue is low at ${Math.round(currentFatigue)}% ` +
+                `(expected >${Math.round(fatigueThreshold)}%) with normal readiness at ${Math.round(currentReadiness)}% ` +
+                `(expected ${Math.round(readinessThreshold)}-${Math.round(readinessThreshold * 1.3)}%). ` +
+                `Power adjusted to ${Math.round(adjustment.powerMultiplier * 100)}%` +
+                `${getPositiveAdjustmentDetails()}. ` +
+                `Good conditions for consistent, quality training.`;
+
+        case 'recovering':
+            return `Recovery phase detected: fatigue is low at ${Math.round(currentFatigue)}% ` +
+                `(expected >${Math.round(fatigueThreshold)}%) but readiness hasn't caught up yet ` +
+                `(${Math.round(currentReadiness)}% vs expected >${Math.round(readinessThreshold)}%). ` +
+                `Power reduced to ${Math.round(adjustment.powerMultiplier * 100)}%, ` +
+                `RPE target lowered by ${Math.abs(adjustment.rpeAdjust).toFixed(1)}` +
+                `${getAdjustmentDetails()}. ` +
+                `Allow your body time to fully restore before pushing hard.`;
+
+        case 'overreaching':
+            return `Functional overreaching state: fatigue elevated at ${Math.round(currentFatigue)}% ` +
+                `(expected <${Math.round(fatigueThreshold)}%) while readiness remains high at ${Math.round(currentReadiness)}% ` +
+                `(expected <${Math.round(readinessThreshold)}%). ` +
+                `Power set to ${Math.round(adjustment.powerMultiplier * 100)}%, ` +
+                `RPE target lowered by ${Math.abs(adjustment.rpeAdjust).toFixed(1)}` +
+                `${getAdjustmentDetails()}. ` +
+                `Monitor closely and plan recovery within the next week if this persists.`;
+
+
         default:
             return '';
     }
@@ -373,6 +444,7 @@ function generateMessage(
 // ============================================================================
 // MAIN CALCULATION FUNCTION
 // ============================================================================
+
 
 /**
  * Calculate automatic adjustments based on current metrics vs expected percentiles.

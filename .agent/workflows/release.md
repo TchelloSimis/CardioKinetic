@@ -163,7 +163,7 @@ git push origin main
 ### Step 13: Create GitHub Release with APK
 ```powershell
 cd 'c:\Users\marce\Downloads\cardiokinetic(1)'
-gh release create vX.Y.Z CardioKinetic.apk --title "vX.Y.Z: [Title]" --notes "[Release notes - original, cohesive text without emojis]"
+gh release create vX.Y.Z CardioKinetic(X.Y.Z).apk --title "vX.Y.Z: [Title]" --notes "[Release notes - original, cohesive text without emojis]"
 ```
 
 ---

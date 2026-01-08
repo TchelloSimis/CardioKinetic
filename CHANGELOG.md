@@ -2,6 +2,33 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.9.0] - 2026-01-08
+
+### Added
+
+#### Auto-Adaptive Modifier Enhancements
+- **Expanded State Matrix**: The adaptive system now tracks 9 distinct states using a full 3x3 fatigue/readiness matrix, adding three new specialized states:
+  - **Rested**: Low fatigue with normal readiness, signaling a well-recovered state primed for a slight power boost.
+  - **Recovering**: Low fatigue but low readiness, indicating the body is restoring itself and requires conservative training.
+  - **Overreaching**: High fatigue with high readiness, representing a functional overload window that requires close monitoring.
+- **Granular Adjustments**: Each new state features specific session modifiers and descriptive messages to better align training load with your physiological status.
+
+#### Trend Analysis System
+- **Metric Trend Directions**: New independent tracking of fatigue and readiness trends (rising, stable, falling) provides clearer visibility into your training trajectory.
+- **Trend Patterns**: Introduction of 9 combined trend patterns (e.g., adaptation, readiness lag) to contextualize daily metric changes.
+- **Comprehensive Analysis**: A new dedicated analysis function processes these trends to drive smarter insights and adjustments.
+
+#### Improved Training Insights
+- **Expanded Insight Library**: Seven new insight cases cover complex scenarios like functional overreaching, resilient overload, and diverging metric patterns.
+- **Actionable Recommendations**: Each insight now delivers specific, actionable advice based on the nuanced combination of your fatigue and readiness states.
+
+### Improved
+
+#### Harmonic-Weighted Detraining
+- **Smart Decay Model**: Readiness decay during extended rest now uses a harmonic-weighted average of the 5 most recent sessions instead of a simple linear drop.
+- **Realistic Recovery**: This prevents artificial "instant recovery" after a single session following a long break, ensuring readiness scores accurately reflect your re-acclimatization status.
+- **System-Wide Integration**: The new detraining logic is applied consistently across the dashboard, analytics chart, insights engine, and simulations.
+
 ## [1.8.4] - 2026-01-07
 
 ### Fixed
