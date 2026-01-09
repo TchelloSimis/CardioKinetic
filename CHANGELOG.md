@@ -2,6 +2,18 @@
 
 All notable changes to CardioKinetic will be documented in this file.
 
+## [1.9.1] - 2026-01-09
+
+### Added
+
+#### User Profile and Heart Rate Integration
+- **Age Input Setting**: A new "User Profile" section in Programming settings allows you to enter your age. The value is persisted locally and integrates with the app's state management. Features include numeric input validation (1-120 years), dynamic accent color styling, and a clear button to reset.
+- **RPE Heart Rate Bands**: When your age is set, RPE descriptions throughout the app now display estimated heart rate ranges. Based on the relationship between RPE and percentage of max heart rate, the system calculates personalized HR bands for each intensity level. This enhancement appears in the Session Setup modal, Live Session RPE slider, and Session Log.
+
+### Fixed
+
+- **Questionnaire Badge Accuracy**: Resolved an issue where the "+/- R +/- F" badges on completed questionnaire tiles were inaccurate. The badges were previously computed by comparing display values to base chronic model values, which included Bayesian corrections, wellness carryover, and other adjustments beyond the questionnaire's direct effect. Badges now show the exact impact of the questionnaire by capturing values immediately before and after the adjustment is applied.
+
 ## [1.9.0] - 2026-01-08
 
 ### Added

@@ -14,7 +14,7 @@ import {
     isLightColor,
     adjustWorkRestPair,
     formatDuration,
-    RPE_DESCRIPTIONS,
+    getRPEDescriptionWithHeartRate,
 } from './sessionSetupUtils';
 import BlockEditor from './BlockEditor';
 
@@ -27,6 +27,7 @@ interface SessionSetupModalProps {
     accentColor?: string;    // Primary accent (e.g., #6ee7b7 in light, #34d399 in dark)
     accentAltColor?: string; // Alt accent (e.g., #059669 in light, #064e3b in dark) - darker variant
     isDarkMode?: boolean;
+    userAge?: number | null;
 }
 
 
@@ -47,6 +48,7 @@ const SessionSetupModal: React.FC<SessionSetupModalProps> = ({
     accentColor,
     accentAltColor,
     isDarkMode = false,
+    userAge = null,
 }) => {
     // Color assignments
     const fatigueColor = (typeof accentAltColor === 'string' && accentAltColor.startsWith('#')) ? accentAltColor : (isDarkMode ? '#34d399' : '#059669');
@@ -469,7 +471,7 @@ const SessionSetupModal: React.FC<SessionSetupModalProps> = ({
                         </span>
                     </div>
                     <div className="text-center text-sm py-3 px-4 rounded-xl" style={{ backgroundColor: `${getRPEColor(targetRPE)}20`, color: getRPEColor(targetRPE) }}>
-                        {RPE_DESCRIPTIONS[targetRPE] || RPE_DESCRIPTIONS[Math.round(targetRPE)] || "Adjust slider to see description."}
+                        {getRPEDescriptionWithHeartRate(targetRPE, userAge)}
                     </div>
                 </div>
             </div>

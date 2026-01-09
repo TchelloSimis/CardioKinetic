@@ -56,6 +56,7 @@ const App: React.FC = () => {
         accentModifiers, setAccentModifiers,
         questionnaireResponses, setQuestionnaireResponses, getTodayQuestionnaireResponse,
         autoAdaptiveEnabled, setAutoAdaptiveEnabled,
+        userAge, setUserAge,
     } = appState;
 
     const theme = useTheme(accentColor, accentModifiers);
@@ -730,7 +731,7 @@ const App: React.FC = () => {
             {showLogModal && (
                 <div className="fixed inset-0 z-[100] bg-white dark:bg-black flex flex-col animate-in slide-in-from-bottom-10 duration-300">
                     <div className="flex-1 overflow-auto p-6">
-                        <SessionLog onAddSession={handleSaveSession} onCancel={() => { setShowLogModal(false); setEditingSession(null); }} currentWeekPlan={currentWeekPlan} allPlans={adaptedPlan} startDate={settings.startDate} currentWeekNum={currentWeekNum} restRecoveryPercentage={settings.restRecoveryPercentage} initialData={editingSession || undefined} accentColor={accentValue} accentAltColor={accentAltValue} />
+                        <SessionLog onAddSession={handleSaveSession} onCancel={() => { setShowLogModal(false); setEditingSession(null); }} currentWeekPlan={currentWeekPlan} allPlans={adaptedPlan} startDate={settings.startDate} currentWeekNum={currentWeekNum} restRecoveryPercentage={settings.restRecoveryPercentage} initialData={editingSession || undefined} accentColor={accentValue} accentAltColor={accentAltValue} userAge={userAge} />
                     </div>
                 </div>
             )}
@@ -753,6 +754,7 @@ const App: React.FC = () => {
                 accentColor={accentValue}
                 accentAltColor={accentAltValue}
                 isDarkMode={isDarkMode}
+                userAge={userAge}
             />
 
             {/* Live Session Guide */}
@@ -772,6 +774,7 @@ const App: React.FC = () => {
                 accentColor={accentValue}
                 accentAltColor={accentAltValue}
                 backButtonPressed={liveSessionBackPress}
+                userAge={userAge}
             />
 
             {/* Readiness Questionnaire Modal */}
@@ -942,6 +945,8 @@ const App: React.FC = () => {
                                         autoAdaptiveEnabled={autoAdaptiveEnabled}
                                         setAutoAdaptiveEnabled={setAutoAdaptiveEnabled}
                                         onProgramSimulationGenerated={handleProgramSimulationGenerated}
+                                        userAge={userAge}
+                                        setUserAge={setUserAge}
                                     />
                                 </ErrorBoundary>
                             )}

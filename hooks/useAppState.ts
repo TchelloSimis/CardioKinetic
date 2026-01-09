@@ -49,6 +49,10 @@ export interface AppStateReturn {
     autoAdaptiveEnabled: boolean;
     setAutoAdaptiveEnabled: React.Dispatch<React.SetStateAction<boolean>>;
 
+    // User profile
+    userAge: number | null;
+    setUserAge: React.Dispatch<React.SetStateAction<number | null>>;
+
     // Chronic Fatigue Model
     globalCPEstimate: CriticalPowerEstimate | null;
     setGlobalCPEstimate: React.Dispatch<React.SetStateAction<CriticalPowerEstimate | null>>;
@@ -95,6 +99,8 @@ export function useAppState(): AppStateReturn {
     const [questionnaireResponses, setQuestionnaireResponses] = useState<QuestionnaireResponse[]>([]);
     // Auto-adaptive training enabled
     const [autoAdaptiveEnabled, setAutoAdaptiveEnabled] = useState(false);
+    // User age
+    const [userAge, setUserAge] = useState<number | null>(null);
 
     // Chronic Fatigue Model global state (stored separately for cross-program persistence)
     const [globalCPEstimate, setGlobalCPEstimate] = useState<CriticalPowerEstimate | null>(null);
@@ -286,6 +292,15 @@ export function useAppState(): AppStateReturn {
                     setAutoAdaptiveEnabled(true);
                 }
 
+                // Load user age
+                const savedUserAge = localStorage.getItem('ck_user_age');
+                if (savedUserAge) {
+                    const parsed = parseInt(savedUserAge, 10);
+                    if (!isNaN(parsed)) {
+                        setUserAge(parsed);
+                    }
+                }
+
                 // Load chronic fatigue model global state
                 const savedCPEstimate = localStorage.getItem('ck_global_cp_estimate');
                 if (savedCPEstimate) {
@@ -383,6 +398,17 @@ export function useAppState(): AppStateReturn {
         }
     }, [autoAdaptiveEnabled, isLoading]);
 
+    // Save user age
+    useEffect(() => {
+        if (!isLoading) {
+            if (userAge !== null) {
+                localStorage.setItem('ck_user_age', userAge.toString());
+            } else {
+                localStorage.removeItem('ck_user_age');
+            }
+        }
+    }, [userAge, isLoading]);
+
     // Save chronic fatigue model state
     useEffect(() => {
         if (!isLoading && globalCPEstimate) {
@@ -429,6 +455,8 @@ export function useAppState(): AppStateReturn {
         getTodayQuestionnaireResponse,
         autoAdaptiveEnabled,
         setAutoAdaptiveEnabled,
+        userAge,
+        setUserAge,
         globalCPEstimate,
         setGlobalCPEstimate,
         globalChronicState,

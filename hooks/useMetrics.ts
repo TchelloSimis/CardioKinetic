@@ -302,6 +302,9 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
         let finalReadiness = 50;
         let finalFatigue = 50;
 
+        // Track questionnaire adjustment for badge (captured during iteration on simulated date)
+        let todayQuestionnaireAdjustmentResult: { readinessChange: number; fatigueChange: number } | undefined;
+
         // Iterate from program start to simulated date
         for (let i = 0; i <= daysToSim; i++) {
             const dateStr = addDays(startDate, i);
@@ -351,6 +354,11 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
             // Apply questionnaire adjustments to display values (same as Chart.tsx)
             // This shows subjective perception influence
             if (dayResponse) {
+                // Capture pre-questionnaire values on simulated date for badge calculation
+                const isSimulatedDate = (i === daysToSim);
+                const readinessBeforeQuestionnaire = readiness;
+                const fatigueBeforeQuestionnaire = fatigue;
+
                 // Get recent responses for trend analysis (prior 7 days)
                 const recentForDay = allQuestionnaireResponses
                     .filter(r => r.date < dateStr)
@@ -373,6 +381,15 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
                 // Apply adjustments to final display values
                 readiness = adjustment.readiness;
                 fatigue = adjustment.fatigue;
+
+                // Capture questionnaire adjustment for badge on simulated date
+                // This shows the total effect of having the questionnaire vs not having it
+                if (isSimulatedDate) {
+                    todayQuestionnaireAdjustmentResult = {
+                        readinessChange: readiness - readinessBeforeQuestionnaire,
+                        fatigueChange: fatigue - fatigueBeforeQuestionnaire
+                    };
+                }
             } else {
                 // Decay wellness modifier on non-questionnaire days
                 wellnessModifier = wellnessModifier * (1 - wellnessAlpha);
@@ -446,14 +463,9 @@ export const useMetrics = (options: UseMetricsOptions): MetricsResult => {
         const displayReadiness = applyDetrainingPenalty(finalReadiness, daysSinceRecentSessions);
         const displayFatigue = finalFatigue;
 
-        // Compute questionnaire adjustment badge values by comparing to base
-        let questionnaireAdjustment: { readinessChange: number; fatigueChange: number } | undefined;
-        if (todayQuestionnaireResponse) {
-            questionnaireAdjustment = {
-                readinessChange: displayReadiness - baseChronicReadiness,
-                fatigueChange: displayFatigue - baseLegacyFatigue
-            };
-        }
+        // Use questionnaire adjustment captured during iteration
+        // This shows the total effect of having the questionnaire vs not having it
+        const questionnaireAdjustment = todayQuestionnaireAdjustmentResult;
 
         // ================================================================
         // HANDLE MISSING WEEK PLAN

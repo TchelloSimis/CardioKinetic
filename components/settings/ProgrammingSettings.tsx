@@ -42,6 +42,10 @@ export interface ProgrammingSettingsProps {
     materialYouColor?: string | null;
     /** Whether dark mode is active */
     isDarkMode?: boolean;
+    /** User's age */
+    userAge?: number | null;
+    /** Set user's age */
+    setUserAge?: (age: number | null) => void;
 }
 
 const ProgrammingSettings: React.FC<ProgrammingSettingsProps> = ({
@@ -71,6 +75,8 @@ const ProgrammingSettings: React.FC<ProgrammingSettingsProps> = ({
     ACCENT_COLORS = [],
     materialYouColor = null,
     isDarkMode = false,
+    userAge = null,
+    setUserAge,
 }) => {
     // Compute active accent color for dynamic theming
     const activeColorConfig = useMemo(() => {
@@ -574,6 +580,54 @@ const ProgrammingSettings: React.FC<ProgrammingSettingsProps> = ({
                         </p>
                     </div>
                 )}
+            </div>
+
+            {/* User Profile Section */}
+            <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-6">
+                <h3 className="text-sm font-bold uppercase tracking-widest text-neutral-400 mb-4">User Profile</h3>
+
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-2">
+                            Age (years)
+                        </label>
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="number"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                min="1"
+                                max="120"
+                                value={userAge ?? ''}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === '') {
+                                        setUserAge?.(null);
+                                    } else {
+                                        const parsed = parseInt(val, 10);
+                                        if (!isNaN(parsed) && parsed >= 1 && parsed <= 120) {
+                                            setUserAge?.(parsed);
+                                        }
+                                    }
+                                }}
+                                placeholder="Enter age"
+                                className="flex-1 py-3 px-4 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-700 text-neutral-900 dark:text-white text-sm focus:outline-none transition-colors"
+                                style={{ borderColor: userAge !== null ? readinessColor : undefined }}
+                            />
+                            {userAge !== null && (
+                                <button
+                                    onClick={() => setUserAge?.(null)}
+                                    className="py-3 px-4 rounded-xl text-sm font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 active:opacity-80 transition-opacity"
+                                >
+                                    Clear
+                                </button>
+                            )}
+                        </div>
+                        <p className="text-[10px] text-neutral-400 mt-2">
+                            Used to personalize training recommendations and recovery estimates.
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     );

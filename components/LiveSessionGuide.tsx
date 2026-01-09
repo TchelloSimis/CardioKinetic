@@ -20,6 +20,7 @@ interface LiveSessionGuideProps {
     accentColor?: string; // For the completion screen and chart (power line)
     accentAltColor?: string; // Alt accent for RPE line on chart
     backButtonPressed?: number; // Increment to trigger back button handling (like X button)
+    userAge?: number | null;
 }
 
 
@@ -37,6 +38,7 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
     accentColor = '#34d399',
     accentAltColor = '#059669',
     backButtonPressed = 0,
+    userAge = null,
 }) => {
     const [confirmStop, setConfirmStop] = useState(false);
     const [confirmClose, setConfirmClose] = useState(false);
@@ -408,6 +410,7 @@ const LiveSessionGuide: React.FC<LiveSessionGuideProps> = ({
                         value={sliderRpe}
                         onChange={handleRpeChange}
                         phaseColor={phaseHexColor}
+                        userAge={userAge}
                     />
                 </div>
             )}

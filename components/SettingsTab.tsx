@@ -79,6 +79,10 @@ interface SettingsTabProps {
     autoAdaptiveEnabled: boolean;
     setAutoAdaptiveEnabled: (enabled: boolean) => void;
     onProgramSimulationGenerated: (programId: string, simulationData: any) => void;
+
+    // User profile
+    userAge: number | null;
+    setUserAge: (age: number | null) => void;
 }
 
 const SettingsTab: React.FC<SettingsTabProps> = ({
@@ -95,7 +99,8 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
     sampleWeeks, setSampleWeeks, programLength, simulatedCurrentDate, setSimulatedCurrentDate,
     autoUpdateSimDate, setAutoUpdateSimDate, jumpToLastSession, generateSampleData, clearSessions,
     accentModifiers, setAccentModifiers,
-    autoAdaptiveEnabled, setAutoAdaptiveEnabled, onProgramSimulationGenerated
+    autoAdaptiveEnabled, setAutoAdaptiveEnabled, onProgramSimulationGenerated,
+    userAge, setUserAge
 }) => {
     // Category navigation items
     const categories = [
@@ -191,6 +196,8 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                     ACCENT_COLORS={ACCENT_COLORS}
                     materialYouColor={materialYouColor}
                     isDarkMode={isDarkMode}
+                    userAge={userAge}
+                    setUserAge={setUserAge}
                 />
             )}
 

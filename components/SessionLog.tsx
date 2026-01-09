@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Session, PlanWeek, SessionBlock } from '../types';
 import { Calculator, ArrowRight, RefreshCw, X, Layers, ChevronDown, ChevronUp, BarChart2 } from 'lucide-react';
 import { getLocalDateString, getWeekNumber } from '../utils/dateUtils';
-import { RPE_DESCRIPTIONS, interpolateColor } from './modals/sessionSetupUtils';
+import { getRPEDescriptionWithHeartRate, interpolateColor } from './modals/sessionSetupUtils';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip } from 'recharts';
 import { interpolateRpeData } from './liveSessionUtils';
 
@@ -18,12 +18,11 @@ interface SessionLogProps {
   restRecoveryPercentage?: number; // Optional to support legacy usage, but expected
   accentColor?: string;
   accentAltColor?: string;
+  userAge?: number | null;
 }
 
-// Use shared RPE descriptions from sessionSetupUtils
-const RPE_GUIDE = RPE_DESCRIPTIONS;
 
-const SessionLog: React.FC<SessionLogProps> = ({ onAddSession, onCancel, currentWeekPlan, allPlans, currentWeekNum, startDate, initialData, restRecoveryPercentage = 50, accentColor = '#3b82f6', accentAltColor = '#eab308' }) => {
+const SessionLog: React.FC<SessionLogProps> = ({ onAddSession, onCancel, currentWeekPlan, allPlans, currentWeekNum, startDate, initialData, restRecoveryPercentage = 50, accentColor = '#3b82f6', accentAltColor = '#eab308', userAge = null }) => {
   // Determine if this is a steady-state session based on the plan
   // Check for sessionStyle or various steady-state ratio formats (steady, 1:0)
   const isSteadyState = currentWeekPlan.sessionStyle === 'steady-state' ||
@@ -523,7 +522,7 @@ const SessionLog: React.FC<SessionLogProps> = ({ onAddSession, onCancel, current
               </span>
             </div>
             <div className="text-center text-sm py-3 px-4 rounded-xl" style={{ backgroundColor: `${interpolateColor(accentColor, accentAltColor, (formData.rpe - 1) / 9)}20`, color: interpolateColor(accentColor, accentAltColor, (formData.rpe - 1) / 9) }}>
-              {RPE_GUIDE[formData.rpe] || RPE_GUIDE[Math.round(formData.rpe)] || "Adjust slider to see description."}
+              {getRPEDescriptionWithHeartRate(formData.rpe, userAge)}
             </div>
           </div>
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { RPE_DESCRIPTIONS } from '../modals/sessionSetupUtils';
+import { getRPEDescriptionWithHeartRate } from '../modals/sessionSetupUtils';
 
 interface RpeSliderProps {
     value: number;
@@ -7,6 +7,8 @@ interface RpeSliderProps {
     accentColor?: string;
     /** Base phase color (green for work, blue for rest) */
     phaseColor?: string;
+    /** User age for HR band calculation */
+    userAge?: number | null;
 }
 
 /**
@@ -40,11 +42,12 @@ const adjustColorBrightness = (hex: string, amount: number): string => {
 const RpeSlider: React.FC<RpeSliderProps> = ({
     value,
     onChange,
-    phaseColor = '#22c55e' // Default to green (work phase)
+    phaseColor = '#22c55e', // Default to green (work phase)
+    userAge = null
 }) => {
     // Snap to nearest 0.5 for display
     const snappedValue = Math.round(value * 2) / 2;
-    const description = RPE_DESCRIPTIONS[snappedValue] || RPE_DESCRIPTIONS[Math.floor(snappedValue)];
+    const description = getRPEDescriptionWithHeartRate(snappedValue, userAge);
 
     // Extract just the description part (after the dash)
     const shortDescription = description?.split(' - ')[1] || description;
@@ -92,8 +95,8 @@ const RpeSlider: React.FC<RpeSliderProps> = ({
                 </span>
             </div>
 
-            {/* Description - compact single line */}
-            <div className="text-[10px] text-white/50 text-center mt-1 truncate">
+            {/* Description - allows wrapping for HR bands */}
+            <div className="text-[10px] text-white/50 text-center mt-1 leading-relaxed">
                 {shortDescription}
             </div>
         </div>

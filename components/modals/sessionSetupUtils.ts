@@ -39,6 +39,30 @@ export const RPE_DESCRIPTIONS: Record<number, string> = {
     10: 'All-Out Sprint - Maximum possible effort, sustainable for just 20-30 seconds',
 };
 
+// Import HR utilities at module level (required for Vite ESM)
+import { getHeartRateBandForRPE, formatHeartRateBand } from '../../utils/rpeHeartRateUtils';
+
+/**
+ * Get RPE description with optional heart rate band
+ * When age is provided, appends estimated HR range naturally to the description
+ * 
+ * @param rpe - RPE value (1-10, supports 0.5 increments)
+ * @param age - User age in years (optional)
+ * @returns Description string with HR band appended when age is provided
+ */
+export function getRPEDescriptionWithHeartRate(rpe: number, age: number | null): string {
+    const baseDescription = RPE_DESCRIPTIONS[rpe] || RPE_DESCRIPTIONS[Math.round(rpe)] || "Adjust slider to see description.";
+
+    if (age === null || age <= 0 || rpe < 1) {
+        return baseDescription;
+    }
+
+    const band = getHeartRateBandForRPE(rpe, age);
+    const formattedBand = formatHeartRateBand(band);
+
+    return `${baseDescription} (${formattedBand})`;
+}
+
 // ============================================================================
 // RATIO PARSING
 // ============================================================================
